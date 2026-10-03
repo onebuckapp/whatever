@@ -25,10 +25,19 @@ extension NavigationController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webView.window?.title = webView.title ?? "New Tab"
-        // The in-memory homepage is not a visit worth remembering.
-        if let url = webView.url, !url.isAddresslessPage {
-            history.record(url: url, title: webView.title)
+        // A page that finishes loading behind an open card installs fresh mouse
+        // tracking areas, which would hand the pointer and hover straight back to
+        // it. Take them off again.
+        (webView as? BrowserWebView)?.reassertMouseInputSuppression()
+        // The in-memory homepage is not a visit worth remembering, and neither is
+        // anything in a private tab or a tab with recording turned off. The tab
+        // owns that decision because it is the thing that knows its privacy mode.
+        guard let owner, owner.shouldRecordHistory, let url = webView.url,
+              !url.isAddresslessPage
+        else {
+            return
         }
+        history.record(url: url, title: webView.title)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

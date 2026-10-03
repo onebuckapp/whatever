@@ -91,7 +91,7 @@ struct NoiseOverlaySettingsCard: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Toggle("Grain", isOn: enabledBinding)
+            Toggle("Grain", isOn: settings.enabledBinding)
                 .toggleStyle(.switch)
                 .controlSize(.small)
             Spacer()
@@ -110,7 +110,7 @@ struct NoiseOverlaySettingsCard: View {
     @ViewBuilder
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Color", selection: colorModeBinding) {
+            Picker("Color", selection: settings.colorModeBinding) {
                 ForEach(GrainColorMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -119,10 +119,10 @@ struct NoiseOverlaySettingsCard: View {
             .labelsHidden()
             .disabled(!configuration.isEnabled)
 
-            slider("Opacity", value: opacityBinding, range: 0...0.5)
-            slider("Intensity", value: intensityBinding, range: 0...1)
-            slider("Contrast", value: contrastBinding, range: 1...8)
-            slider("Grain Size", value: grainScaleBinding, range: 1...4)
+            slider("Opacity", value: settings.opacityBinding, range: 0...0.5)
+            slider("Intensity", value: settings.intensityBinding, range: 0...1)
+            slider("Contrast", value: settings.contrastBinding, range: 1...8)
+            slider("Grain Size", value: settings.grainScaleBinding, range: 1...4)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -168,50 +168,63 @@ struct NoiseOverlaySettingsCard: View {
         }
     }
 
+}
+
+// MARK: - Shared grain bindings
+
+/// Grain control bindings, shared by the standalone grain card and the Appearance
+/// pane in settings.
+///
+/// They live on the settings object rather than in either view that renders them.
+/// The card and the settings pane show the same controls, and every write has to go
+/// through `update` so it is sanitized and persisted; a second copy of that in each
+/// view is a third thing to keep in step when a grain field is added.
+extension NoiseOverlaySettings {
     // MARK: - Bindings
 
-    private var enabledBinding: Binding<Bool> {
+    var enabledBinding: Binding<Bool> {
         Binding(
-            get: { settings.configuration.isEnabled },
-            set: { value in settings.update { $0.isEnabled = value } }
+            get: { self.configuration.isEnabled },
+            set: { value in self.update { $0.isEnabled = value } }
         )
     }
 
-    private var colorModeBinding: Binding<GrainColorMode> {
+    var colorModeBinding: Binding<GrainColorMode> {
         Binding(
-            get: { settings.configuration.colorMode },
-            set: { value in settings.update { $0.colorMode = value } }
+            get: { self.configuration.colorMode },
+            set: { value in self.update { $0.colorMode = value } }
         )
     }
 
-    private var opacityBinding: Binding<Double> {
+    var opacityBinding: Binding<Double> {
         Binding(
-            get: { Double(settings.configuration.opacity) },
-            set: { value in settings.update { $0.opacity = CGFloat(value) } }
+            get: { Double(self.configuration.opacity) },
+            set: { value in self.update { $0.opacity = CGFloat(value) } }
         )
     }
 
-    private var intensityBinding: Binding<Double> {
+    var intensityBinding: Binding<Double> {
         Binding(
-            get: { Double(settings.configuration.intensity) },
-            set: { value in settings.update { $0.intensity = CGFloat(value) } }
+            get: { Double(self.configuration.intensity) },
+            set: { value in self.update { $0.intensity = CGFloat(value) } }
         )
     }
 
-    private var contrastBinding: Binding<Double> {
+    var contrastBinding: Binding<Double> {
         Binding(
-            get: { Double(settings.configuration.contrast) },
-            set: { value in settings.update { $0.contrast = CGFloat(value) } }
+            get: { Double(self.configuration.contrast) },
+            set: { value in self.update { $0.contrast = CGFloat(value) } }
         )
     }
 
-    private var grainScaleBinding: Binding<Double> {
+    var grainScaleBinding: Binding<Double> {
         Binding(
-            get: { Double(settings.configuration.grainScale) },
-            set: { value in settings.update { $0.grainScale = CGFloat(value) } }
+            get: { Double(self.configuration.grainScale) },
+            set: { value in self.update { $0.grainScale = CGFloat(value) } }
         )
     }
 }
+
 
 /// Root view hosted inside a window's content view: registers the popup
 /// stack, then presents the card once the stack is on screen.

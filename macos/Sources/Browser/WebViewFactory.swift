@@ -8,6 +8,9 @@ import WebKit
 /// share the persistent default store (cookies survive navigation),
 /// private tabs share one isolated non-persistent store per tab.
 enum WebViewFactory {
+    /// `MainActor` because the settings it reads live on a `MainActor` store,
+    /// and because a `WKWebView` has to be built on the main thread anyway.
+    @MainActor
     static func makeWebView(
         mode: BrowserPrivacyMode,
         dataStore: WKWebsiteDataStore
@@ -19,6 +22,9 @@ enum WebViewFactory {
         // Served from memory by HomepageSchemeHandler; whtvr://about is
         // the homepage and always shows the bundled markup.
         configuration.setURLSchemeHandler(HomepageSchemeHandler(), forURLScheme: "whtvr")
+        // The half of the user's web settings WebKit only reads here. The other
+        // half is applied by `applyLiveWebSettings` once the view exists.
+        SettingsStore.shared.settings.web.apply(to: configuration)
         return BrowserWebView(frame: .zero, configuration: configuration)
     }
 }

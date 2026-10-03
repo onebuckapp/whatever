@@ -111,9 +111,14 @@ struct NoiseOverlayConfiguration: Equatable {
 
 /// Shared, observable grain settings for the whole app.
 ///
-/// One store backs every window's overlay, so a change made in the
-/// settings popup updates all open windows at once and survives a
-/// relaunch (settings are a small codable record in `UserDefaults`).
+/// One store backs every window's overlay, so a change made in the settings
+/// popup updates all open windows at once.
+///
+/// Persistence moved from `UserDefaults` to the `WhateverStore` service during
+/// the store's introduction. This type is now a view onto
+/// `AppSettings.appearance.noise`: it holds the in-memory configuration the
+/// overlay reads, translates to and from the stored mirror, and mirrors every
+/// change into `SettingsStore`, which does the debounced write.
 @MainActor
 final class NoiseOverlaySettings: ObservableObject {
     static let shared = NoiseOverlaySettings()
@@ -121,16 +126,18 @@ final class NoiseOverlaySettings: ObservableObject {
     /// Bumped on every write; views observe the object itself.
     @Published private(set) var configuration: NoiseOverlayConfiguration
 
-    private let defaults: UserDefaults
-    private static let storageKey = "whatever.noiseOverlay"
+    private let settings: SettingsStore
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        if let data = defaults.data(forKey: Self.storageKey),
-           let saved = try? JSONDecoder().decode(StoredConfiguration.self, from: data) {
-            configuration = saved.configuration
-        } else {
-            configuration = NoiseOverlayConfiguration()
+    init(settings: SettingsStore = .shared) {
+        self.settings = settings
+        configuration = Self.configuration(from: settings.settings.appearance.noise)
+
+        // The store may answer after this object exists, carrying the user's
+        // saved values or a migrated legacy document.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await settings.load()
+            configuration = Self.configuration(from: settings.settings.appearance.noise)
         }
     }
 
@@ -155,55 +162,62 @@ final class NoiseOverlaySettings: ObservableObject {
         persist()
     }
 
+    /// Applies stored values without writing them back, for the load path.
+    func adopt(_ configuration: NoiseOverlayConfiguration) {
+        self.configuration = configuration
+    }
+
     private func persist() {
-        let stored = StoredConfiguration(configuration: configuration)
-        guard let data = try? JSONEncoder().encode(stored) else { return }
-        defaults.set(data, forKey: Self.storageKey)
+        settings.update { $0.appearance.noise = Self.stored(from: configuration) }
     }
-}
 
-/// Codable mirror of the configuration. `NSColor` is not `Codable`, so
-/// the tint round-trips through its RGB components.
-private struct StoredConfiguration: Codable {
-    var isEnabled: Bool
-    var opacity: Double
-    var intensity: Double
-    var contrast: Double
-    var grainScale: Double
-    var colorMode: GrainColorMode
-    var tintRed: Double?
-    var tintGreen: Double?
-    var tintBlue: Double?
-    var tintOpacity: Double
-    var seed: UInt64
+    // MARK: - Translation
 
-    init(configuration: NoiseOverlayConfiguration) {
-        isEnabled = configuration.isEnabled
-        opacity = Double(configuration.opacity)
-        intensity = Double(configuration.intensity)
-        contrast = Double(configuration.contrast)
-        grainScale = Double(configuration.grainScale)
-        colorMode = configuration.colorMode
-        tintOpacity = Double(configuration.tintOpacity)
-        seed = configuration.seed
+    /// Stored mirror of a configuration.
+    ///
+    /// `NSColor` is not `Codable`, so the tint round-trips through its sRGB
+    /// components. A tint in another color space is dropped rather than
+    /// converted, since the only tint the UI offers is picked in sRGB.
+    static func stored(
+        from configuration: NoiseOverlayConfiguration
+    ) -> AppSettings.AppearanceSettings.StoredNoise {
+        var result = AppSettings.AppearanceSettings.StoredNoise()
+        result.isEnabled = configuration.isEnabled
+        result.opacity = Double(configuration.opacity)
+        result.intensity = Double(configuration.intensity)
+        result.contrast = Double(configuration.contrast)
+        result.grainScale = Double(configuration.grainScale)
+        result.colorMode = configuration.colorMode
+        result.tintOpacity = Double(configuration.tintOpacity)
+        result.seed = configuration.seed
         if let tint = configuration.tint?.usingColorSpace(.sRGB) {
-            tintRed = Double(tint.redComponent)
-            tintGreen = Double(tint.greenComponent)
-            tintBlue = Double(tint.blueComponent)
+            result.tintRed = Double(tint.redComponent)
+            result.tintGreen = Double(tint.greenComponent)
+            result.tintBlue = Double(tint.blueComponent)
         }
+        return result
     }
 
-    var configuration: NoiseOverlayConfiguration {
+    /// In-memory configuration for a stored mirror.
+    ///
+    /// Sanitized on the way in: a hand-edited or corrupted document must not be
+    /// able to push a non-finite value into the texture generator.
+    static func configuration(
+        from stored: AppSettings.AppearanceSettings.StoredNoise
+    ) -> NoiseOverlayConfiguration {
         var result = NoiseOverlayConfiguration()
-        result.isEnabled = isEnabled
-        result.opacity = CGFloat(opacity)
-        result.intensity = CGFloat(intensity)
-        result.contrast = CGFloat(contrast)
-        result.grainScale = CGFloat(grainScale)
-        result.colorMode = colorMode
-        result.tintOpacity = CGFloat(tintOpacity)
-        result.seed = seed
-        if let tintRed, let tintGreen, let tintBlue {
+        result.isEnabled = stored.isEnabled
+        result.opacity = CGFloat(stored.opacity)
+        result.intensity = CGFloat(stored.intensity)
+        result.contrast = CGFloat(stored.contrast)
+        result.grainScale = CGFloat(stored.grainScale)
+        result.colorMode = stored.colorMode
+        result.tintOpacity = CGFloat(stored.tintOpacity)
+        result.seed = stored.seed
+        if let tintRed = stored.tintRed,
+           let tintGreen = stored.tintGreen,
+           let tintBlue = stored.tintBlue
+        {
             result.tint = NSColor(
                 srgbRed: CGFloat(tintRed),
                 green: CGFloat(tintGreen),
@@ -211,7 +225,6 @@ private struct StoredConfiguration: Codable {
                 alpha: 1
             )
         }
-        return result
+        return result.sanitized
     }
 }
-

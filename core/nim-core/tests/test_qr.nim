@@ -8,7 +8,7 @@ import std/[strutils, unittest]
 
 import openparser/qr/model2
 
-import ../api/qr_api
+import ../api/[abi, qr_api]
 
 proc matrixFromAbi(payload: string, level: QrEc = qrEcMedium): QrMatrix =
   var modules: array[QrMaxModules, uint8]
@@ -44,7 +44,7 @@ suite "qr c abi":
     let status = bcQrEncode("", 1, addr modules[0], cint(modules.len),
       addr width, addr height)
     check status == QrStatus.qrBadInput.ord
-    check bcLastError(nil, 0) > 0
+    check abi.lastError(nil, 0) > 0
 
   test "refuses an undersized module buffer":
     var tiny: array[4, uint8]

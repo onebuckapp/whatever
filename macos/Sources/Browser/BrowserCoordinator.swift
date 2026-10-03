@@ -18,9 +18,33 @@ struct ClosedTab {
 final class BrowserCoordinator: NSObject, ObservableObject {
     static let shared = BrowserCoordinator()
 
-    let history: HistoryRecording = InMemoryHistoryRecorder()
+    let history: HistoryRecording = StoreHistoryRecorder()
 
     private(set) var windows: [BrowserWindowController] = []
+    /// Pushes the live half of the web settings onto every open page.
+    ///
+    /// Only the `WKWebView` properties can be changed this way; the rest are read
+    /// when a view is built, so those take effect on the next page. Called from
+    /// `SettingsStore.onChange` rather than from each control, so a change made
+    /// anywhere lands the same way.
+    func applyLiveWebSettings() {
+        let settings = SettingsStore.shared.settings.web
+        for window in windows {
+            for tab in window.tabs {
+                // Skips tabs with no view: they read the configuration half when
+                // they are built, and there is nothing to push live settings onto.
+                guard let webView = tab.webView else { continue }
+                settings.apply(toWebView: webView)
+            }
+        }
+    }
+    /// Suppresses session writes while a session is being rebuilt.
+    ///
+    /// Restoring runs the same `addTab` and `selectTab` paths as any other
+    /// change, so without this the first window would schedule a write of a
+    /// half-restored session over the one being read.
+    private var isRestoringSession = false
+
     private(set) var recentlyClosed: [ClosedTab] = []
     private let maxRecentlyClosed = 25
     private var closeObserver: NSObjectProtocol?
@@ -38,6 +62,99 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                 self?.windowWillClose(window)
             }
         }
+    }
+
+    // MARK: - Session
+
+    /// Builds the document that describes every open window.
+    ///
+    /// Private tabs are left out here rather than marked in the document: a
+    /// private tab is not the user's to reopen later, so it should not survive
+    /// in a file either. The address is the tab's own rather than its loaded
+    /// page's, so a tab that never got a view still records where it was.
+    func sessionSnapshot() -> SessionSnapshot {
+        let records = windows.compactMap { controller -> SessionSnapshot.WindowSnapshot? in
+            guard let window = controller.window else { return nil }
+            let tabs = controller.tabs.compactMap { tab -> SessionSnapshot.TabSnapshot? in
+                guard tab.privacyMode != .privateBrowsing else { return nil }
+                let slice = tab.historySnapshot()
+                return SessionSnapshot.TabSnapshot(
+                    id: tab.id,
+                    url: tab.currentURL.absoluteString,
+                    title: tab.tabController.title,
+                    isPinned: tab.presentation.isPinned,
+                    history: slice.urls.map(\.absoluteString),
+                    historyIndex: slice.index
+                )
+            }
+            guard !tabs.isEmpty else { return nil }
+            // The layout can name a private tab that the filter above just
+            // dropped, so it is rebuilt from what survived.
+            let kept = Set(tabs.map(\.id))
+            let layout: SessionSnapshot.WindowSnapshot.Layout
+            switch controller.layout {
+            case .single(let tabID):
+                layout = .single(kept.contains(tabID) ? tabID : (tabs.first?.id ?? UUID()))
+            case .split(let leading, let trailing, let ratio):
+                let canRestoreBoth = kept.contains(leading)
+                    && kept.contains(trailing)
+                    && leading != trailing
+                layout = canRestoreBoth
+                    ? .split(leading: leading, trailing: trailing, ratio: Double(ratio))
+                    : .single(kept.contains(leading) ? leading : (tabs.first?.id ?? UUID()))
+            }
+            return SessionSnapshot.WindowSnapshot(
+                frame: .init(window.frame),
+                tabs: tabs,
+                selectedTabID: controller.selectedTabID.flatMap { kept.contains($0) ? $0 : nil },
+                layout: layout
+            )
+        }
+        return SessionSnapshot(windows: records)
+    }
+
+    /// Reopens a stored session.
+    ///
+    /// Returns how many windows came back, so the caller can open a fresh one
+    /// when there was nothing to restore.
+    @discardableResult
+    func restore(from snapshot: SessionSnapshot?) -> Int {
+        guard let snapshot, snapshot.isRestorable else { return 0 }
+        isRestoringSession = true
+        defer { isRestoringSession = false }
+        var restored = 0
+        for record in snapshot.windows where !record.tabs.isEmpty {
+            let controller = BrowserWindowController(restoring: record, history: history)
+            windows.append(controller)
+            controller.showWindow(nil)
+            controller.window?.makeKeyAndOrderFront(nil)
+            restored += 1
+        }
+        return restored
+    }
+
+    /// Schedules a session write.
+    ///
+    /// The single entry point for every change worth recording, so a new kind of
+    /// mutation cannot quietly skip persistence by being added somewhere that
+    /// forgets to call this.
+    func sessionDidChange() {
+        guard !isRestoringSession else { return }
+        let snapshot = sessionSnapshot()
+        Task { await SessionStore.shared.scheduleSave(snapshot) }
+    }
+
+    /// Writes the session immediately, for the quit and window-close paths.
+    func saveSessionNow() async {
+        await SessionStore.shared.saveNow(sessionSnapshot())
+    }
+
+    /// Whether a session write has not reached the store yet.
+    ///
+    /// The quit path reads this to decide whether it needs to delay termination
+    /// at all, so a quit with nothing pending does not wait on a round trip.
+    func hasPendingSessionWrite() async -> Bool {
+        await SessionStore.shared.hasPendingWrite
     }
 
     // MARK: - Windows
@@ -116,7 +233,9 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     func recordClosedTab(_ tab: BrowserTab) {
         // Snapshot, don't retain: reopening rebuilds the tab from its
         // URL, so the closed tab and its web view deallocate now.
-        recentlyClosed.append(ClosedTab(url: tab.tabController.url, privacyMode: tab.privacyMode))
+        // `displayURL` rather than the loaded page's URL, so reopening a tab that
+        // was never realized lands on the address it was sitting at.
+        recentlyClosed.append(ClosedTab(url: tab.displayURL, privacyMode: tab.privacyMode))
         trimRecentlyClosed()
     }
 
@@ -215,11 +334,14 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         guard let controller = windows.first(where: { $0.window === window }) else { return }
         // The window's tabs go on the reopen stack in close order.
         recentlyClosed.append(contentsOf: controller.tabs.reversed().map {
-            ClosedTab(url: $0.tabController.url, privacyMode: $0.privacyMode)
+            ClosedTab(url: $0.displayURL, privacyMode: $0.privacyMode)
         })
         trimRecentlyClosed()
         controller.tearDown()
         windows.removeAll { $0 === controller }
+        // After the removal, so the snapshot describes what is still open. The
+        // frame is captured while the window still exists.
+        sessionDidChange()
     }
 
     private func trimRecentlyClosed() {

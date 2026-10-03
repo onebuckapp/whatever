@@ -2,10 +2,6 @@ import AppKit
 import Combine
 import WebKit
 
-/// TEMPORARY leak probes: query from lldb. Remove before finishing.
-var paneProbeBirths = 0
-var paneProbeDeaths = 0
-
 /// Displays one tab: a page container that hosts the tab's existing
 /// `WKWebView`. The container sits flush under the tab bar with square
 /// top corners, so the page reads as attached to the bar; the bottom
@@ -23,17 +19,10 @@ final class BrowserPaneController: NSViewController {
         self.tab = tab
         self.activeModel = activeModel
         super.init(nibName: nil, bundle: nil)
-        // TEMPORARY leak probe.
-        paneProbeBirths += 1
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    // TEMPORARY leak probe.
-    deinit {
-        paneProbeDeaths += 1
     }
 
     override func loadView() {
@@ -56,7 +45,10 @@ final class BrowserPaneController: NSViewController {
         view.addSubview(pageContainer)
         self.pageContainer = pageContainer
 
-        let webView = tab.webView
+        // A pane only exists for a tab the page area is showing, so asking the
+        // tab to realize itself here is what builds the page. A restored tab
+        // arrives without one.
+        let webView = tab.ensureWebView()
         webView.translatesAutoresizingMaskIntoConstraints = false
         pageContainer.addSubview(webView)
 
@@ -121,7 +113,9 @@ final class BrowserPaneController: NSViewController {
     /// Uses the page the user is looking at, not the tab's last committed
     /// navigation, so the code matches what is on screen.
     private func presentPageQRCode() {
-        presentQRCode(text: tab.webView.url?.absoluteString ?? "")
+        // The page this pane is hosting, which is realized by now: a pane only
+        // exists for a tab the page area is showing.
+        presentQRCode(text: tab.webView?.url?.absoluteString ?? "")
     }
 
     private func updateBorder(activeID: UUID?, showsIndicator: Bool) {
@@ -151,6 +145,6 @@ extension BrowserPaneController: WKUIDelegate {
         ) else {
             return nil
         }
-        return newTab.webView
+        return newTab.ensureWebView()
     }
 }

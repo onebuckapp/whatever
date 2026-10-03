@@ -16,6 +16,7 @@ enum TabMenuAction: String {
     case openInNewWindow
     case copyURL
     case qrCode
+    case settings
     case closeTab
     case closeOtherTabs
     case closeTabsToTheRight
@@ -102,6 +103,10 @@ enum BrowserTabContextMenu {
         add("Close Other Tabs", .closeOtherTabs, to: menu, target: target)
         add("Close Tabs to the Right", .closeTabsToTheRight, to: menu, target: target)
 
+        menu.addItem(.separator())
+
+        add("Settings\u{2026}", .settings, to: menu, target: target)
+
         return menu
     }
 
@@ -136,6 +141,10 @@ enum BrowserTabContextMenu {
         add("Close Tab", .closeTab, to: menu, target: target)
         add("Close Other Tabs", .closeOtherTabs, to: menu, target: target)
         add("Close Tabs to the Right", .closeTabsToTheRight, to: menu, target: target)
+
+        menu.addItem(.separator())
+
+        add("Settings\u{2026}", .settings, to: menu, target: target)
 
         return menu
     }
@@ -173,12 +182,17 @@ enum BrowserTabContextMenu {
         case .openInNewWindow:
             coordinator.newWindow(containing: tab)
         case .copyURL:
-            if let url = tab.tabController.url, !url.isAddresslessPage {
+            // `displayURL` so the copy is the tab's address even if the tab has
+            // no realized view yet.
+            let url = tab.displayURL
+            if !url.isAddresslessPage {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(url.absoluteString, forType: .string)
             }
         case .qrCode:
             controller.presentQRCode(for: tab)
+        case .settings:
+            controller.presentSettings()
         case .closeTab:
             controller.closeTab(tab)
         case .closeOtherTabs:

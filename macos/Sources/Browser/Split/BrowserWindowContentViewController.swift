@@ -14,6 +14,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var noiseOverlay: NoiseOverlayView?
     private var settingsSubscription: AnyCancellable?
     private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
+    private var settingsPresenter: SettingsModalPresenter?
     private var shield: ModalEventShieldView?
 
     /// Set by the window controller. `onDropZoneChanged` receives nil
@@ -21,6 +22,13 @@ final class BrowserWindowContentViewController: NSViewController {
     /// dismissed.
     var onDropZoneChanged: ((SplitDropZone?) -> Void)?
     var onTabDropped: ((BrowserTab, SplitDropZone) -> Void)?
+    /// Reports the shield going in (`true`) or coming out (`false`).
+    ///
+    /// The window controller uses it to take its pages out of mouse interaction for
+    /// the duration. The shield is what intercepts presses; this is what stops the
+    /// pages noticing the pointer at all, and both are needed for the page to be
+    /// genuinely inert while a card is up.
+    var onShieldChanged: ((Bool) -> Void)?
 
     let tabBar = TabBarContainerView(newTabAction: {})
     /// Constraints pinning the current child. They must be deactivated
@@ -61,7 +69,7 @@ final class BrowserWindowContentViewController: NSViewController {
         // on top and stays interactive while everything under the shield
         // (page, tab bar, drop preview) goes inert. It also catches
         // clicks in the areas Mijick's own backdrop does not cover.
-        shield = ModalEventShieldView.install(in: view) { [weak self] in
+        installShield { [weak self] in
             Task { @MainActor in
                 self?.dismissNoiseSettings()
             }
@@ -78,6 +86,43 @@ final class BrowserWindowContentViewController: NSViewController {
         noiseOverlay?.moveToFront()
     }
 
+    /// Opens the settings modal over this window.
+    ///
+    /// Same shape as the grain card: shield first so everything underneath goes
+    /// inert, then the popup host on top of it, and one teardown path for every
+    /// way out. The two dialogs are mutually exclusive because both claim the
+    /// shield.
+    func presentSettings(section: SettingsSection = .general) {
+        guard isViewLoaded else { return }
+        if settingsPresenter != nil {
+            dismissSettings()
+            return
+        }
+        dismissNoiseSettings()
+        installShield { [weak self] in
+            Task { @MainActor in
+                self?.dismissSettings()
+            }
+        }
+        let presenter = SettingsModalPresenter(container: view) { [weak self] in
+            self?.clearSettings()
+        }
+        presenter.present(section: section)
+        settingsPresenter = presenter
+        noiseOverlay?.moveToFront()
+    }
+
+    func dismissSettings() {
+        settingsPresenter?.dismiss()
+        clearSettings()
+    }
+
+    private func clearSettings() {
+        settingsPresenter = nil
+        removeShield()
+        noiseOverlay?.moveToFront()
+    }
+
     private func dismissNoiseSettings() {
         // The presenter's teardown calls back into `clearNoiseSettings`.
         noiseSettingsPresenter?.dismiss()
@@ -86,9 +131,30 @@ final class BrowserWindowContentViewController: NSViewController {
 
     private func clearNoiseSettings() {
         noiseSettingsPresenter = nil
+        removeShield()
+        noiseOverlay?.moveToFront()
+    }
+
+    /// Covers the page so nothing under a card can be clicked, and tells the
+    /// window that its pages have to go inert with it.
+    ///
+    /// Both halves matter and neither is sufficient alone: the shield is a plain
+    /// view that consumes presses, but a `WKWebView` underneath keeps tracking the
+    /// pointer for hover whether or not anything is intercepting clicks.
+    private func installShield(onClick: @escaping () -> Void) {
+        shield?.removeFromSuperview()
+        shield = ModalEventShieldView.install(in: view, onClick: onClick)
+        onShieldChanged?(true)
+    }
+
+    /// Takes the shield back out and hands the mouse back to the pages. Guarded so
+    /// the teardown paths can all call it without having to know whether they are
+    /// the first one out.
+    private func removeShield() {
+        guard shield != nil else { return }
         shield?.removeFromSuperview()
         shield = nil
-        noiseOverlay?.moveToFront()
+        onShieldChanged?(false)
     }
 
     /// 2pt loading indicator overlaid on the top edge of the page. It

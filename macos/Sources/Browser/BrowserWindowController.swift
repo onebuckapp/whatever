@@ -29,37 +29,141 @@ final class BrowserWindowController: NSWindowController {
     private var titleSubscription: AnyCancellable?
     private var progressCancellables = Set<AnyCancellable>()
     private var menuTargets: [UUID: TabMenuTarget] = [:]
+    /// Observers for the frame notifications, held so they can be removed.
+    private var frameObservers: [NSObjectProtocol] = []
 
     // MARK: - Init
 
     init(tab: BrowserTab) {
         self.layout = .single(tabID: tab.id)
+        let content = BrowserWindowContentViewController()
+        self.contentController = content
+        let window = Self.makeWindow(content: content)
+        super.init(window: window)
+        configureChrome()
+        adoptTabs([tab], selectedTabID: tab.id)
+        selectTab(tab)
+        refresh()
+
+        // Must come after init: with a hidden transparent titlebar,
+        // sizing the content before super.init is lost and the window
+        // collapses to content fitting size on first show.
+        window.setContentSize(NSSize(width: 1300, height: 840))
+    }
+
+    /// Rebuilds a window from a stored session.
+    ///
+    /// The tabs come back without web views, so a window that had a dozen tabs
+    /// open builds pages only for the ones its layout actually shows. Everything
+    /// else waits until it is selected.
+    init(restoring record: SessionSnapshot.WindowSnapshot, history: HistoryRecording) {
+        // A tab whose stored address will not parse cannot be rebuilt, so it is
+        // dropped rather than restored to the homepage and quietly disagreeing
+        // with the document.
+        let rebuilt = record.tabs.compactMap { tabRecord -> BrowserTab? in
+            guard let urls = tabRecord.restoredURLs, !urls.isEmpty else { return nil }
+            return BrowserTab(
+                id: tabRecord.id,
+                privacyMode: .regular,
+                history: history,
+                restored: .init(
+                    urls: urls,
+                    index: min(tabRecord.restoredIndex, urls.count - 1),
+                    title: tabRecord.title,
+                    isPinned: tabRecord.isPinned
+                )
+            )
+        }
+        // A record whose every tab failed to rebuild still opens a usable window
+        // rather than a blank one.
+        let restoredTabs = rebuilt.isEmpty
+            ? [BrowserTab(history: history)]
+            : rebuilt
+        let rebuiltIDs = Set(restoredTabs.map(\.id))
+
+        // The layout is normalized against the tabs that actually came back, so
+        // it can never name a pane that has nothing to show.
+        let layout: ContentLayout
+        switch record.layout {
+        case .single(let id):
+            layout = .single(tabID: rebuiltIDs.contains(id) ? id : (restoredTabs.first?.id ?? UUID()))
+        case .split(let leading, let trailing, let ratio):
+            let canRestoreBoth = rebuiltIDs.contains(leading)
+                && rebuiltIDs.contains(trailing)
+                && leading != trailing
+            layout = canRestoreBoth
+                ? .split(
+                    leadingTabID: leading,
+                    trailingTabID: trailing,
+                    ratio: CGFloat(ratio)
+                )
+                : .single(tabID: restoredTabs.first?.id ?? UUID())
+        }
+        self.layout = layout
 
         let content = BrowserWindowContentViewController()
         self.contentController = content
+        let window = Self.makeWindow(content: content)
+        super.init(window: window)
+        configureChrome()
+        adoptTabs(restoredTabs, selectedTabID: nil)
 
+        // `selectTab` collapses a split when the selection is not one of its
+        // panes, so the selection is settled before it runs. A stored selection
+        // that cannot belong to the stored split must not collapse it; the split
+        // is the more distinctive state and is still worth restoring.
+        let layoutIDs = layout.tabIDs.filter { rebuiltIDs.contains($0) }
+        let storedSelection = record.selectedTabID.flatMap { rebuiltIDs.contains($0) ? $0 : nil }
+        let selection = storedSelection.flatMap { candidate in
+            layoutIDs.contains(candidate) ? candidate : nil
+        } ?? layoutIDs.first ?? storedSelection ?? restoredTabs.first?.id
+
+        if let selection, let tab = restoredTabs.first(where: { $0.id == selection }) {
+            selectTab(tab)
+        } else {
+            refresh()
+        }
+
+        if record.frame.isUsable {
+            window.setFrame(record.frame.rect, display: true)
+        }
+    }
+
+    convenience init(
+        initialURL: URL? = nil,
+        privacyMode: BrowserPrivacyMode = .regular,
+        history: HistoryRecording
+    ) {
+        self.init(tab: BrowserTab(privacyMode: privacyMode, history: history, initialURL: initialURL))
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Init plumbing
+
+    private static func makeWindow(content: BrowserWindowContentViewController) -> NSWindow {
         let window = NSWindow(contentViewController: content)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
+        return window
+    }
 
-        super.init(window: window)
-
+    /// Everything that does not depend on which tabs exist: the toolbar, the tab
+    /// bar's wiring, and the drop handlers.
+    private func configureChrome() {
         // The toolbar controller needs this controller, so it can only
         // be built after super.init.
         let toolbarController = BrowserToolbarController(controller: self)
         self.toolbarController = toolbarController
-        window.toolbarStyle = .unified
-        window.toolbar = toolbarController.windowToolbar
+        window?.toolbarStyle = .unified
+        window?.toolbar = toolbarController.windowToolbar
 
-        tabs = [tab]
-        tab.onWebViewReplaced = { [weak self, weak tab] in
-            guard let tab else { return }
-            self?.webViewReplaced(for: tab)
-        }
-        content.installDropPreview(dropPreview)
-        content.setNewTabAction { [weak self] in
+        contentController.installDropPreview(dropPreview)
+        contentController.setNewTabAction { [weak self] in
             guard let self else { return }
             BrowserCoordinator.shared.newTab(in: self)
         }
@@ -83,26 +187,63 @@ final class BrowserWindowController: NSWindowController {
             guard let self else { return }
             self.contentController.toggleNoiseSettings()
         }
+        toolbarController.onSettings = { [weak self] in
+            self?.presentSettings()
+        }
+        // A modal card takes the mouse away from the pages for its duration.
+        contentController.onShieldChanged = { [weak self] shielded in
+            self?.setPagesInteractive(!shielded)
+        }
 
-        selectTab(tab)
-        refresh()
-
-        // Must come after init: with a hidden transparent titlebar,
-        // sizing the content before super.init is lost and the window
-        // collapses to content fitting size on first show.
-        window.setContentSize(NSSize(width: 1300, height: 840))
+        // Where a window sits is part of the session, so moving or resizing one
+        // schedules a write. The store's debounce collapses a whole drag into a
+        // single save.
+        if let window {
+            for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
+                frameObservers.append(
+                    NotificationCenter.default.addObserver(
+                        forName: name, object: window, queue: .main
+                    ) { [weak self] _ in
+                        MainActor.assumeIsolated { self?.sessionDidChange() }
+                    }
+                )
+            }
+        }
     }
 
-    convenience init(
-        initialURL: URL? = nil,
-        privacyMode: BrowserPrivacyMode = .regular,
-        history: HistoryRecording
-    ) {
-        self.init(tab: BrowserTab(privacyMode: privacyMode, history: history, initialURL: initialURL))
+    deinit {
+        for observer in frameObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    /// Takes ownership of `tabs` in order, without selecting or refreshing: the
+    /// caller decides what the page area ends up showing.
+    private func adoptTabs(_ tabs: [BrowserTab], selectedTabID: UUID?) {
+        self.tabs = tabs
+        self.selectedTabID = selectedTabID
+        for tab in tabs {
+            tab.onWebViewReplaced = { [weak self, weak tab] in
+                guard let tab else { return }
+                self?.webViewReplaced(for: tab)
+            }
+        }
+    }
+
+    /// Records that this window's share of the session changed.
+    private func sessionDidChange() {
+        BrowserCoordinator.shared.sessionDidChange()
+    }
+
+    /// Hands the mouse to every open page, or takes it away from all of them.
+    ///
+    /// Called for the lifetime of a modal card. Only realized pages need anything
+    /// doing: a tab with no view is already unable to see the pointer, and picks
+    /// up the right state when it builds one.
+    private func setPagesInteractive(_ interactive: Bool) {
+        for tab in tabs {
+            tab.setAcceptsMouseInput(interactive)
+        }
     }
 
     // MARK: - Tabs
@@ -141,6 +282,7 @@ final class BrowserWindowController: NSWindowController {
         } else {
             refresh()
         }
+        sessionDidChange()
     }
 
     func selectTab(_ tab: BrowserTab) {
@@ -162,6 +304,7 @@ final class BrowserWindowController: NSWindowController {
             layout = .single(tabID: tab.id)
         }
         refresh()
+        sessionDidChange()
     }
 
     /// Drives the 2pt indicator under the toolbar from the active tab.
@@ -181,16 +324,17 @@ final class BrowserWindowController: NSWindowController {
         tabs.remove(at: from)
         tabs.insert(tab, at: min(max(0, index), tabs.count))
         refresh()
+        sessionDidChange()
     }
 
     @discardableResult
     func duplicateTab(_ tab: BrowserTab) -> BrowserTab {
         // A blank page duplicates as a fresh homepage, not as about:blank.
-        let url = tab.tabController.url
+        let url = tab.displayURL
         let copy = BrowserTab(
             privacyMode: tab.privacyMode,
             history: BrowserCoordinator.shared.history,
-            initialURL: url?.isAddresslessPage == true ? nil : url
+            initialURL: url.isAddresslessPage ? nil : url
         )
         let index = tabs.firstIndex(where: { $0.id == tab.id }).map { $0 + 1 }
         addTab(copy, at: index)
@@ -221,7 +365,9 @@ final class BrowserWindowController: NSWindowController {
     func tearDown() {
         for tab in tabs {
             paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
-            tab.webView.removeFromSuperview()
+            // The window is closing, so nothing will ever need these pages
+            // again; dropping the views releases their processes.
+            tab.discardWebView()
         }
         paneCache.removeAll()
         menuTargets.removeAll()
@@ -253,7 +399,8 @@ final class BrowserWindowController: NSWindowController {
         }
 
         paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
-        tab.webView.removeFromSuperview()
+        // The view moves with the tab, so it is only unparented here.
+        tab.webView?.removeFromSuperview()
         menuTargets.removeValue(forKey: tab.id)
 
         if tabs.isEmpty {
@@ -261,6 +408,7 @@ final class BrowserWindowController: NSWindowController {
         } else {
             selectTab(tabs[min(index, tabs.count - 1)])
         }
+        sessionDidChange()
     }
 
     /// Removes a tab. The last tab closes the window; a removed tab
@@ -287,7 +435,7 @@ final class BrowserWindowController: NSWindowController {
         }
 
         paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
-        tab.webView.removeFromSuperview()
+        tab.webView?.removeFromSuperview()
         menuTargets.removeValue(forKey: tab.id)
 
         if tabs.isEmpty {
@@ -298,6 +446,7 @@ final class BrowserWindowController: NSWindowController {
         let next = selectedTabID.flatMap { id in tabs.first { $0.id == id } }
             ?? tabs[min(index, tabs.count - 1)]
         selectTab(next)
+        sessionDidChange()
     }
 
     func closeTab(_ tab: BrowserTab) {
@@ -356,6 +505,7 @@ final class BrowserWindowController: NSWindowController {
 
         rebuildSplitView()
         selectTab(droppedTab)
+        sessionDidChange()
         return true
     }
 
@@ -378,6 +528,7 @@ final class BrowserWindowController: NSWindowController {
         }
         rebuildSplitView()
         selectTab(tab)
+        sessionDidChange()
     }
 
     /// Splits the selected tab with the next tab in the tab bar.
@@ -425,12 +576,14 @@ final class BrowserWindowController: NSWindowController {
         layout = .single(tabID: remaining.id)
         rebuildContent()
         selectTab(remaining)
+        sessionDidChange()
     }
 
     func collapseSplit() {
         guard isSplit, let tab = selectedTab ?? displayedTabs.first else { return }
         layout = .single(tabID: tab.id)
         rebuildContent()
+        sessionDidChange()
     }
 
     func focusNextPane() {
@@ -451,7 +604,9 @@ final class BrowserWindowController: NSWindowController {
         }
         let next = visible[(index + step + visible.count) % visible.count]
         selectTab(next)
-        window?.makeFirstResponder(next.webView)
+        // The pane is on screen by now, so this is already realized; asking the
+        // tab for it directly keeps the call honest if that ever stops being true.
+        window?.makeFirstResponder(next.ensureWebView())
     }
 
     // MARK: - Drop handling
@@ -528,7 +683,7 @@ final class BrowserWindowController: NSWindowController {
 
     /// Shows the QR card for `tab`'s page over that tab's pane.
     func presentQRCode(for tab: BrowserTab) {
-        guard let url = tab.webView.url, !url.isAddresslessPage else {
+        guard let url = tab.webView?.url, !url.isAddresslessPage else {
             SystemBeep.play()
             return
         }
@@ -538,6 +693,15 @@ final class BrowserWindowController: NSWindowController {
             selectTab(tab)
         }
         pane(for: tab).presentQRCode(text: url.absoluteString)
+    }
+
+    /// Opens the settings modal on this window.
+    ///
+    /// The single entry point behind all three of them — the toolbar gear, the
+    /// page menu's Settings item, and the app menu's Settings command — so the
+    /// modal is always owned by the window it is opened over.
+    func presentSettings(section: SettingsSection = .general) {
+        contentController.presentSettings(section: section)
     }
 
     /// Closes every open QR card, used when the layout or selection changes
@@ -593,6 +757,7 @@ final class BrowserWindowController: NSWindowController {
                         BrowserSplitViewController.maximumRatio
                     )
                 )
+                self.sessionDidChange()
             }
         }
 
@@ -608,6 +773,21 @@ final class BrowserWindowController: NSWindowController {
         // Ratio can only be applied once the view has a width.
         split.view.layoutSubtreeIfNeeded()
         split.setRatio(ratio)
+    }
+}
+
+extension BrowserWindowController.ContentLayout {
+    /// The tabs a layout displays, in order.
+    ///
+    /// Mirrors `SessionSnapshot.WindowSnapshot.Layout.tabIDs`, which is what a
+    /// session restore reads the layout back through.
+    var tabIDs: [UUID] {
+        switch self {
+        case .single(let id):
+            return [id]
+        case .split(let leading, let trailing, _):
+            return [leading, trailing]
+        }
     }
 }
 

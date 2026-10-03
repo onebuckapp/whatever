@@ -1,7 +1,47 @@
 import Foundation
 
-/// Error correction level requested from the Nim QR encoder. Raw values
-/// mirror `BC_QR_EC_*` in `core/include/browsercore.h`.
+/// App-side view of the Whatever core, which lives in the `WhateverStore`
+/// XPC service.
+///
+/// The app links no Nim code. `bc_*` is called from inside the service, on that
+/// service's own queue, so nothing here touches disk or blocks the main thread.
+/// The trade is that every call is `async` now: a round trip through XPC is
+/// cheap but not free, and pretending otherwise would hide real latency from the
+/// call sites.
+enum BrowserCore {
+    /// Core version and expected schema version. Also the cheapest reachability
+    /// probe, since it touches no store.
+    static func version() async throws -> StoreVersion {
+        try await StoreClient.shared.version()
+    }
+
+    /// Encodes `text` as a Model 2 QR symbol and returns openparser's
+    /// standalone SVG document for it.
+    ///
+    /// `scale` is the pixel size of one module and `border` the quiet zone in
+    /// modules. `darkHex` / `lightHex` are CSS colors; pass nil for the core
+    /// defaults (black modules, transparent background).
+    static func qrSVG(
+        for text: String,
+        ec: QRErrorCorrection = .quartile,
+        scale: Int = 8,
+        border: Int = 4,
+        darkHex: String? = nil,
+        lightHex: String? = nil
+    ) async throws -> String {
+        try await StoreClient.shared.qrSVG(
+            for: text,
+            ec: ec.rawValue,
+            scale: Int32(scale),
+            border: Int32(border),
+            darkHex: darkHex,
+            lightHex: lightHex
+        )
+    }
+}
+
+/// Error correction level requested from the Nim QR encoder. Raw values mirror
+/// the `BC_QR_EC_*` values in `core/include/browsercore.h`.
 enum QRErrorCorrection: Int32, CaseIterable {
     case low = 0
     case medium = 1
@@ -23,7 +63,33 @@ enum BrowserCoreError: Error, LocalizedError {
     case payloadTooLong
     case bufferTooSmall
     case encoderFailed(detail: String)
+    case storeUnavailable
     case unknown(code: Int32)
+
+    /// Wraps whatever the service reported, mapping the store's status onto the
+    /// vocabulary the QR popup already handled.
+    init(underlying error: Error) {
+        guard let status = storeStatus(of: error) else {
+            self = .encoderFailed(detail: error.localizedDescription)
+            return
+        }
+        switch status {
+        case .badInput:
+            self = .badInput
+        case .payloadTooLong:
+            self = .payloadTooLong
+        case .bufferTooSmall:
+            self = .bufferTooSmall
+        case .encoder:
+            self = .encoderFailed(detail: error.localizedDescription)
+        case .notFound:
+            self = .bufferTooSmall
+        case .storage, .locked:
+            self = .storeUnavailable
+        case .ok:
+            self = .storeUnavailable
+        }
+    }
 
     var errorDescription: String? {
         switch self {
@@ -35,118 +101,10 @@ enum BrowserCoreError: Error, LocalizedError {
             "The QR buffer was rejected by the core."
         case let .encoderFailed(detail):
             detail.isEmpty ? "The QR encoder failed." : detail
+        case .storeUnavailable:
+            "The Whatever store service is not available."
         case let .unknown(code):
             "The QR encoder returned an unexpected status (\(code))."
-        }
-    }
-}
-
-/// Swift face of the Nim backend (`libbrowsercore.a`).
-///
-/// Every call is synchronous and main-thread only, matching the contract in
-/// `core/include/browsercore.h`. The core never allocates memory we own: it
-/// writes into the buffer allocated here.
-enum BrowserCore {
-    /// Registers the main thread with Nim's runtime. Called once at launch.
-    static func initialize() {
-        bc_init()
-    }
-
-    static var version: String {
-        String(cString: bc_version())
-    }
-
-    /// Last error message recorded by the core, for diagnostics.
-    static var lastErrorMessage: String {
-        let needed = bc_last_error(nil, 0)
-        guard needed > 0 else { return "" }
-        var buffer = [CChar](repeating: 0, count: Int(needed) + 1)
-        _ = bc_last_error(&buffer, Int32(buffer.count))
-        return String(cString: buffer)
-    }
-
-    /// Encodes `text` as a Model 2 QR symbol and returns openparser's
-    /// standalone SVG document for it.
-    ///
-    /// `scale` is the pixel size of one module and `border` the quiet zone
-    /// in modules. `darkHex` / `lightHex` are CSS colors; pass nil for the
-    /// core defaults (black modules, transparent background).
-    static func qrSVG(
-        for text: String,
-        ec: QRErrorCorrection = .quartile,
-        scale: Int = 8,
-        border: Int = 4,
-        darkHex: String? = nil,
-        lightHex: String? = nil
-    ) throws -> String {
-        // Phase one: ask the core how many bytes the document needs.
-        var needed: Int32 = 0
-        let probe = text.withCString { pointer in
-            withNullableCString(darkHex) { dark in
-                withNullableCString(lightHex) { light in
-                    bc_qr_svg(
-                        pointer,
-                        ec.rawValue,
-                        Int32(scale),
-                        Int32(border),
-                        dark,
-                        light,
-                        nil,
-                        0,
-                        &needed
-                    )
-                }
-            }
-        }
-        guard probe == 3, needed > 0 else {
-            throw error(for: probe)
-        }
-
-        // Phase two: fill an exactly-sized caller-owned buffer.
-        var document = [CChar](repeating: 0, count: Int(needed))
-        var written: Int32 = 0
-        let status = text.withCString { pointer in
-            withNullableCString(darkHex) { dark in
-                withNullableCString(lightHex) { light in
-                    document.withUnsafeMutableBufferPointer { buffer in
-                        bc_qr_svg(
-                            pointer,
-                            ec.rawValue,
-                            Int32(scale),
-                            Int32(border),
-                            dark,
-                            light,
-                            buffer.baseAddress,
-                            Int32(buffer.count),
-                            &written
-                        )
-                    }
-                }
-            }
-        }
-        guard status == 0 else {
-            throw error(for: status)
-        }
-        return String(cString: document)
-    }
-
-    private static func withNullableCString<T>(
-        _ value: String?,
-        _ body: (UnsafePointer<CChar>?) -> T
-    ) -> T {
-        if let value {
-            return value.withCString { body($0) }
-        }
-        return body(nil)
-    }
-
-    private static func error(for status: Int32) -> BrowserCoreError {
-        switch status {
-        case 1: .badInput
-        case 2: .payloadTooLong
-        case 3: .bufferTooSmall
-        case 4: .encoderFailed(detail: lastErrorMessage)
-        default: .unknown(code: status)
         }
     }
 }

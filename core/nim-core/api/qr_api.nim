@@ -21,6 +21,10 @@
 import openparser/qr/model2
 import openparser/qr/render
 
+# The error channel lives in abi.nim so the whole ABI has one last-message slot
+# and one `bc_last_error` export.
+import ./abi
+
 const
   QrMaxSide* = 177
     ## Largest Model 2 symbol (version 40).
@@ -37,21 +41,21 @@ type
     qrEcHigh = 3
 
   QrStatus* = enum
-    ## Result of `bcQrEncode`. The ordinals are part of the C ABI.
-    qrOk = 0
-    qrBadInput = 1
-    qrTooLong = 2
-    qrBufferTooSmall = 3
-    qrEncoderFailure = 4
+    ## Result of `bcQrEncode` and `bcQrSvg`. The names are local; the ordinals
+    ## are the shared status codes from abi.nim, so one caller can read a QR
+    ## result with the same table it reads a store result with.
+    ##
+    ## This used to be numbered independently, which put `qrTooLong` on 2 and
+    ## `qrBufferTooSmall` on 3 — the two ordinals the shared table already uses
+    ## for the opposite meanings. A size query then read as a hard failure and
+    ## the SVG was never written.
+    qrOk = Ok.ord
+    qrBadInput = ErrBadInput.ord
+    qrTooLong = ErrPayloadTooLong.ord
+    qrBufferTooSmall = ErrBufferTooSmall.ord
+    qrEncoderFailure = ErrEncoder.ord
 
-var lastError = ""
 var moduleStore: array[QrMaxModules, uint8]
-
-proc setError(message: string) =
-  lastError = message
-
-proc clearError() =
-  lastError.setLen(0)
 
 proc openParserLevel(level: QrEc): QrEcLevel {.inline.} =
   case level
@@ -73,19 +77,6 @@ proc encodeMatrix(text: string, level: QrEc): QrMatrix {.inline.} =
 proc bcVersion*(): cstring {.exportc: "bc_version".} =
   ## Version of the core, mirrored in `browsercore.h`.
   "0.1.0"
-
-proc bcLastError*(buffer: ptr char, capacity: cint): cint
-                   {.exportc: "bc_last_error".} =
-  ## Copies the last error message into the caller-owned `buffer` as a
-  ## NUL-terminated UTF-8 string, truncating when it does not fit. Returns the
-  ## full message length in bytes so callers can detect truncation.
-  let message = lastError
-  if not buffer.isNil and capacity > 0:
-    let copied = min(message.len, int(capacity) - 1)
-    if copied > 0:
-      copyMem(buffer, message[0].addr, copied)
-    cast[ptr UncheckedArray[char]](buffer)[copied] = '\0'
-  cint(message.len)
 
 proc bcQrEncode*(text: cstring, ecLevel: cint, outModules: ptr uint8,
                  capacity: cint, outWidth: ptr cint,

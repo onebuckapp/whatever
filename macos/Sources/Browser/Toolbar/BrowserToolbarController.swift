@@ -13,6 +13,7 @@ final class BrowserToolbarController: NSObject {
     private static let reloadID = NSToolbarItem.Identifier("whatever.navigation.reload")
     private static let addressID = NSToolbarItem.Identifier("whatever.address")
     private static let grainSettingsID = NSToolbarItem.Identifier("whatever.grain-settings")
+    private static let settingsID = NSToolbarItem.Identifier("whatever.settings")
     private static let pageMenuID = NSToolbarItem.Identifier("whatever.page-menu")
     /// macOS only exposes the space identifiers as raw constants.
     private static let flexibleSpaceID = NSToolbarItem.Identifier(
@@ -30,6 +31,7 @@ final class BrowserToolbarController: NSObject {
     private let addressField = AddressSearchField()
     private let pageMenuButton = NSButton()
     private let grainSettingsButton = NSButton()
+    private let settingsButton = NSButton()
     private let backButton = NSButton()
     private let forwardButton = NSButton()
     private let reloadButton = NSButton()
@@ -42,6 +44,8 @@ final class BrowserToolbarController: NSObject {
     var onAddressSubmitted: ((URL) -> Void)?
     /// Opens the grain overlay settings card.
     var onGrainSettings: (() -> Void)?
+    /// Opens the settings modal.
+    var onSettings: (() -> Void)?
 
     init(controller: BrowserWindowController) {
         self.controller = controller
@@ -112,7 +116,10 @@ final class BrowserToolbarController: NSObject {
         reloadButton.toolTip = state.isLoading ? "Stop" : "Reload"
 
         if !isEditingAddress {
-            addressField.stringValue = state.url?.absoluteString ?? ""
+            // Falls back to the tab's own address so a tab whose view has not
+            // been built yet still shows where it is going rather than a blank
+            // field.
+            addressField.stringValue = (state.url ?? tab?.displayURL)?.absoluteString ?? ""
         }
     }
 
@@ -144,6 +151,10 @@ final class BrowserToolbarController: NSObject {
         onGrainSettings?()
     }
 
+    @objc private func openSettings() {
+        onSettings?()
+    }
+
     // MARK: - Setup
 
     private func configureButtons() {
@@ -160,6 +171,7 @@ final class BrowserToolbarController: NSObject {
             help: "Grain Overlay",
             action: #selector(toggleGrainSettings)
         )
+        configure(settingsButton, symbol: "gearshape", help: "Settings", action: #selector(openSettings))
     }
 
     private func configure(_ button: NSButton, symbol: String, help: String, action: Selector?) {
@@ -216,13 +228,14 @@ final class BrowserToolbarController: NSObject {
 extension BrowserToolbarController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         // Flexible space on both sides keeps the wide address field
-        // centred, with the grain and page buttons pinned to the
-        // trailing edge.
+        // centred, with the settings, grain, and page buttons pinned
+        // to the trailing edge.
         [
             Self.navigationID,
             Self.flexibleSpaceID,
             Self.addressID,
             Self.flexibleSpaceID,
+            Self.settingsID,
             Self.grainSettingsID,
             Self.pageMenuID,
         ]
@@ -251,6 +264,12 @@ extension BrowserToolbarController: NSToolbarDelegate {
             item.view = grainSettingsButton
             item.label = "Grain"
             item.toolTip = "Grain Overlay Settings"
+            return item
+        case Self.settingsID:
+            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+            item.view = settingsButton
+            item.label = "Settings"
+            item.toolTip = "Settings"
             return item
         case Self.addressID:
             return addressItem

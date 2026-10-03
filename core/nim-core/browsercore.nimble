@@ -1,8 +1,8 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.2.0"
 author        = "George Lemon"
-description   = "Platform-agnostic Whatever backend (QR, history, bookmarks)"
+description   = "Platform-agnostic Whatever backend (QR, settings, bookmarks, history, sessions)"
 license       = "MIT"
 srcDir        = "."
 
@@ -10,3 +10,4 @@ srcDir        = "."
 
 requires "nim >= 2.2.10"
 requires "openparser >= 0.3.8"
+requires "boogie >= 0.2.1"

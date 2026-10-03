@@ -28,24 +28,60 @@ final class QRPopupPresenter {
         hostingView?.superview != nil
     }
 
+    /// Shows the QR card for `text`.
+    ///
+    /// The symbol is encoded by the Nim backend, which now lives in the
+    /// `WhateverStore` XPC service, so the encode is a round trip rather than a
+    /// synchronous call. The card appears once the document is back; a payload
+    /// the core refuses keeps the page untouched and just beeps.
+    ///
+    /// `isPresenting` guards against a second request racing the first, which
+    /// would otherwise queue two encodes and leave an orphan card behind.
+    private(set) var isPresenting = false
+
+    /// Set while a dismissal is in progress, so an encode that lands afterwards
+    /// does not reopen the card.
+    private var isDismissed = false
+
     func present(text: String) {
-        guard let container, let area else { return }
+        guard !isPresenting, let container, let area else { return }
+        isPresenting = true
 
-        // The symbol is encoded by the Nim backend; a payload it refuses
-        // keeps the page untouched and just beeps.
-        let svg: String
-        do {
-            svg = try BrowserCore.qrSVG(
-                for: text,
-                darkHex: QRCodeSVGColors.darkHex,
-                lightHex: QRCodeSVGColors.lightHex
-            )
-        } catch {
-            SystemBeep.play()
-            return
+        Task { @MainActor [weak self] in
+            let svg: String
+            do {
+                svg = try await BrowserCore.qrSVG(
+                    for: text,
+                    darkHex: QRCodeSVGColors.darkHex,
+                    lightHex: QRCodeSVGColors.lightHex
+                )
+            } catch {
+                self?.isPresenting = false
+                SystemBeep.play()
+                return
+            }
+            // The pane may have gone away, or been dismissed, while the encode
+            // was in flight. `area` is the page container, which is a *child* of
+            // `container` (the pane's root view), so the containment test has to
+            // read the other way round: ask whether the page container is still
+            // inside the pane, not whether the pane is inside its own page
+            // container. Asking the second way is never true and silently
+            // swallowed every presentation.
+            guard let self, area.isDescendant(of: container), container.window != nil,
+                  !isDismissed
+            else {
+                self?.isPresenting = false
+                return
+            }
+            isPresenting = false
+            install(svg: svg, text: text)
         }
+    }
 
+    private func install(svg: String, text: String) {
+        guard let container, let area else { return }
         resetForReuse()
+        isDismissed = false
 
         let stackID = PopupStackID(rawValue: "qr-\(UUID().uuidString)")
         let popupID = "qr-code"
@@ -78,6 +114,7 @@ final class QRPopupPresenter {
     }
 
     func dismiss() {
+        isDismissed = true
         if let stackID {
             Task {
                 await PopupStack.dismissAllPopups(popupStackID: stackID)
@@ -87,6 +124,7 @@ final class QRPopupPresenter {
     }
 
     private func cleanup() {
+        isDismissed = true
         resetForReuse()
         onDidDismiss?()
         onDidDismiss = nil

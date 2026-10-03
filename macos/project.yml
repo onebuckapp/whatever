@@ -36,22 +36,82 @@ targets:
     bundleId: com.onebuckapps.whatever
     dependencies:
       - package: MijickPopups
+      - target: WhateverStore
+        embed: true
     sources:
       - path: Sources
+      - path: Shared
       - path: Resources/Assets.xcassets
       - path: Resources/Homepage/home.html
         buildPhase: resources
     info:
       path: Resources/Info.plist
+      properties:
+        # Declares the bundled XPC service to launchd. Without it the service is
+        # present on disk but unregistered, and an NSXPCConnection to it fails
+        # with "failed at lookup with error 3 - No such process".
+        XPCServices:
+          - WhateverStore
     entitlements:
       path: Resources/Whatever.entitlements
     settings:
       base:
         PRODUCT_NAME: Whatever
+        # Stated explicitly because PRODUCT_NAME alone yields
+        # `com.onebuckapps.Whatever`, and launchd refuses to launch an embedded
+        # XPC service whose bundle ID is not prefixed by the app's. The
+        # WhateverStore ID below has to sit under whatever this resolves to.
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        # Nim backend (core/) linked in as a static library. Its C ABI comes
-        # through the bridging header, which includes core/include/browsercore.h.
+
+  # The one process that owns Whatever's persistent stores. boogie holds an
+  # exclusive lock on a store path for that store's whole lifetime, so exactly
+  # one process may open them; keeping that in a separate service is what lets
+  # the app link no Nim code at all. The app reaches it over XPC, which also
+  # keeps database work off the main thread.
+  WhateverStore:
+    type: xpc-service
+    platform: macOS
+    bundleId: com.onebuckapps.whatever.store
+    sources:
+      # Service-only sources: the app reaches all of this over XPC, and
+      # linking it into the app would give the app a second process trying to
+      # open stores the service already holds locked.
+      - path: Store
+        excludes:
+          # The app's client lives in Sources/Storage/StoreClient.swift.
+          - StoreClient.swift
+      - path: Shared
+      - path: Sources/Bridge/BrowserCore-Bridging-Header.h
+    info:
+      path: Resources/WhateverStore-Info.plist
+      properties:
+        # The dictionary key is `XPCService`, not `NSXPCService`. launchd lints
+        # for the former and rejects the service with
+        # "XPC Service Info.plist is missing XPCService dictionary", after which
+        # every connection fails with "No such process".
+        #
+        # XcodeGen rewrites the Info.plist from `properties` plus the file at
+        # `path`, so the dictionary has to be declared here.
+        #
+        # An Application service is a plain on-demand helper: launchd starts it
+        # when the app first connects and terminates it once the app has been
+        # idle. That matches the store's lifetime and avoids registering a Mach
+        # service in launchd.
+        CFBundlePackageType: XPC!
+        XPCService:
+          ServiceType: Application
+          # Matches the `dispatchMain()` call at the end of StoreMain.swift.
+          RunLoopType: dispatch_main
+          JoinExistingSession: false
+          EnvironmentVariables: {}
+    settings:
+      base:
+        PRODUCT_NAME: WhateverStore
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever.store
+        # Nim backend (core/), linked only here. Its C ABI comes through the
+        # same bridging header the app used to rely on.
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridge/BrowserCore-Bridging-Header.h
         LIBRARY_SEARCH_PATHS:
           - $(inherited)

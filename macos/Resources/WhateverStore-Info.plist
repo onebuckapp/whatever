@@ -13,14 +13,21 @@
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
-	<string>APPL</string>
+	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>XPCServices</key>
-	<array>
-		<string>WhateverStore</string>
-	</array>
+	<key>XPCService</key>
+	<dict>
+		<key>EnvironmentVariables</key>
+		<dict/>
+		<key>JoinExistingSession</key>
+		<false/>
+		<key>RunLoopType</key>
+		<string>dispatch_main</string>
+		<key>ServiceType</key>
+		<string>Application</string>
+	</dict>
 </dict>
 </plist>
