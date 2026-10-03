@@ -1,0 +1,6 @@
+config({
+  commands: {
+    run: "make run && open '$PWD/macos/Build/Build/Products/Debug/Whatever.app'",
+    build_core: "clue build core/nim-core/browsercore.nim -d:release --app:staticlib --out:build/libbrowsercore.a"
+  }
+})

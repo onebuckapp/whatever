@@ -1,0 +1,276 @@
+import AppKit
+import Combine
+
+/// Window content: the custom tab bar at the top and the page area
+/// below it, which shows either one tab's page or a split view of two
+/// tabs. Navigation and the address field live in the window's native
+/// `NSToolbar`, so nothing else belongs in this view.
+final class BrowserWindowContentViewController: NSViewController {
+    static let tabBarHeight: CGFloat = 36
+
+    private var onNewTab: (() -> Void)?
+    private var dropPreview: NSView?
+    private let progressBar = NSView()
+    private var noiseOverlay: NoiseOverlayView?
+    private var settingsSubscription: AnyCancellable?
+    private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
+    private var shield: ModalEventShieldView?
+
+    /// Set by the window controller. `onDropZoneChanged` receives nil
+    /// when the pointer leaves the page area so the preview can be
+    /// dismissed.
+    var onDropZoneChanged: ((SplitDropZone?) -> Void)?
+    var onTabDropped: ((BrowserTab, SplitDropZone) -> Void)?
+
+    let tabBar = TabBarContainerView(newTabAction: {})
+    /// Constraints pinning the current child. They must be deactivated
+    /// when the child is replaced: constraints retain the views they
+    /// pin, so abandoned ones keep discarded pages (and their
+    /// processes) alive.
+    private var childConstraints: [NSLayoutConstraint] = []
+
+    init() {
+        super.init(nibName: nil, bundle: nil)
+        tabBar.newTabAction = { [weak self] in self?.onNewTab?() }
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setNewTabAction(_ action: @escaping () -> Void) {
+        onNewTab = action
+    }
+
+    /// Opens the grain settings card, or closes it when already open.
+    /// Driven by the toolbar button next to the page menu.
+    ///
+    /// A modal shield goes in above the page for the duration: Mijick's
+    /// own tap-outside layer is `.clear`, so without it a click over the
+    /// page would reach the `WKWebView` underneath. The shield swallows
+    /// the input and dismisses the card; the card itself stays above it
+    /// and fully interactive. The native toolbar is deliberately left
+    /// outside the shield, so navigation and window controls keep working.
+    func toggleNoiseSettings() {
+        guard isViewLoaded else { return }
+        if noiseSettingsPresenter != nil {
+            dismissNoiseSettings()
+            return
+        }
+        // Shield first: the popup host is added afterwards, so it lands
+        // on top and stays interactive while everything under the shield
+        // (page, tab bar, drop preview) goes inert. It also catches
+        // clicks in the areas Mijick's own backdrop does not cover.
+        shield = ModalEventShieldView.install(in: view) { [weak self] in
+            Task { @MainActor in
+                self?.dismissNoiseSettings()
+            }
+        }
+        let presenter = NoiseOverlaySettingsPresenter(container: view) { [weak self] in
+            // Covers every dismissal route: Save, Escape, the toolbar
+            // button, Mijick's tap-outside, and the shield.
+            self?.clearNoiseSettings()
+        }
+        presenter.present()
+        noiseSettingsPresenter = presenter
+        // Both were just added, so they sit above the grain; the grain
+        // still never consumes input.
+        noiseOverlay?.moveToFront()
+    }
+
+    private func dismissNoiseSettings() {
+        // The presenter's teardown calls back into `clearNoiseSettings`.
+        noiseSettingsPresenter?.dismiss()
+        clearNoiseSettings()
+    }
+
+    private func clearNoiseSettings() {
+        noiseSettingsPresenter = nil
+        shield?.removeFromSuperview()
+        shield = nil
+        noiseOverlay?.moveToFront()
+    }
+
+    /// 2pt loading indicator overlaid on the top edge of the page. It
+    /// stays in layout while idle so the page does not jump when a load
+    /// starts.
+    func updateProgress(_ progress: Double, isLoading: Bool) {
+        let clamped = min(max(progress, 0.02), 1)
+        progressBar.isHidden = false
+        progressBar.layer?.backgroundColor = isLoading
+            ? NSColor.controlAccentColor.cgColor
+            : NSColor.clear.cgColor
+        progressBar.frame.size.width = view.bounds.width * clamped
+        progressBar.alphaValue = isLoading ? 1 : 0
+    }
+
+    /// Overlay shown above the page area while a tab is dragged over
+    /// the window. It never takes part in layout constraints of the
+    /// child controller and always stays on top of it.
+    func installDropPreview(_ preview: NSView) {
+        guard dropPreview == nil else { return }
+        dropPreview = preview
+        preview.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(preview)
+
+        NSLayoutConstraint.activate([
+            preview.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
+            preview.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            preview.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            preview.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
+
+    /// Page area in the content view's coordinates, directly below the
+    /// tab bar with no gap. The progress indicator overlays its top
+    /// edge, so it takes no part in this rect.
+    var pageAreaRect: NSRect {
+        let top = Self.tabBarHeight
+        return NSRect(
+            x: 0,
+            y: top,
+            width: view.bounds.width,
+            height: max(0, view.bounds.height - top)
+        )
+    }
+
+    private static let progressHeight: CGFloat = 2
+
+    override func loadView() {
+        view = NSView()
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // The content view itself is the drop target for the page area.
+        // AppKit walks up from the WKWebView, which is not registered,
+        // so drops over the page land here without needing an overlay
+        // for hit-testing. The tab bar is registered too and sits
+        // deeper, so drops on the bar never reach this.
+        view.registerForDraggedTypes([TabDragPayload.type])
+
+        progressBar.wantsLayer = true
+        progressBar.layer?.backgroundColor = NSColor.clear.cgColor
+        progressBar.alphaValue = 0
+        progressBar.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(tabBar)
+        view.addSubview(progressBar)
+
+        NSLayoutConstraint.activate([
+            tabBar.topAnchor.constraint(equalTo: view.topAnchor),
+            tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tabBar.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),
+
+            progressBar.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
+            progressBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            progressBar.heightAnchor.constraint(equalToConstant: Self.progressHeight),
+            progressBar.widthAnchor.constraint(
+                lessThanOrEqualTo: view.widthAnchor
+            ),
+        ])
+
+        // Subtle grain above the tab bar and page area. It is a sibling
+        // of the content (never an ancestor), so scrolling does not move
+        // it, and constraints keep it covering the window through
+        // resizes. It never intercepts events; see `NoiseOverlayView`.
+        // Settings are shared app-wide, so every window follows the
+        // popup's changes live.
+        let overlay = NoiseOverlayView.install(in: view)
+        noiseOverlay = overlay
+        settingsSubscription = NoiseOverlaySettings.shared.$configuration
+            .receive(on: DispatchQueue.main)
+            .sink { [weak overlay] configuration in
+                overlay?.configuration = configuration
+            }
+        overlay.configuration = NoiseOverlaySettings.shared.configuration
+    }
+
+    /// Installs a child controller flush under the tab bar, replacing
+    /// any previous child. The progress indicator stays above it so it
+    /// can overlay the page's top edge.
+    func showChild(_ controller: NSViewController) {
+        for child in children {
+            child.view.removeFromSuperview()
+            child.removeFromParent()
+        }
+
+        addChild(controller)
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controller.view)
+        view.addSubview(progressBar)
+
+        NSLayoutConstraint.deactivate(childConstraints)
+        let top = Self.tabBarHeight
+        childConstraints = [
+            controller.view.topAnchor.constraint(equalTo: view.topAnchor, constant: top),
+            controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(childConstraints)
+
+        // The child was just added, so it sits above the preview unless
+        // it is pushed back. The grain stays above everything.
+        if let dropPreview {
+            view.subviews = view.subviews.filter { $0 !== dropPreview } + [dropPreview]
+        }
+        noiseOverlay?.moveToFront()
+    }
+}
+
+// MARK: - NSDraggingDestination
+
+/// A tab dropped on the page area splits the window instead of joining
+/// the tab bar. This is the only drop target besides the tab bar, and
+/// it answers on behalf of its owning window.
+extension BrowserWindowContentViewController: NSDraggingDestination {
+    func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        draggingUpdated(sender)
+    }
+
+    func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard TabDragPayload.tab(from: sender) != nil,
+              let zone = dropZone(for: sender)
+        else {
+            return []
+        }
+        onDropZoneChanged?(zone)
+        return .move
+    }
+
+    func draggingExited(_ sender: NSDraggingInfo?) {
+        onDropZoneChanged?(nil)
+    }
+
+    func draggingEnded(_ sender: NSDraggingInfo) {
+        onDropZoneChanged?(nil)
+    }
+
+    func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        TabDragPayload.tab(from: sender) != nil && dropZone(for: sender) != nil
+    }
+
+    func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        defer { onDropZoneChanged?(nil) }
+        guard let tab = TabDragPayload.tab(from: sender),
+              let zone = dropZone(for: sender)
+        else {
+            return false
+        }
+        onTabDropped?(tab, zone)
+        return true
+    }
+
+    /// Drop zone under the drag, or nil when the pointer is outside the
+    /// page area (for example over the toolbar).
+    private func dropZone(for info: NSDraggingInfo) -> SplitDropZone? {
+        let area = pageAreaRect
+        guard area.width > 0, area.height > 0 else { return nil }
+        let point = info.draggingLocation
+        guard area.contains(point) else { return nil }
+        return SplitDropZone.zone(for: point, in: area)
+    }
+}

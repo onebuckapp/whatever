@@ -1,0 +1,61 @@
+# XcodeGen spec. Never edit Whatever.xcodeproj by hand;
+# change this file and run `make generate`.
+name: Whatever
+
+options:
+  bundleIdPrefix: com.onebuckapps
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+packages:
+  MijickPopups:
+    url: https://github.com/Mijick/Popups
+    from: 4.0.5
+
+settings:
+  base:
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+
+targets:
+  Whatever:
+    type: application
+    platform: macOS
+    bundleId: com.onebuckapps.whatever
+    dependencies:
+      - package: MijickPopups
+    sources:
+      - path: Sources
+      - path: Resources/Assets.xcassets
+      - path: Resources/Homepage/home.html
+        buildPhase: resources
+    info:
+      path: Resources/Info.plist
+    entitlements:
+      path: Resources/Whatever.entitlements
+    settings:
+      base:
+        PRODUCT_NAME: Whatever
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Nim backend (core/) linked in as a static library. Its C ABI comes
+        # through the bridging header, which includes core/include/browsercore.h.
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridge/BrowserCore-Bridging-Header.h
+        LIBRARY_SEARCH_PATHS:
+          - $(inherited)
+          - $(SRCROOT)/../core/build
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -lbrowsercore
