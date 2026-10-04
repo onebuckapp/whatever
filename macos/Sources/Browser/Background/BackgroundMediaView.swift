@@ -94,6 +94,8 @@ final class BackgroundMediaView: NSView {
     private var image: CGImage?
     private var imageToken: BackgroundImageStore.Token?
     private let videoLayer = BackgroundVideoLayerView()
+    /// Above `videoLayer`, so a tint tints the video too and not just the stills.
+    private let overlayView = BackgroundOverlayView()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -105,11 +107,18 @@ final class BackgroundMediaView: NSView {
         setAccessibilityElement(false)
         videoLayer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(videoLayer)
+        // Order is the whole point: equal z-positions, and the later subview wins,
+        // so the tint lands above the player.
+        addSubview(overlayView)
         NSLayoutConstraint.activate([
             videoLayer.topAnchor.constraint(equalTo: topAnchor),
             videoLayer.leadingAnchor.constraint(equalTo: leadingAnchor),
             videoLayer.trailingAnchor.constraint(equalTo: trailingAnchor),
             videoLayer.bottomAnchor.constraint(equalTo: bottomAnchor),
+            overlayView.topAnchor.constraint(equalTo: topAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         videoLayer.onError = { [weak self] error in
             // An unplayable video means there is no background, so it is turned
@@ -208,10 +217,27 @@ final class BackgroundMediaView: NSView {
             reloadMedia(path: configuration.video.posterPath, isFatal: false)
         }
         // Opacity rides on the view rather than being composited into the draw,
-        // so changing strength never re-renders anything.
+        // so changing strength never re-renders anything. It also happens to be
+        // the reason the tint lives in a subview: a layer's opacity multiplies its
+        // whole subtree, so the video fades with everything else, while a tint
+        // painted into this view's own layer would be underneath the player and
+        // stay at full strength however far the opacity went.
         alphaValue = min(max(configuration.effects.opacity, 0), 1)
+        updateOverlay()
         updatePlayback()
         needsDisplay = true
+    }
+
+    /// Hands the flat tint to the overlay view, which is the only way it can reach
+    /// a video: `draw(_:)` paints into this view's layer and `AVPlayerLayer` is a
+    /// sublayer above it.
+    private func updateOverlay() {
+        let overlay = configuration.effects.overlay
+        let isVisible = overlay.alpha > 0.001
+        // Hidden rather than left transparent, so an untinted video is not
+        // composited through an empty layer it does not need.
+        overlayView.isHidden = !isVisible
+        overlayView.color = isVisible ? overlay : nil
     }
 
     func setMedia(path: String?) {
@@ -313,7 +339,6 @@ final class BackgroundMediaView: NSView {
             // The poster stands in until the player reports a frame.
             drawImage(in: context)
         }
-        drawOverlay(in: context)
     }
 
     private func drawGradient(in context: CGContext) {
@@ -411,14 +436,55 @@ final class BackgroundMediaView: NSView {
         guard let rect = configuration.drawnRect(intrinsic: intrinsic, viewport: viewport) else { return }
         context.draw(image, in: rect)
     }
+}
 
-    /// The flat colour laid over whatever was drawn, if any.
-    private func drawOverlay(in context: CGContext) {
-        let overlay = configuration.effects.overlay
-        guard overlay.alpha > 0.001 else { return }
-        context.saveGState()
-        overlay.nsColor.setFill()
+/// The flat colour laid over whatever the background drew.
+///
+/// This is a view rather than part of `BackgroundMediaView.draw(_:)` because a
+/// video is drawn by `AVPlayerLayer`, which lives in a sublayer of a subview and
+/// composites *above* anything the parent view paints into its own layer. A tint
+/// painted in `draw` therefore sits underneath the video and does nothing for that
+/// one kind, while looking perfectly fine for every other kind.
+///
+/// Non-interactive for the same structural reason as its parent, and marked so
+/// directly rather than leaning on the parent's `hitTest` answering nil.
+final class BackgroundOverlayView: NSView {
+    /// Nil means no tint.
+    var color: BackgroundColor? {
+        didSet { needsDisplay = true }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        // Without this the autoresizing mask wins and the four edge constraints
+        // added by `BackgroundMediaView` are quietly ignored, leaving the tint at
+        // a 0x0 frame and invisible for a second, entirely separate reason.
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool {
+        false
+    }
+
+    override var isOpaque: Bool {
+        false
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
+    /// The same two lines the parent used for its own tint, so a tinted video and
+    /// a tinted image come out the same colour to the eye.
+    override func draw(_ dirtyRect: NSRect) {
+        guard let color, NSGraphicsContext.current != nil else { return }
+        color.nsColor.setFill()
         bounds.fill(using: .sourceOver)
-        context.restoreGState()
     }
 }
