@@ -229,9 +229,9 @@ final class StoreClient {
         }
     }
 
-    func searchHistory(_ query: String, limit: Int) async throws -> Data {
+    func fuzzySearchHistory(_ query: String, limit: Int) async throws -> Data {
         try await document { proxy, done in
-            proxy.historySearch(query, Int32(limit), reply: done)
+            proxy.historyFuzzySearch(query, Int32(limit), reply: done)
         }
     }
 

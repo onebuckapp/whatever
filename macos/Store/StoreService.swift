@@ -311,7 +311,7 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
-    func historySearch(
+    func historyFuzzySearch(
         _ query: String,
         _ limit: Int32,
         reply: @escaping (Data?, NSError?) -> Void
@@ -321,7 +321,7 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
             do {
                 payload = try query.withCString { pointer in
                     try CoreBuffer.read({ buffer, capacity, needed in
-                        bc_history_search(pointer, limit, buffer, capacity, needed)
+                        bc_history_fuzzy_search(pointer, limit, buffer, capacity, needed)
                     }, rejecting: [.badInput])
                 }
             } catch {

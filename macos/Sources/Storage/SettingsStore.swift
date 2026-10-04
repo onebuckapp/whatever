@@ -82,7 +82,7 @@ struct AppSettings: Codable, Equatable {
         struct StoredNoise: Codable, Equatable {
             var isEnabled = true
             var opacity = 0.12
-            var intensity = 0.75
+            var intensity = 0.40
             var contrast = 1.6
             var grainScale = 1.0
             var colorMode = GrainColorMode.monochrome

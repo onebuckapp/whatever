@@ -32,7 +32,13 @@ struct NoiseOverlayConfiguration: Equatable {
 
     /// Coverage baked into the tile's per-texel alphas, 0...1.
     /// Regenerates the cached tile when changed.
-    var intensity: CGFloat = 0.75
+    ///
+    /// Default is 0.40 rather than the 0.75 this started at: at 0.75 the grain read
+    /// as dirt on the screen rather than as a texture behind it. Opacity is the
+    /// master 0.12 and is deliberately left alone, because the two do different
+    /// jobs — this decides how solid each speck is, opacity decides how much of the
+    /// layer reaches the window at all.
+    var intensity: CGFloat = 0.40
 
     /// Hardness of the specks, 1...8. 1 keeps the reference's soft
     /// distribution; higher values push weak texels toward fully
@@ -85,7 +91,7 @@ struct NoiseOverlayConfiguration: Equatable {
     var sanitized: NoiseOverlayConfiguration {
         var result = self
         result.opacity = Self.clamp(opacity, 0...1, fallback: 0.12)
-        result.intensity = Self.clamp(intensity, 0...1, fallback: 0.75)
+        result.intensity = Self.clamp(intensity, 0...1, fallback: 0.40)
         result.contrast = Self.clamp(contrast, 1...8, fallback: 1.6)
         result.grainScale = Self.clamp(grainScale, 1...8, fallback: 1)
         result.tintOpacity = Self.clamp(tintOpacity, 0...1, fallback: 0)

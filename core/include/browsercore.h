@@ -169,12 +169,26 @@ int32_t bc_history_recent(int32_t limit, char *buffer, int32_t capacity,
 int32_t bc_history_by_day(const char *day, char *buffer, int32_t capacity,
                           int32_t *needed);
 
-/* Case-insensitive substring search over url, title and host.
+/* Fuzzy history search, best match first.
  *
- * The store has no LIKE, so this is a bounded scan: at most 5000 rows are
- * examined and the newest matches within them are returned. */
-int32_t bc_history_search(const char *query, int32_t limit, char *buffer,
-                          int32_t capacity, int32_t *needed);
+ * Every character of `query` must appear in a row, in order but not necessarily
+ * contiguously. Ranking comes from openparser/fuzzy — consecutive runs,
+ * word-boundary hits and gap penalties — so it reflects how well the row matches
+ * what was typed rather than how recently it was visited. Matching is
+ * case-insensitive.
+ *
+ * Each row is scored as its title and URL joined, and the reported positions are
+ * split back onto those two fields, so one row is one result however many fields
+ * matched. `positions` are BYTE offsets into that field, not character indices:
+ * a title with any non-ASCII text in it will need converting before use with
+ * NSRange or String.Index. Offsets landing on the separator between the two
+ * fields are dropped.
+ *
+ * At most 2000 rows are scored, thinned by halving rather than truncated, so
+ * the sample spans the whole history instead of only its oldest rows. `limit` is
+ * clamped to 500. An empty query returns an empty array, not an error. */
+int32_t bc_history_fuzzy_search(const char *query, int32_t limit, char *buffer,
+                                int32_t capacity, int32_t *needed);
 
 /* Deletes one entry by primary key. BC_ERR_NOT_FOUND when no such row. */
 int32_t bc_history_delete(const char *id);

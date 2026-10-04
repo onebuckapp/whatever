@@ -1,0 +1,165 @@
+import AppKit
+
+/// One fuzzy search hit: a history row plus where the query matched inside it.
+///
+/// The core scores a row as its title and URL joined and then splits the match
+/// back onto the two fields, so a hit is one row however many of its fields took
+/// part. `titlePositions` and `urlPositions` are byte offsets into their own field.
+struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
+    let id: String
+    let url: String
+    let title: String
+    let host: String
+    let firstVisited: Date
+    let lastVisited: Date
+    let visitCount: Int
+    /// openparser's length-normalised score, higher ranks first. Carried through
+    /// rather than used for ordering here, because the core has already ordered
+    /// the list; it is what a future title/URL blend would compare.
+    let score: Double
+    let titlePositions: [Int]
+    let urlPositions: [Int]
+
+    private enum CodingKeys: String, CodingKey {
+        case id, url, title, host, firstVisited, lastVisited, visitCount
+        case score, titlePositions, urlPositions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        url = try container.decode(String.self, forKey: .url)
+        // A row with no title is normal: the store records whatever the page had
+        // at commit time, and some pages never set one.
+        title = (try? container.decode(String.self, forKey: .title)) ?? ""
+        host = (try? container.decode(String.self, forKey: .host)) ?? ""
+        firstVisited = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int64.self, forKey: .firstVisited)))
+        lastVisited = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int64.self, forKey: .lastVisited)))
+        visitCount = (try? container.decode(Int.self, forKey: .visitCount)) ?? 1
+        // Not optional-tolerant: a row without positions cannot be highlighted, and
+        // quietly showing it unhighlighted would look like the matcher had found
+        // nothing there. `decodeList` drops such a row instead.
+        score = try container.decode(Double.self, forKey: .score)
+        titlePositions = try container.decode([Int].self, forKey: .titlePositions)
+        urlPositions = try container.decode([Int].self, forKey: .urlPositions)
+    }
+
+    /// Builds an unhighlighted entry from a plain history row.
+    ///
+    /// The recent-history list has no positions, because nothing was matched: it is
+    /// what the dropdown shows for an empty field, where recency is the ranking.
+    /// Both position lists are empty, so the rows render plainly.
+    init(_ entry: HistoryEntry) {
+        self.id = entry.id
+        self.url = entry.url
+        self.title = entry.title
+        self.host = entry.host
+        self.firstVisited = entry.firstVisited
+        self.lastVisited = entry.lastVisited
+        self.visitCount = entry.visitCount
+        self.score = 0
+        self.titlePositions = []
+        self.urlPositions = []
+    }
+
+    /// Decodes a result set, dropping rows that are not usable objects.
+    ///
+    /// One malformed row should cost that row rather than the whole dropdown,
+    /// which is what `HistoryEntry.decodeList` does for the settings list.
+    static func decodeList(_ data: Data) -> [HistoryFuzzyEntry] {
+        guard let rows = try? JSONDecoder().decode([FailableEntry].self, from: data) else {
+            return []
+        }
+        return rows.compactMap(\.entry)
+    }
+
+    private struct FailableEntry: Decodable {
+        let entry: HistoryFuzzyEntry?
+
+        init(from decoder: Decoder) throws {
+            entry = try? HistoryFuzzyEntry(from: decoder)
+        }
+    }
+
+    /// Where the match landed in the title, as character ranges.
+    ///
+    /// The core reports **byte** offsets and `NSAttributedString` needs character
+    /// ranges, so these are converted rather than used directly. Titles with any
+    /// non-ASCII text in them would otherwise highlight from the wrong character
+    /// onward: `"Café Zürich Zebra"` is 17 characters but 19 bytes, so byte 15 is
+    /// character 13.
+    var titleHighlight: [NSRange] {
+        Self.characterRanges(forByteOffsets: titlePositions, in: title)
+    }
+
+    var urlHighlight: [NSRange] {
+        Self.characterRanges(forByteOffsets: urlPositions, in: url)
+    }
+
+    /// Turns UTF-8 byte offsets into character ranges over `text`.
+    ///
+    /// Walks the bytes once and records where each character begins, so a byte
+    /// offset can be answered with the character it falls in. An offset landing
+    /// mid-character is dropped rather than guessed at, which is what keeps a
+    /// highlight safe when the core's matcher cannot be trusted: the matcher walks
+    /// bytes and folds case only for ASCII, so a query character outside ASCII is
+    /// matched byte by byte. `ü` is `C3 BC`, and `"Café Zürich"` has an `é` that
+    /// also begins with `C3`, so a query for `ü` can be satisfied with the `é`
+    /// supplying the first byte and the `ü` the second. Those offsets do not
+    /// describe the characters the user typed; dropping them means the row shows
+    /// unhighlighted rather than wrongly highlighted.
+    static func characterRanges(forByteOffsets offsets: [Int], in text: String) -> [NSRange] {
+        guard !offsets.isEmpty else { return [] }
+        let bytes = Array(text.utf8)
+        // Byte offset at which each character begins, so the walk below can answer
+        // "which character is this byte in?" without a second pass.
+        var starts: [Int] = []
+        starts.reserveCapacity(bytes.count)
+        var offset = 0
+        while offset < bytes.count {
+            starts.append(offset)
+            let lead = bytes[offset]
+            // A UTF-8 lead byte carries its own length in its top bits: 110xxxxx is
+            // two bytes, 1110xxxx three, 11110xxx four.
+            let width: Int
+            switch lead {
+            case 0xC0...0xDF: width = 2
+            case 0xE0...0xEF: width = 3
+            case 0xF0...0xF7: width = 4
+            default: width = 1
+            }
+            offset += width
+        }
+
+        var ranges: [NSRange] = []
+        ranges.reserveCapacity(offsets.count)
+        for byteOffset in offsets.sorted() {
+            guard byteOffset >= 0, byteOffset < bytes.count else { continue }
+            // Only an offset that actually starts a character can become a range.
+            // For an ASCII query every reported offset is a character start, so this
+            // only ever drops something; see the note above.
+            guard let character = starts.firstIndex(of: byteOffset) else { continue }
+            ranges.append(NSRange(location: character, length: 1))
+        }
+        return merge(ranges)
+    }
+
+    /// Collapses runs of adjacent single-character ranges into one range.
+    ///
+    /// The matcher reports one offset per matched byte, so "GitHub" matches as
+    /// five separate single-character highlights. Painting five runs would look
+    /// like the word had gaps in it.
+    private static func merge(_ ranges: [NSRange]) -> [NSRange] {
+        guard !ranges.isEmpty else { return [] }
+        var merged: [NSRange] = []
+        for range in ranges {
+            if let last = merged.last,
+               last.location + last.length == range.location {
+                merged[merged.count - 1] = NSRange(location: last.location, length: last.length + range.length)
+            } else {
+                merged.append(range)
+            }
+        }
+        return merged
+    }
+}

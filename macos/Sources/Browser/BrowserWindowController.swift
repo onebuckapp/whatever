@@ -19,6 +19,133 @@ import WebKit
 /// The menu item is not ours to retarget, so the tab semantics have to live
 /// wherever the key equivalent ends up: here.
 final class BrowserWindow: NSWindow {
+    /// How far the three window buttons need nudging from AppKit's own placement.
+    ///
+    /// While the top strip was an `NSToolbar`, AppKit put them at x 19 and y 18.
+    /// Without one it uses x 7 and y 6, which is 12pt further left and 12pt lower
+    /// than the strip they now sit in. Recorded as an offset rather than as absolute
+    /// coordinates because AppKit still owns where these go — in fullscreen it moves
+    /// them itself, and pinning absolute positions fought it badly enough that
+    /// leaving fullscreen left them 20pt off the top of the window.
+    private static let windowButtonOffset = NSSize(width: 12, height: 12)
+
+    /// The frames the buttons were left in the last time they were nudged.
+    ///
+    /// Compared against their current frames on every pass, so finding them
+    /// already where they were put is a no-op. That comparison is the whole
+    /// trick: AppKit re-lays these three out itself on every resize, and the
+    /// frames it chooses replace whatever was there. Adding the offset
+    /// unconditionally would stack it on every pass and walk the buttons across
+    /// the strip; replaying frames captured for a taller window after a shrink
+    /// is what used to put them off the top. Reading them fresh each time keeps
+    /// the nudge glued to wherever AppKit currently has them.
+    private var lastNudgedButtonFrames: [NSRect]?
+    /// Resize notifications, held so they can be removed.
+    private var positioningObservers: [NSObjectProtocol] = []
+
+    override init(contentRect contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+        super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
+        observePositioning()
+    }
+
+    deinit {
+        for observer in positioningObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    /// Fired after AppKit has laid the window out for its new size, which a
+    /// `setFrame` override cannot see: the buttons are repositioned during the
+    /// display pass that follows the frame change, not inside it.
+    private func observePositioning() {
+        let center = NotificationCenter.default
+        for name in [NSWindow.didResizeNotification, NSWindow.didEndLiveResizeNotification] {
+            positioningObservers.append(
+                center.addObserver(forName: name, object: self, queue: .main) { [weak self] _ in
+                    self?.positionWindowButtonsOnceOnScreen()
+                }
+            )
+        }
+    }
+
+    /// Applied from `setFrame` rather than once at launch, because AppKit re-lays
+    /// these three out on resizes and undoes the nudge.
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        positionStandardWindowButtons()
+    }
+
+    /// The buttons are created and placed by AppKit while the window first shows,
+    /// so ordering front is the earliest moment they exist to be nudged. Both
+    /// entry points are covered because `showWindow` and direct
+    /// `makeKeyAndOrderFront` do not necessarily route through each other, and
+    /// doubling up is harmless: a pass that finds them already placed is a no-op.
+    override func orderFront(_ sender: Any?) {
+        super.orderFront(sender)
+        positionWindowButtonsForShow()
+    }
+
+    override func makeKeyAndOrderFront(_ sender: Any?) {
+        super.makeKeyAndOrderFront(sender)
+        positionWindowButtonsForShow()
+    }
+
+    /// The show path, where AppKit creates and places the buttons lazily across
+    /// the first display passes: a single deferred nudge races that layout and
+    /// loses, leaving them at AppKit's own spot until the next resize. Retrying a
+    /// few times across the show converges regardless of when the layout lands,
+    /// and every pass after the first is a no-op.
+    private func positionWindowButtonsForShow() {
+        positionWindowButtonsOnceOnScreen()
+        for delay in [0.1, 0.4] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.positionStandardWindowButtons()
+            }
+        }
+    }
+
+    /// Applied again once the window is on screen, and after every resize.
+    ///
+    /// Runs twice — now and on the next turn of the runloop — because AppKit
+    /// positions the buttons during the display pass that follows a frame change,
+    /// not inside it. The deferred pass is what catches that layout; the
+    /// immediate one covers programmatic changes whose layout already settled.
+    func positionWindowButtonsOnceOnScreen() {
+        positionStandardWindowButtons()
+        DispatchQueue.main.async { [weak self] in
+            self?.positionStandardWindowButtons()
+        }
+    }
+
+    private func positionStandardWindowButtons() {
+        // Nothing to do in fullscreen: AppKit hides and moves these itself, and
+        // nudging them there is what left them off the window on the way back out.
+        // The last-nudged frames are deliberately left alone, so the first pass
+        // after leaving fullscreen sees AppKit's post-exit placement as new and
+        // nudges from there.
+        guard !styleMask.contains(.fullScreen) else { return }
+        let buttons = [
+            standardWindowButton(.closeButton),
+            standardWindowButton(.miniaturizeButton),
+            standardWindowButton(.zoomButton),
+        ].compactMap { $0 }
+        guard !buttons.isEmpty else { return }
+
+        // Already where they were put: AppKit has not moved them since.
+        let current = buttons.map(\.frame)
+        if let last = lastNudgedButtonFrames, last == current { return }
+
+        for button in buttons {
+            button.setFrameOrigin(
+                NSPoint(
+                    x: button.frame.origin.x + Self.windowButtonOffset.width,
+                    y: button.frame.origin.y + Self.windowButtonOffset.height
+                )
+            )
+        }
+        lastNudgedButtonFrames = buttons.map(\.frame)
+    }
+
     /// ⌘W closes the current tab, and only closes the window once there is no tab
     /// left to close.
     ///
@@ -190,26 +317,31 @@ final class BrowserWindowController: NSWindowController {
         // `fullSizeContentView` puts the content view across the whole window
         // rather than starting below the titlebar, which combined with the
         // transparent titlebar below is what lets the page background run up
-        // behind the toolbar. The content view's safe area keeps the tab bar and
-        // the page below it clear of that strip.
+        // behind the toolbar strip. Nothing else reserves that strip: it used to
+        // come from the native toolbar's safe-area inset, and `BrowserToolbarView`
+        // now contributes it explicitly, so the tab bar stays exactly where it
+        // was.
         window.styleMask = [
             .titled, .closable, .miniaturizable, .resizable, .fullSizeContentView,
         ]
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-window.isReleasedWhenClosed = false
+        window.isReleasedWhenClosed = false
         return window
     }
 
-    /// Everything that does not depend on which tabs exist: the toolbar, the tab
-    /// bar's wiring, and the drop handlers.
+    /// Everything that does not depend on which tabs exist: the toolbar strip, the
+    /// tab bar's wiring, and the drop handlers.
     private func configureChrome() {
         // The toolbar controller needs this controller, so it can only
         // be built after super.init.
         let toolbarController = BrowserToolbarController(controller: self)
         self.toolbarController = toolbarController
-        window?.toolbarStyle = .unified
-        window?.toolbar = toolbarController.windowToolbar
+        contentController.installToolbar(toolbarController.toolbarView)
+        // Now the content view exists, so the spotlight's dropdown has somewhere to
+        // live: the content view, not the strip, so it can cover the tab bar and
+        // the page.
+        toolbarController.attachSpotlightDropdown(to: contentController.view)
 
         contentController.installDropPreview(dropPreview)
         contentController.setNewTabAction { [weak self] in

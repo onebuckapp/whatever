@@ -52,7 +52,7 @@ import Foundation
     )
     func historyRecent(_ limit: Int32, reply: @escaping (Data?, NSError?) -> Void)
     func historyByDay(_ day: String, reply: @escaping (Data?, NSError?) -> Void)
-    func historySearch(_ query: String, _ limit: Int32, reply: @escaping (Data?, NSError?) -> Void)
+    func historyFuzzySearch(_ query: String, _ limit: Int32, reply: @escaping (Data?, NSError?) -> Void)
     func historyDelete(_ id: String, reply: @escaping (NSError?) -> Void)
     func historyDeleteBefore(_ cutoff: Int64, reply: @escaping (Int32, NSError?) -> Void)
     func historyClear(reply: @escaping (NSError?) -> Void)

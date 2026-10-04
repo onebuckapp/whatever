@@ -1,15 +1,15 @@
 import AppKit
 import Combine
 
-/// Window content: the custom tab bar at the top and the page area
-/// below it, which shows either one tab's page or a split view of two
-/// tabs. Navigation and the address field live in the window's native
-/// `NSToolbar`, so nothing else belongs in this view.
+/// Window content: the toolbar strip and custom tab bar at the top, and the
+/// page area below, which shows either one tab's page or a split view of two
+/// tabs. Navigation and the address field live in `BrowserToolbarView`.
 final class BrowserWindowContentViewController: NSViewController {
     static let tabBarHeight: CGFloat = 36
 
     private var onNewTab: (() -> Void)?
     private var dropPreview: NSView?
+    private var toolbarView: NSView?
     private let progressBar = NSView()
     private var noiseOverlay: NoiseOverlayView?
     private var backgroundMedia: BackgroundMediaView?
@@ -56,6 +56,31 @@ final class BrowserWindowContentViewController: NSViewController {
         onNewTab = action
     }
 
+    /// Installs the toolbar strip across the top of the window and moves the tab
+    /// bar directly beneath it.
+    ///
+    /// The tab bar used to hang off `view.safeAreaLayoutGuide.topAnchor`, whose 52pt
+    /// inset came from the native `NSToolbar`. With that gone the safe area is
+    /// empty and the bar would jump to the top of the window, so the inset is now
+    /// pinned explicitly as the strip's height. Same 52 points, same place.
+    ///
+    /// Added below everything else so the background media, the tab bar and the
+    /// progress bar all keep drawing over it where they overlap.
+    func installToolbar(_ toolbar: NSView) {
+        guard isViewLoaded, toolbarView == nil else { return }
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(toolbar, positioned: .below, relativeTo: tabBar)
+        NSLayoutConstraint.activate([
+            toolbar.topAnchor.constraint(equalTo: view.topAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
+
+            tabBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+        ])
+        toolbarView = toolbar
+    }
+
     /// Opens the grain settings card, or closes it when already open.
     /// Driven by the toolbar button next to the page menu.
     ///
@@ -63,8 +88,8 @@ final class BrowserWindowContentViewController: NSViewController {
     /// own tap-outside layer is `.clear`, so without it a click over the
     /// page would reach the `WKWebView` underneath. The shield swallows
     /// the input and dismisses the card; the card itself stays above it
-    /// and fully interactive. The native toolbar is deliberately left
-    /// outside the shield, so navigation and window controls keep working.
+    /// and fully interactive. The toolbar strip is deliberately left
+    /// above the shield, so navigation and window controls keep working.
     func toggleNoiseSettings() {
         guard isViewLoaded else { return }
         if noiseSettingsPresenter != nil {
@@ -149,7 +174,11 @@ final class BrowserWindowContentViewController: NSViewController {
     /// pointer for hover whether or not anything is intercepting clicks.
     private func installShield(onClick: @escaping () -> Void) {
         shield?.removeFromSuperview()
-        shield = ModalEventShieldView.install(in: view, onClick: onClick)
+        // Below the toolbar, so navigation and the address bar keep working while
+        // a card is up. The native toolbar used to sit outside the content view
+        // entirely and was left interactive by default; now it is in here, so the
+        // ordering has to be asked for.
+        shield = ModalEventShieldView.install(in: view, below: toolbarView, onClick: onClick)
         onShieldChanged?(true)
     }
 
@@ -235,11 +264,9 @@ final class BrowserWindowContentViewController: NSViewController {
         view.addSubview(progressBar)
 
         NSLayoutConstraint.activate([
-            // The safe area, not the top of the view: the window is full-size so
-            // that the background can run behind the toolbar, which means the
-            // view's own top is now the top of the window rather than the top of
-            // the chrome-free area.
-            tabBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            // The top edge comes from `installToolbar`, which pins this to the
+            // bottom of the toolbar strip. It used to come from the view's safe
+            // area, whose inset the native toolbar supplied.
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),

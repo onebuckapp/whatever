@@ -11,6 +11,11 @@ struct TabCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: .command)
 
+            Button("Search History") {
+                BrowserCoordinator.shared.keyController?.focusAddressBar()
+            }
+            .keyboardShortcut("l", modifiers: [.command, .shift])
+
             Button("Focus Address Bar") {
                 BrowserCoordinator.shared.keyController?.focusAddressBar()
             }

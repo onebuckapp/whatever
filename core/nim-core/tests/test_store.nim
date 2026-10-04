@@ -37,6 +37,17 @@ proc readRecent(limit: int): seq[JsonNode] =
     for entry in node.items:
       result.add(entry)
 
+proc charOffsetOfByte(text: string, byteOffset: int): int =
+  ## How many characters come before `byteOffset`.
+  ##
+  ## A UTF-8 continuation byte is 10xxxxxx; everything else starts a character.
+  ## This is the same conversion the Swift side has to do to turn the matcher's
+  ## byte offsets into character ranges, written out here so the test can assert
+  ## the two genuinely disagree rather than assuming it.
+  for index in 0 ..< byteOffset:
+    if (ord(text[index]) and 0xC0) != 0x80:
+      inc result
+
 let scratchRoot = getTempDir() / "whatever-store-tests"
 
 ## Cleared once, at load time, rather than per test: the store handles open on
@@ -130,25 +141,144 @@ suite "store c abi":
         check entry["firstVisited"].getInt == visitedAt
     check hit
 
-  test "history search covers url and title, and misses cleanly":
-    let url = "https://searchable.example.org/needle"
-    check historyRecord(url.cstring, "Findable Title".cstring, 1_700_000_200, -1) == Ok
+  test "history fuzzy search ranks subsequence matches over url and title":
+    let url = "https://fuzzy.example.net/xylophone-quantum-leaping"
+    check historyRecord(url.cstring, "Quantum Leaping Papers".cstring, 1_700_000_200, -1) == Ok
 
-    let byUrl = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
-      historySearch("searchable".cstring, 50, buffer, capacity, needed))
-    check byUrl.kind == JArray
-    check byUrl.len > 0
-
+    ## "qlp" is a subsequence of the title's initials, so it can only match if
+    ## the matcher is doing subsequence matching rather than substring.
     let byTitle = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
-      historySearch("findable".cstring, 50, buffer, capacity, needed))
+      historyFuzzySearch("qlp".cstring, 50, buffer, capacity, needed))
+    check byTitle.kind == JArray
     check byTitle.len > 0
 
-    ## No LIKE in the store, so search is a scan; it must still return an empty
-    ## array rather than an error when nothing matches.
+    let hit = byTitle[0]
+    check hit["url"].getStr == url
+    ## The positions form a subsequence of the title, in order, each landing on
+    ## the character of the query it satisfied. Contiguity is deliberately not
+    ## asserted: this is a subsequence matcher, so a scattered hit is a correct
+    ## result and pinning the test to a contiguous run would fail the moment the
+    ## matcher legitimately prefers an earlier scattered one.
+    let title = hit["title"].getStr
+    let titlePositions = hit["titlePositions"].getElems
+    let needle = "qlp"
+    check titlePositions.len == needle.len
+    var previous = -1
+    for index, position in titlePositions:
+      let offset = position.getInt
+      check offset > previous
+      check offset < title.len
+      check title[offset].toLowerAscii() == needle[index].toLowerAscii()
+      previous = offset
+
+    ## A token that exists only in the URL has to produce URL offsets, and those
+    ## offsets have to be relative to the URL rather than to the joined
+    ## candidate. "xylophone" appears nowhere in the title, so every matched byte
+    ## belongs to the URL and none to the title.
+    let byUrl = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("xylophone".cstring, 50, buffer, capacity, needed))
+    check byUrl.len > 0
+    let urlHit = byUrl[0]
+    let urlText = urlHit["url"].getStr
+    let urlPositions = urlHit["urlPositions"].getElems
+    check urlPositions.len > 0
+    check urlHit["titlePositions"].getElems.len == 0
+    ## Rebasing, proved by validity: an offset counted from the start of the joined
+    ## candidate would sit past the title and past most of this URL, and indexing
+    ## the URL with it would run off the end or land on the wrong byte.
+    for position in urlPositions:
+      let offset = position.getInt
+      check offset < urlText.len
+      let matched = urlText[offset].toLowerAscii()
+      check "xylophone".find(matched) >= 0
+
+    ## A query nothing can match must come back as an empty array rather than an
+    ## error, because `writeBuffer`'s two-phase contract reports a payload size
+    ## through BC_ERR_BUFFER_TOO_SMALL and readJson checks for exactly that.
     let miss = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
-      historySearch("zzzz-no-such-page".cstring, 50, buffer, capacity, needed))
+      historyFuzzySearch("zzzz-no-such-page".cstring, 50, buffer, capacity, needed))
     check miss.kind == JArray
     check miss.len == 0
+
+  test "history fuzzy search reports positions as byte offsets, not character offsets":
+    ## The positions are byte offsets into UTF-8, and the UI has to convert them
+    ## before it can build ranges. This title is 17 characters but 19 bytes,
+    ## because 'é' and 'ü' are two bytes each.
+    ##
+    ## The query is pure ASCII on purpose — see the next test for what happens
+    ## when it is not. "ebra" can only match the tail of "Zebra", which starts at
+    ## byte 15 and at character 12, so the two disagree and the test can tell
+    ## which one the matcher reported.
+    let accented = "Café Zürich Zebra"
+    let url = "https://bytes.example.com/umlaut-row"
+    check historyRecord(url.cstring, accented.cstring, 1_700_000_250, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("ebra".cstring, 50, buffer, capacity, needed))
+    check hits.len > 0
+    let hit = hits[0]
+    check hit["title"].getStr == accented
+    let positions = hit["titlePositions"].getElems
+    check positions.len == 4
+    check positions[0].getInt == 15
+    check positions[3].getInt == 18
+    ## The byte offset is not the character offset, and this is the conversion
+    ## the Swift side has to perform before it can build an NSRange. "Zebra"'s Z
+    ## is byte 14 and character 12; its 'e' is byte 15 and character 13.
+    check charOffsetOfByte(accented, 14) == 12
+    check charOffsetOfByte(accented, 15) == 13
+    ## And the byte really is the byte: Nim's `[]` indexes UTF-8 bytes.
+    check accented[15] == 'e'
+    check accented[14] == 'Z'
+
+  test "history fuzzy search matches multi-byte query characters byte by byte":
+    ## Documents a limitation rather than asserting correctness: the matcher walks
+    ## bytes, and its case folding only covers ASCII, so a query character outside
+    ## ASCII is matched as its individual bytes. 'ü' is C3 BC, and the title's
+    ## 'é' also begins with C3 — so the matcher can satisfy the query with the
+    ## 'é' supplying the first byte and the 'ü' supplying the second.
+    ##
+    ## The upshot for the UI is that highlighting is only reliable for an ASCII
+    ## query, which is what an address bar almost always holds. If this test ever
+    ## starts failing, the matcher grew real Unicode support and the Swift side
+    ## can stop defending against this.
+    let accented = "Café Zürich Zebra"
+    let url = "https://byteseek.example.com/multi-byte-row"
+    check historyRecord(url.cstring, accented.cstring, 1_700_000_255, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("ü".cstring, 50, buffer, capacity, needed))
+    check hits.len > 0
+    let positions = hits[0]["titlePositions"].getElems
+    check positions.len == 2
+    ## C3 lands on the 'é' at byte 3 rather than the 'ü' at byte 7, which is the
+    ## whole behaviour being pinned down.
+    check positions[0].getInt == 3
+    check positions[1].getInt == 8
+
+  test "history fuzzy search on an empty query returns an empty array":
+    let empty = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("".cstring, 50, buffer, capacity, needed))
+    check empty.kind == JArray
+    check empty.len == 0
+
+  test "history fuzzy search ranks a tight title match above a scattered one":
+    ## Two rows both match "nb", but one has them adjacent at a word start and the
+    ## other only as a run across two words. The better-formed match has to come
+    ## first, which is the whole reason for scoring rather than substring
+    ## matching.
+    check historyRecord(
+      "https://rank.example.com/tight".cstring,
+      "Nim Bridges".cstring, 1_700_000_260, -1) == Ok
+    check historyRecord(
+      "https://rank.example.com/scattered".cstring,
+      "Nim Build Manual".cstring, 1_700_000_261, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("nb".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 2
+    check hits[0]["url"].getStr == "https://rank.example.com/tight"
+    check hits[0]["score"].getFloat > hits[1]["score"].getFloat
 
   test "history delete removes exactly one entry":
     let url = "https://example.com/deletable"

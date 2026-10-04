@@ -16,6 +16,10 @@
 
 import std/[algorithm, options, strutils, tables, times]
 import openparser/json
+# Leaf module on purpose: it pulls in nimsimd, which `openparser/json` already
+# brings, and nothing else. Reaching for the `openparser` umbrella instead would
+# drag the QR ciphers and nimcypher into the archive.
+import openparser/fuzzy
 import boogie/stores/rdbms
 import ../storage/database
 import ../storage/schema
@@ -31,17 +35,37 @@ const
   ## is a user setting; this is only the value assumed when none is supplied.
   DefaultCollapseWindowSecs = 10'i64
 
-  ## Ceiling on rows a text search will consider. The store has no LIKE, so a
-  ## search is a scan; this bounds how long one can run.
-  SearchScanLimit = 5000
+  ## Ceiling on rows one interactive fuzzy query will score, halved repeatedly
+  ## rather than truncated once. See `thin`.
+  FuzzyScanLimit = 2000
 
   ## Upper bound on rows any single listing returns.
   MaxResults = 500
+
+  ## Separator between the title and URL halves of a fuzzy candidate.
+  ##
+  ## A space, which `fuzzy.isWordStart` counts as a word boundary, so a match on
+  ## the first character of the URL gets the same boundary bonus a word start
+  ## would otherwise get.
+  FuzzyFieldSeparator = " "
 
 type
   Visit = tuple[visitedAt: int64, entry: JsonNode]
     ## A listing candidate, ordered by its timestamp so the newest survive the
     ## truncation below.
+
+  Candidate = object
+    ## One history row, held as plain fields rather than a `JsonNode`.
+    ##
+    ## A fuzzy query scores every scanned row, so building the JSON for each one
+    ## would allocate a tree per row for the sake of the handful that survive.
+    pk: string
+    url: string
+    title: string
+    host: string
+    firstVisited: int64
+    lastVisited: int64
+    visitCount: int64
 
 # MARK: - Reading rows
 
@@ -212,37 +236,142 @@ proc historyByDay*(day: cstring, buffer: ptr char, capacity: int32, needed: ptr 
   if status != Ok: return status
   emitJson(entries, buffer, capacity, needed)
 
-proc historySearch*(query: cstring, limit: int32, buffer: ptr char, capacity: int32, needed: ptr int32): int32 {.exportc: "bc_history_search".} =
-  ## Substring search over URL, title and host.
+# MARK: - Fuzzy search
+
+proc candidateOf(pk: string, data: RowData): Candidate =
+  Candidate(
+    pk: pk,
+    url: textOf(data, "url"),
+    title: textOf(data, "title"),
+    host: textOf(data, "host"),
+    firstVisited: intOf(data, "firstVisited"),
+    lastVisited: intOf(data, "lastVisited"),
+    visitCount: intOf(data, "visitCount"))
+
+proc candidateText(candidate: Candidate): string =
+  ## What the matcher scores: the title and the URL as one string.
   ##
-  ## There is no LIKE in the store, so this is a bounded scan: at most
-  ## `SearchScanLimit` rows are examined, and the newest matches within them are
-  ## returned. A browser's history is append-ordered, so recent matches dominate
-  ## and the cap rarely drops anything the user would look for.
+  ## A page is identified by either half, and a query like "githb" should be able
+  ## to run off the end of a title and into the URL. The cost is that
+  ## `fuzzyScoreImpl` normalises by the whole candidate's length, so a long URL
+  ## pulls down a score a title earned on its own; `minScore` stays at 0 for that
+  ## reason rather than trying to compensate for it here.
+  if candidate.title.len == 0:
+    candidate.url
+  else:
+    candidate.title & FuzzyFieldSeparator & candidate.url
+
+proc thin(kept: var seq[Candidate], cap: int) =
+  ## Halves `kept` in place, keeping every second entry.
+  ##
+  ## `allRows` walks primary-key order, which for this table's serial keys is
+  ## oldest-first, so simply stopping after `cap` rows would score nothing but the
+  ## oldest history a user ever accumulated — and the old substring search did
+  ## exactly that. Dropping every second entry instead keeps an even spread over
+  ## everything walked so far, so a page first visited years ago and opened since
+  ## every day stays findable. Repeating the halving gives a stride of 2, 4, 8
+  ## without ever needing the row count up front.
+  var survivors: seq[Candidate] = @[]
+  for index, candidate in kept:
+    if index mod 2 == 0:
+      survivors.add(candidate)
+  kept = survivors
+
+proc fuzzyCandidates(table: DbTable): seq[Candidate] =
+  ## Up to `FuzzyScanLimit` rows, spread across the whole table.
+  var kept: seq[Candidate] = @[]
+  for row in table.allRows:
+    kept.add(candidateOf(row[0], row[1]))
+    if kept.len >= FuzzyScanLimit * 2:
+      thin(kept, FuzzyScanLimit)
+  kept
+
+proc fuzzyEntryJson(candidate: Candidate, matched: FuzzyMatch): JsonNode =
+  ## One result, with the match positions split back onto the two fields.
+  ##
+  ## The positions `fuzzySearch` reports are byte offsets into the combined
+  ## candidate string, so they have to be divided here rather than in Swift:
+  ## splitting in Nim keeps the separator an implementation detail and leaves
+  ## each field's positions relative to that field alone, which is the only form
+  ## the UI can use to build ranges.
+  var titlePositions: seq[int] = @[]
+  var urlPositions: seq[int] = @[]
+  let titleBytes = candidate.title.len
+  if titleBytes == 0:
+    # The candidate is the bare URL, so every offset is already a URL offset.
+    urlPositions = matched.positions
+  else:
+    for position in matched.positions:
+      if position < titleBytes:
+        titlePositions.add(position)
+      elif position > titleBytes:
+        # One past the separator, which sits at `titleBytes`.
+        urlPositions.add(position - titleBytes - FuzzyFieldSeparator.len)
+      # A match landing exactly on the separator is dropped: there is no
+      # character there to highlight.
+  # Built outside the `%*` macro: `Float64` is not resolvable from inside it,
+  # and the score is the one value here that is not an integer.
+  result = %*{
+    "id": candidate.pk,
+    "url": candidate.url,
+    "title": candidate.title,
+    "host": candidate.host,
+    "firstVisited": candidate.firstVisited,
+    "lastVisited": candidate.lastVisited,
+    "visitCount": candidate.visitCount,
+    "titlePositions": titlePositions,
+    "urlPositions": urlPositions,
+  }
+  result["score"] = newJFloat(matched.score)
+
+proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacity: int32, needed: ptr int32): int32 {.exportc: "bc_history_fuzzy_search".} =
+  ## Ranks history by subsequence match against the query, best first.
+  ##
+  ## Every query character must appear in the row, in order but not necessarily
+  ## contiguously, which is what `openparser/fuzzy` scores: consecutive runs,
+  ## word-boundary hits and gap penalties. Ranking comes from the matcher rather
+  ## than from recency, so a page visited once and named exactly what you typed
+  ## can outrank the one you open every morning.
+  ##
+  ## Each row is scored as its title and URL joined, and the reported positions
+  ## are split back onto those two fields, so one row is one result however many
+  ## fields matched.
+  ##
+  ## `caseSensitive` is left at openparser's default of false and `minScore` at 0.
+  ## Scores are normalised by candidate length, so a gappy match across a long
+  ## URL can land below zero; letting those through would fill the list with
+  ## rows that barely matched at all.
   let db = storeRef()
-  let needle = if query.isNil: "" else: ($query).toLowerAscii()
+  let needle = if query.isNil: "" else: $query
   let wanted = max(1'i32, min(limit, int32(MaxResults))).int
   var document = newJArray()
-  let status = catchingStore("search history"):
+  let status = catchingStore("fuzzy search history"):
+    # An empty query returns an empty array rather than an error, because
+    # `writeBuffer`'s two-phase contract means the caller learns the payload
+    # size from `ErrBufferTooSmall` and anything else here would read as a
+    # failure to Swift.
     if needle.len > 0:
       let table = db.history.getTable(HistoryTable).get()
-      var scanned = 0
-      var candidates: seq[Visit] = @[]
-      for row in table.allRows:
-        if scanned >= SearchScanLimit: break
-        inc scanned
-        let (pk, data) = row
-        let url = textOf(data, "url")
-        let title = textOf(data, "title")
-        let host = textOf(data, "host")
-        let hit = url.toLowerAscii().contains(needle) or
-                  title.toLowerAscii().contains(needle) or
-                  host.contains(needle)
-        if not hit: continue
-        if candidates.len >= wanted:
-          candidates.setLen(0)
-        candidates.add((intOf(data, "lastVisited"), entryJson(pk, data)))
-      document = newestFirst(candidates)
+      let candidates = fuzzyCandidates(table)
+      var texts: seq[string] = @[]
+      var byText = initTable[string, Candidate]()
+      for candidate in candidates:
+        let text = candidateText(candidate)
+        if byText.hasKey(text):
+          # Two rows can only collide here if they share a URL, which the
+          # collapse window normally prevents. The newer row wins, and the text
+          # is left out of `texts` a second time so one row is scored once and
+          # cannot appear in the results twice.
+          if byText[text].lastVisited >= candidate.lastVisited:
+            continue
+          byText[text] = candidate
+        else:
+          texts.add(text)
+          byText[text] = candidate
+      let matches = fuzzySearch(needle, texts, FuzzyOptions(limit: wanted))
+      for matched in matches:
+        if byText.hasKey(matched.text):
+          document.add(fuzzyEntryJson(byText[matched.text], matched))
     Ok
   if status != Ok: return status
   emitJson(document, buffer, capacity, needed)
