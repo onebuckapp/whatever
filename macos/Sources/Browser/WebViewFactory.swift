@@ -25,6 +25,13 @@ enum WebViewFactory {
         // The half of the user's web settings WebKit only reads here. The other
         // half is applied by `applyLiveWebSettings` once the view exists.
         SettingsStore.shared.settings.web.apply(to: configuration)
+        // Compiled content-blocker lists. The QR popup builds its own
+        // configuration for a non-interactive SVG view and never sees these.
+        if SettingsStore.shared.settings.adblock.enabled {
+            for list in ContentBlockerStore.shared.lists {
+                configuration.userContentController.add(list)
+            }
+        }
         let webView = BrowserWebView(frame: .zero, configuration: configuration)
         // Read here rather than pushed later, so a page built after the setting
         // changed is already see-through instead of opaque until something else

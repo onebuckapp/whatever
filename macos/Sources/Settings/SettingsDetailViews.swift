@@ -6,13 +6,14 @@ import SwiftUI
 /// Split out from the modal chrome so the sidebar, the card, and the presenter
 /// stay about layout and this file stays about the settings themselves.
 enum SettingsDetailView {
-    /// `AnyView` rather than `some View`: a switch over seven cases has seven
+    /// `AnyView` rather than `some View`: a switch over eight cases has eight
     /// unrelated concrete types, which `some View` cannot unify.
     static func view(for section: SettingsSection) -> AnyView {
         switch section {
         case .general: AnyView(GeneralSettingsView())
         case .appearance: AnyView(AppearanceSettingsView())
         case .web: AnyView(WebSettingsView())
+        case .contentBlocker: AnyView(ContentBlockerSettingsView())
         case .bookmarks: AnyView(BookmarksSettingsView())
         case .history: AnyView(HistorySettingsView())
         case .search: AnyView(SearchSettingsView())
@@ -742,5 +743,171 @@ struct DownloadsSettingsView: View {
             title: "No download history yet",
             message: "Downloads appear here once Whatever tracks them."
         )
+    }
+}
+
+// MARK: - Content Blocker
+
+struct ContentBlockerSettingsView: View {
+    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject private var blocker = ContentBlockerStore.shared
+    @State private var rulesDraft = ""
+    @State private var rulesSeeded = false
+    @State private var hostDraft = ""
+
+    private var exceptions: [String] {
+        store.settings.adblock.exceptions.sorted()
+    }
+
+    var body: some View {
+        SettingsDetailStack {
+            SettingsGroup(
+                title: "Blocking",
+                footnote: "Pages reload to pick up a change."
+            ) {
+                SettingsToggleRow(
+                    title: "Block ads and trackers",
+                    subtitle: "Third-party requests to listed hosts never leave the page.",
+                    isOn: store.binding(\.adblock.enabled)
+                )
+            }
+
+            SettingsGroup(
+                title: "Filter lists",
+                footnote: "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+            ) {
+                SettingsButtonRow(
+                    title: "Bundled snapshot",
+                    subtitle: "\(store.settings.adblock.snapshotVersion ?? "—") · \(blocker.lastMeta?.ruleCount ?? 0) rules"
+                ) {
+                    EmptyView()
+                }
+                SettingsButtonRow(
+                    title: "Source",
+                    subtitle: "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+                ) {
+                    EmptyView()
+                }
+                if let meta = blocker.lastMeta {
+                    SettingsButtonRow(
+                        title: "Rules",
+                        subtitle: "\(meta.blockCount) hosts · \(meta.cosmeticCount) hiding · \(meta.exceptionCount) exceptions"
+                    ) {
+                        EmptyView()
+                    }
+                    SettingsButtonRow(
+                        title: "Skipped lines",
+                        subtitle: "\(meta.skippedLines) lines the compiler ignored"
+                    ) {
+                        EmptyView()
+                    }
+                }
+                if let error = blocker.lastError {
+                    SettingsButtonRow(
+                        title: "Last error",
+                        subtitle: error
+                    ) {
+                        EmptyView()
+                    }
+                }
+            }
+
+            SettingsGroup(
+                title: "Custom rules",
+                footnote: "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+            ) {
+                TextEditor(text: $rulesDraft)
+                    .font(.system(size: 11, design: .monospaced))
+                    .frame(minHeight: 120)
+                HStack {
+                    Spacer(minLength: 0)
+                    Button("Apply rules") { applyRules() }
+                        .controlSize(.small)
+                }
+            }
+
+            SettingsGroup(
+                title: "Exceptions",
+                footnote: "Sites the blocker leaves alone, subdomains included."
+            ) {
+                if exceptions.isEmpty {
+                    Text("No exceptions.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 3)
+                } else {
+                    ForEach(exceptions, id: \.self) { host in
+                        HStack {
+                            Text(host)
+                                .font(.system(size: 12))
+                            Spacer(minLength: 12)
+                            Button {
+                                remove(host)
+                            } label: {
+                                Image(systemName: "xmark.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove \(host)")
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+                HStack {
+                    TextField("example.com", text: $hostDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12))
+                        .onSubmit { add() }
+                    Button("Add", action: add)
+                        .controlSize(.small)
+                        .disabled(normalizedHost(hostDraft) == nil)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            // Seed once per mount: the card keeps panes mounted while it is
+            // open, so seeding on every appear would clobber an in-progress
+            // edit whenever the pane is revisited.
+            if !rulesSeeded {
+                rulesDraft = store.settings.adblock.userRules
+                rulesSeeded = true
+            }
+        }
+    }
+
+    private func applyRules() {
+        let text = rulesDraft
+        store.update { document in
+            document.adblock.userRules = text
+        }
+        // The settings write above fans out through onChange, but the lists
+        // themselves are stale until recompiled; compiling records the new
+        // fingerprint, whose write fans out a second time with fresh lists.
+        Task { @MainActor in
+            await blocker.refreshIfNeeded()
+        }
+    }
+
+    private func add() {
+        guard let host = normalizedHost(hostDraft) else { return }
+        store.update { document in
+            document.adblock.exceptions.insert(host)
+        }
+        hostDraft = ""
+    }
+
+    private func remove(_ host: String) {
+        store.update { document in
+            document.adblock.exceptions.remove(host)
+        }
+    }
+
+    /// Lowercased, trimmed and dot-trimmed, or nil when there is nothing to
+    /// save. Matching is suffix-based, so the entry needs no further form.
+    private func normalizedHost(_ raw: String) -> String? {
+        let host = raw.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        return host.isEmpty ? nil : host
     }
 }

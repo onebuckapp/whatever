@@ -2,9 +2,10 @@ import AppKit
 import Combine
 
 /// The window's top strip: back / forward / reload on the leading side,
-/// the address field in the middle, and bookmarks / downloads / settings on the
-/// trailing side. It follows the window's active tab, so switching tabs updates
-/// the navigation state and the address text.
+/// the address field in the middle, and content blocker / bookmarks /
+/// downloads / settings on the trailing side. It follows the window's
+/// active tab, so switching tabs updates the navigation state and the
+/// address text.
 ///
 /// Owns the views; `BrowserToolbarView` owns the layout. It was an `NSToolbar`
 /// until the strip became hand-rolled, and the button and field code below is
@@ -21,6 +22,7 @@ final class BrowserToolbarController: NSObject {
     private let settingsButton = BrowserToolbarButton()
     private let downloadsButton = BrowserToolbarButton()
     private let bookmarksButton = BrowserToolbarButton()
+    private let adblockButton = BrowserToolbarButton()
     private let backButton = BrowserToolbarButton()
     private let forwardButton = BrowserToolbarButton()
     private let reloadButton = BrowserToolbarButton()
@@ -40,6 +42,8 @@ final class BrowserToolbarController: NSObject {
     var onDownloads: (() -> Void)?
     /// Opens the settings modal on the Bookmarks section.
     var onBookmarks: (() -> Void)?
+    /// Opens the per-site content-blocker card for the current tab.
+    var onAdBlock: (() -> Void)?
 
     init(controller: BrowserWindowController) {
         self.controller = controller
@@ -50,7 +54,7 @@ final class BrowserToolbarController: NSObject {
         let toolbar = BrowserToolbarView(
             leading: [backButton, forwardButton, reloadButton],
             center: addressContainer,
-            trailing: [bookmarksButton, downloadsButton, settingsButton]
+            trailing: [adblockButton, bookmarksButton, downloadsButton, settingsButton]
         )
         self.toolbarView = toolbar
         super.init()
@@ -208,6 +212,10 @@ final class BrowserToolbarController: NSObject {
         onBookmarks?()
     }
 
+    @objc private func openAdBlock() {
+        onAdBlock?()
+    }
+
     // MARK: - Setup
 
     private func configureButtons() {
@@ -230,6 +238,12 @@ final class BrowserToolbarController: NSObject {
             symbol: "bookmark",
             help: "Bookmarks",
             action: #selector(openBookmarks)
+        )
+        configure(
+            adblockButton,
+            symbol: "shield",
+            help: "Content Blocker",
+            action: #selector(openAdBlock)
         )
     }
 

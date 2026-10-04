@@ -417,4 +417,57 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
             }
         }
     }
+
+    // MARK: Filters
+
+    func filterCompile(_ lists: String, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            // Non-throwing read: empty input compiles to `[]`, which is a
+            // real answer rather than a failure, and a Swift String can
+            // never be the NULL the core refuses.
+            let payload: CorePayload?
+            do {
+                payload = try lists.withCString { pointer in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_filter_compile(pointer, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func filterMeta(
+        _ lists: String,
+        _ version: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try lists.withCString { listsPointer in
+                    try version.withCString { versionPointer in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_filter_meta(listsPointer, versionPointer, buffer, capacity, needed)
+                        }, rejecting: [.badInput])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
 }

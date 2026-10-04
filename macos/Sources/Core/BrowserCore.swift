@@ -38,6 +38,31 @@ enum BrowserCore {
             lightHex: lightHex
         )
     }
+
+    /// Compiles filter-list text (bundled snapshot plus user rules) into a
+    /// WebKit content-blocker JSON array, as UTF-8 data.
+    static func compiledFilters(_ lists: String) async throws -> Data {
+        try await StoreClient.shared.compiledFilters(lists)
+    }
+
+    /// Counts and fingerprint for filter-list text, decoded from the core's
+    /// meta document.
+    static func filterMeta(_ lists: String, version: String) async throws -> FilterMeta {
+        let data = try await StoreClient.shared.filterMeta(lists, version: version)
+        return try JSONDecoder().decode(FilterMeta.self, from: data)
+    }
+}
+
+/// Counts and fingerprint describing one filter input, mirrored from the
+/// core's `bc_filter_meta` document.
+struct FilterMeta: Decodable {
+    let ruleCount: Int
+    let blockCount: Int
+    let cosmeticCount: Int
+    let exceptionCount: Int
+    let skippedLines: Int
+    let inputHashHex: String
+    let sourceVersion: String
 }
 
 /// Error correction level requested from the Nim QR encoder. Raw values mirror

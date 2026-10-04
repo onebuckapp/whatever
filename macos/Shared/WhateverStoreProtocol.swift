@@ -75,6 +75,20 @@ import Foundation
         _ light: String?,
         reply: @escaping (String?, NSError?) -> Void
     )
+
+    // MARK: Filters
+
+    /// Compiles filter-list text (hosts plus user rules) into a WebKit
+    /// content-blocker JSON array. Empty input compiles to `[]`, which is a
+    /// valid empty rule list rather than an error.
+    func filterCompile(_ lists: String, reply: @escaping (Data?, NSError?) -> Void)
+    /// Counts and fingerprint for the same input, without building the JSON.
+    /// `version` is echoed back so the caller can tell snapshots apart.
+    func filterMeta(
+        _ lists: String,
+        _ version: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
 }
 
 /// Status ordinals shared with the core, mirroring `core/include/browsercore.h`.

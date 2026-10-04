@@ -81,6 +81,17 @@ extension NavigationController: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
+        // Content-blocker exception for the page about to load, applied
+        // before the decision so the first subresource already sees the
+        // right lists. Same-site reuse keeps one view across navigations
+        // and cross-site swaps in a factory-fresh one; both pass through
+        // here, so both converge without a reload.
+        if navigationAction.targetFrame?.isMainFrame == true {
+            ContentBlockerStore.shared.applyException(
+                for: navigationAction.request.url,
+                to: webView.configuration.userContentController
+            )
+        }
         decisionHandler(.allow)
     }
 }

@@ -75,6 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if changed.contains("appearance") {
                 BrowserCoordinator.shared.applyLiveBackgroundSettings()
             }
+            if changed.contains("adblock") {
+                BrowserCoordinator.shared.applyLiveContentBlocker()
+            }
         }
         Task { @MainActor in
             // The core lives in the WhateverStore XPC service, which launchd
@@ -86,6 +89,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             async let session = SessionStore.shared.load()
             await SettingsStore.shared.load()
             _ = try? await version
+
+            // Compiles the content-blocker lists before the first tab opens,
+            // so the first page is already filtered. Fail-open: a failure
+            // leaves the store empty and pages load unblocked.
+            await ContentBlockerStore.shared.refreshIfNeeded()
 
             // Reopen the session the user left, and only fall back to a fresh
             // window when there was nothing to reopen. The two stores are read

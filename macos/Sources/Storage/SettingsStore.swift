@@ -20,9 +20,10 @@ struct AppSettings: Codable, Equatable {
     var appearance = AppearanceSettings()
     var web = WebSettings()
     var search = SearchSettings()
+    var adblock = AdBlockSettings()
 
     enum CodingKeys: String, CodingKey {
-        case general, appearance, web, search
+        case general, appearance, web, search, adblock
     }
 
     init() {}
@@ -36,6 +37,8 @@ struct AppSettings: Codable, Equatable {
         web = try container.decodeIfPresent(WebSettings.self, forKey: .web) ?? WebSettings()
         search = try container.decodeIfPresent(SearchSettings.self, forKey: .search)
             ?? SearchSettings()
+        adblock = try container.decodeIfPresent(AdBlockSettings.self, forKey: .adblock)
+            ?? AdBlockSettings()
     }
 
     /// Startup and history defaults.
@@ -163,6 +166,30 @@ struct AppSettings: Codable, Equatable {
 
         /// Engines the user added, in the order they were added.
         var customEngines: [CustomSearchEngine] = []
+    }
+
+    /// Content blocker preferences.
+    ///
+    /// The first three fields are the user's choices; the last three are
+    /// compile bookkeeping so the app can skip recompiling an unchanged
+    /// filter set across launches. All six live here rather than in
+    /// UserDefaults so one document — and one debounced write — carries
+    /// the whole feature.
+    struct AdBlockSettings: Codable, Equatable {
+        /// Master switch. Off means no rule lists are compiled or attached.
+        var enabled = true
+        /// Hosts (and their subdomains) the blocker leaves alone, lowercased.
+        var exceptions: Set<String> = []
+        /// Extra filter text in the core's grammar: hosts lines, `||`, `@@`
+        /// and `##` rules. Compiled together with the bundled snapshot.
+        var userRules = ""
+        /// Fingerprint of the filter text last compiled, to skip rebuilds.
+        var lastCompiledHash: String?
+        /// How many `blocker.N` rule lists the last compile produced, so a
+        /// shrunken list can remove its stale trailing identifiers.
+        var compiledChunks = 0
+        /// Version string shipped with the bundled snapshot.
+        var snapshotVersion: String?
     }
 
     /// Identifiers of the `WebSettings` properties WebKit only reads when a
@@ -311,6 +338,7 @@ final class SettingsStore: ObservableObject {
         if old.appearance != new.appearance { keys.insert("appearance") }
         if old.web != new.web { keys.insert("web") }
         if old.search != new.search { keys.insert("search") }
+        if old.adblock != new.adblock { keys.insert("adblock") }
         return keys
     }
 

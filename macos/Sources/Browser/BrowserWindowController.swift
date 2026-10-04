@@ -424,6 +424,9 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onBookmarks = { [weak self] in
             self?.presentSettings(section: .bookmarks)
         }
+        toolbarController.onAdBlock = { [weak self] in
+            self?.presentAdBlockPopup()
+        }
         // A modal card takes the mouse away from the pages for its duration.
         contentController.onShieldChanged = { [weak self] shielded in
             self?.setPagesInteractive(!shielded)
@@ -965,6 +968,15 @@ final class BrowserWindowController: NSWindowController {
     /// modal is always owned by the window it is opened over.
     func presentSettings(section: SettingsSection = .general) {
         contentController.presentSettings(section: section)
+    }
+
+    /// Opens the per-site content-blocker card for the selected tab.
+    ///
+    /// Behind the toolbar shield button. Nothing to show without a selected
+    /// tab, and the card itself handles pages without an exceptable host.
+    func presentAdBlockPopup() {
+        guard let tab = selectedTab else { return }
+        contentController.presentAdBlockPopup(for: tab)
     }
 
     /// Closes every open QR card, used when the layout or selection changes

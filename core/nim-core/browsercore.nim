@@ -24,12 +24,14 @@ import ./api/settings_api
 import ./api/bookmark_api
 import ./api/history_api
 import ./api/session_api
+import ./api/filter_api
 
 export qr_api
 export settings_api
 export bookmark_api
 export history_api
 export session_api
+export filter_api
 
 var threadRegistered {.threadvar.}: bool
 

@@ -1,0 +1,10 @@
+# Whatever additions to the bundled snapshot.
+#
+# Hand-maintained rules of our own, compiled after `adaway-hosts.txt`:
+# network rules the hosts format cannot express and one cosmetic rule so
+# element hiding stays exercised end to end. Same grammar as user rules
+# (see core/nim-core/api/filter_api.nim).
+||criteo.com^
+||outbrain.com^
+||taboola.com^
+##.ad-banner

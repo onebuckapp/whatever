@@ -1,0 +1,23 @@
+Whatever bundled filter snapshot: provenance and licensing.
+
+WHAT IS BUNDLED
+- adaway-hosts.txt: the AdAway default blocklist, retrieved 2026-10-04 from
+  https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt
+  and shipped byte-identical. It blocks mobile ad and analytics providers
+  in hosts-file form.
+- whatever-extra.txt: a short list of our own rules (network and cosmetic)
+  compiled after it.
+- snapshot-version.txt: `adaway-2026-10-04`, the snapshot identifier the app
+  records when it compiles.
+
+LICENSE (adaway-hosts.txt)
+The AdAway list states its own terms in its header: CC Attribution 3.0
+(http://creativecommons.org/licenses/by/3.0/). Attribution is given here,
+in the file's preserved header, and in the app's Content Blocker settings
+tab. whatever-extra.txt is our own work.
+
+REDISTRIBUTION NOTE
+This snapshot is converted on-device into WebKit content-blocker rules; the
+hosts text itself is not re-served. Replacing it with a newer upstream
+retrieval means swapping adaway-hosts.txt, updating snapshot-version.txt,
+and refreshing this date.

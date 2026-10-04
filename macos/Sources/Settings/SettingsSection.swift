@@ -8,6 +8,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case general
     case appearance
     case web
+    case contentBlocker
     case bookmarks
     case history
     case search
@@ -20,6 +21,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .general: "General"
         case .appearance: "Appearance"
         case .web: "Web"
+        case .contentBlocker: "Content Blocker"
         case .bookmarks: "Bookmarks"
         case .history: "History"
         case .search: "Search"
@@ -32,6 +34,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .general: "gearshape"
         case .appearance: "circle.lefthalf.filled"
         case .web: "globe"
+        case .contentBlocker: "shield"
         case .bookmarks: "bookmark"
         case .history: "clock"
         case .search: "magnifyingglass"

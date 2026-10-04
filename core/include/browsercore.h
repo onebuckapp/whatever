@@ -265,6 +265,35 @@ int32_t bc_qr_svg(const char *text, int32_t ec_level, int32_t scale,
                   int32_t border, const char *dark, const char *light,
                   char *out_svg, int32_t capacity, int32_t *out_needed);
 
+/* ----------------------------------------------------------------- filter */
+
+/* Hosts text and user rules in, WebKit content-blocker JSON out.
+ *
+ * Each line of `lists` is one entry: `0.0.0.0 host`, `127.0.0.1 host`, a
+ * bare `host`, `||domain^...` network rules, `@@||domain^` / `@@domain`
+ * exceptions, or `##selector` / `domain##selector` cosmetic rules. `#`
+ * comments, `!` comments, `[Adblock Plus]` headers, blank lines and
+ * malformed entries are skipped, never fatal.
+ *
+ * Host rules anchor the hostname boundary, so a rule for `ads.example.com`
+ * never matches `not-ads.example.com.evil.test`. Exceptions are appended
+ * after the rules they cancel. An empty string compiles to `[]`, a valid
+ * empty rule list; NULL `lists` is refused with BC_ERR_BAD_INPUT.
+ *
+ * The JSON array is written NUL-terminated into the caller-owned `buffer`
+ * through the two-phase protocol (`needed`, which may be NULL, reports the
+ * full length including the terminator). Returns one of the BC_* codes. */
+int32_t bc_filter_compile(const char *lists, char *buffer, int32_t capacity,
+                          int32_t *needed);
+
+/* Counts and change-detection fingerprint for the same input
+ * `bc_filter_compile` takes, without building the rule JSON: rule, block,
+ * cosmetic and exception counts, skipped lines, the FNV-1a input hash as
+ * lowercase hex (change detection only, not a security hash), and the
+ * echoed source version. Same NULL contract and two-phase protocol. */
+int32_t bc_filter_meta(const char *lists, const char *version, char *buffer,
+                       int32_t capacity, int32_t *needed);
+
 #ifdef __cplusplus
 }
 #endif

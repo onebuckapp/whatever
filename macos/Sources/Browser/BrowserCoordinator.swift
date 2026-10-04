@@ -55,6 +55,33 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             }
         }
     }
+
+    /// Pushes the compiled content-blocker lists onto every open page.
+    ///
+    /// Each tab is synced with the exception list for the page it shows, and
+    /// only tabs whose blocking actually moved reload: an exception added for
+    /// one site must not throw away form state in twenty others. Called from
+    /// `SettingsStore.onChange`, which also fires for the compile
+    /// bookkeeping `refreshIfNeeded` records — at launch there are no pages
+    /// yet, and later that bookkeeping always accompanies a real change.
+    func applyLiveContentBlocker() {
+        let store = ContentBlockerStore.shared
+        var liveIDs = Set<UUID>()
+        for window in windows {
+            for tab in window.tabs {
+                guard let webView = tab.webView else { continue }
+                liveIDs.insert(tab.id)
+                let attached = store.applyException(
+                    for: webView.url,
+                    to: webView.configuration.userContentController
+                )
+                if store.noteApplied(tab: tab.id, attached: attached) {
+                    webView.reload()
+                }
+            }
+        }
+        store.forgetTabs(notIn: liveIDs)
+    }
     /// Suppresses session writes while a session is being rebuilt.
     ///
     /// Restoring runs the same `addTab` and `selectTab` paths as any other

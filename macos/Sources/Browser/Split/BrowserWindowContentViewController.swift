@@ -17,6 +17,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var settingsSubscription: AnyCancellable?
     private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
     private var settingsPresenter: SettingsModalPresenter?
+    private var adBlockPresenter: AdBlockPopupPresenter?
     private var shield: ModalEventShieldView?
 
     /// Set by the window controller. `onDropZoneChanged` receives nil
@@ -157,6 +158,43 @@ final class BrowserWindowContentViewController: NSViewController {
         settingsPresenter = nil
         removeShield()
         noiseOverlay?.moveToFront()
+    }
+
+    /// Opens the per-site content-blocker card for `tab`, or closes it when
+    /// already open.
+    ///
+    /// No shield goes in for this one: the card is transient and the page
+    /// stays interactive underneath, like the QR card. The host is the
+    /// tab's http(s) host, or nil for pages without one, where the card
+    /// shows itself as having nothing to except.
+    func presentAdBlockPopup(for tab: BrowserTab) {
+        guard isViewLoaded else { return }
+        if adBlockPresenter != nil {
+            dismissAdBlockPopup()
+            return
+        }
+        let url = tab.displayURL ?? tab.webView?.url
+        let host: String? = {
+            guard let url,
+                  let scheme = url.scheme?.lowercased(),
+                  ["http", "https"].contains(scheme)
+            else {
+                return nil
+            }
+            return url.host?.lowercased()
+        }()
+        let presenter = AdBlockPopupPresenter(container: view) { [weak self] in
+            self?.adBlockPresenter = nil
+        } onManage: { [weak self] in
+            self?.presentSettings(section: .contentBlocker)
+        }
+        presenter.present(host: host)
+        adBlockPresenter = presenter
+    }
+
+    func dismissAdBlockPopup() {
+        adBlockPresenter?.dismiss()
+        adBlockPresenter = nil
     }
 
     private func dismissNoiseSettings() {

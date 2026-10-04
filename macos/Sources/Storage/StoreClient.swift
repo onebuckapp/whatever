@@ -309,6 +309,22 @@ final class StoreClient {
             }
         }
     }
+
+    // MARK: Filters
+
+    /// Compiles filter-list text into a WebKit content-blocker JSON array.
+    func compiledFilters(_ lists: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.filterCompile(lists, reply: done)
+        }
+    }
+
+    /// Counts and fingerprint for filter-list text, without the JSON.
+    func filterMeta(_ lists: String, version: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.filterMeta(lists, version, reply: done)
+        }
+    }
 }
 
 /// What the service reported about itself.
