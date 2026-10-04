@@ -52,8 +52,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // control, a migration, a future programmatic caller — reaches open
         // pages the same way.
         SettingsStore.shared.onChange = { changed in
-            guard changed.contains("web") else { return }
-            BrowserCoordinator.shared.applyLiveWebSettings()
+            if changed.contains("web") {
+                BrowserCoordinator.shared.applyLiveWebSettings()
+            }
+            if changed.contains("appearance") {
+                BrowserCoordinator.shared.applyLiveBackgroundSettings()
+            }
         }
         Task { @MainActor in
             // The core lives in the WhateverStore XPC service, which launchd
