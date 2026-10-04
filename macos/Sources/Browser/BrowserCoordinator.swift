@@ -187,6 +187,12 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         controller.showWindow(nil)
         controller.window?.center()
         controller.window?.makeKeyAndOrderFront(nil)
+        // Only the keyboard shortcut calls this today, and it always wants the
+        // caret. Gated on `url` so a future caller that opens a window to navigate
+        // somewhere does not also steal focus away from the destination.
+        if url == nil {
+            controller.focusAddressBar()
+        }
         return controller
     }
 
@@ -194,7 +200,8 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     @discardableResult
     func newWindow(
         containing tab: BrowserTab,
-        atScreenPoint point: NSPoint? = nil
+        atScreenPoint point: NSPoint? = nil,
+        focusesAddressBar: Bool = false
     ) -> BrowserWindowController {
         let controller = BrowserWindowController(tab: tab)
         windows.append(controller)
@@ -206,6 +213,12 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                 window.center()
             }
             window.makeKeyAndOrderFront(nil)
+        }
+        // After the window is key, not before: `BrowserWindowController.init(tab:)`
+        // selects the tab while the content view is not yet in a shown window, so
+        // there is nothing for `makeFirstResponder` to find.
+        if focusesAddressBar {
+            controller.focusAddressBar()
         }
         return controller
     }
@@ -232,18 +245,30 @@ final class BrowserCoordinator: NSObject, ObservableObject {
 
     /// Adds a tab to `controller`, or to the key window's controller,
     /// falling back to a new window.
+    ///
+    /// `focusesAddressBar` defaults to true because every path here is somebody
+    /// asking for a new tab and then wanting to type in it. The one caller that is
+    /// not is `BrowserPaneController`'s `createWebViewWith`, which is WebKit
+    /// driving a `window.open` rather than a person, and passes false: focus
+    /// belongs to the page that opened the popup, and the popup's navigation is
+    /// about to need it.
     @discardableResult
     func newTab(
         url: URL? = nil,
         privacyMode: BrowserPrivacyMode = .regular,
-        in controller: BrowserWindowController? = nil
+        in controller: BrowserWindowController? = nil,
+        focusesAddressBar: Bool = true
     ) -> BrowserTab? {
         let target = controller ?? keyController
         let tab = BrowserTab(privacyMode: privacyMode, history: history, initialURL: url)
         if let target {
             target.addTab(tab)
+            // After `addTab`, which selects the tab. See `focusAddressBar`.
+            if focusesAddressBar {
+                target.focusAddressBar()
+            }
         } else {
-            newWindow(containing: tab)
+            newWindow(containing: tab, focusesAddressBar: focusesAddressBar)
         }
         return tab
     }
@@ -263,11 +288,15 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             return
         }
         let tab = BrowserTab(privacyMode: closed.privacyMode, history: history, initialURL: closed.url)
-        if let controller = keyController {
+        let controller = keyController
+        if let controller {
             controller.addTab(tab)
             controller.selectTab(tab)
+            // Someone reopened this to go somewhere, so put the caret where they
+            // will type. The URL is selected, so typing replaces it.
+            controller.focusAddressBar()
         } else {
-            newWindow(containing: tab)
+            newWindow(containing: tab, focusesAddressBar: true)
         }
     }
 

@@ -23,14 +23,34 @@ struct BackgroundSettingsGroups: View {
 
     var body: some View {
         media
-        if background.isActive {
-            look
-            placement
-            effects
-        }
-        if background.kind == .gradient { gradient }
-        if background.kind == .image || background.kind == .video { videoOptions }
+        kindSections
         transparency
+    }
+
+    /// Only the sections the chosen renderer actually reads.
+    ///
+    /// Split out of `body` because a `switch` with a view-less case cannot sit in a
+    /// `ViewBuilder` directly.
+    @ViewBuilder
+    private var kindSections: some View {
+        switch background.kind {
+        case .none:
+            EmptyView()
+        case .solid:
+            solidFill
+            effects
+        case .gradient:
+            gradient
+            effects
+        case .image:
+            size
+            position
+            effects
+        case .video:
+            size
+            effects
+            videoOptions
+        }
     }
 
     // MARK: - Media
@@ -48,7 +68,7 @@ struct BackgroundSettingsGroups: View {
                 label: { $0.title }
             )
 
-            if background.kind == .image || background.kind == .video {
+            if background.kind.showsMediaSize {
                 SettingsButtonRow(
                     title: mediaTitle,
                     subtitle: mediaSubtitle
@@ -96,18 +116,35 @@ struct BackgroundSettingsGroups: View {
         return "\(url.deletingLastPathComponent().path) · \(formatted)"
     }
 
-    // MARK: - Look
+    // MARK: - Solid
 
-    private var look: some View {
+    private var solidFill: some View {
+        SettingsGroup(title: "Colour") {
+            ColorRow(
+                title: "Fill",
+                color: binding(\.appearance.background.solid.color)
+            )
+        }
+    }
+
+    // MARK: - Size
+
+    /// Fit, and the scale that goes with it.
+    ///
+    /// The video renderer is offered only the two fits that reach `videoGravity`
+    /// differently, and the getter reports the effective one so switching into
+    /// video with an image's `stretch` or custom scale does not show a segmented
+    /// control with nothing selected.
+    private var size: some View {
         SettingsGroup(title: "Size") {
             SettingsPickerRow(
                 title: "Fit",
-                options: BackgroundMediaConfiguration.Fit.allCases,
-                selection: binding(\.appearance.background.fit),
+                options: fitOptions,
+                selection: fitSelection,
                 isSegmented: true,
                 label: { $0.title }
             )
-            if background.fit == .custom {
+            if background.fit == .custom && background.kind == .image {
                 SettingsSliderRow(
                     title: "Scale",
                     value: binding(\.appearance.background.fitScale),
@@ -116,9 +153,7 @@ struct BackgroundSettingsGroups: View {
                     format: { String(format: "%.0f%%", $0) }
                 )
             }
-            // AVPlayerLayer cannot tile, so offering it would be a control that
-            // silently does nothing.
-            if background.kind == .image {
+            if background.kind.showsRepeat {
                 SettingsPickerRow(
                     title: "Repeat",
                     options: BackgroundMediaConfiguration.Repeat.allCases,
@@ -130,7 +165,26 @@ struct BackgroundSettingsGroups: View {
         }
     }
 
-    private var placement: some View {
+    private var fitOptions: [BackgroundMediaConfiguration.Fit] {
+        background.kind == .video
+            ? BackgroundMediaConfiguration.Fit.videoCases
+            : BackgroundMediaConfiguration.Fit.allCases
+    }
+
+    private var fitSelection: Binding<BackgroundMediaConfiguration.Fit> {
+        let keyPath = \AppSettings.appearance.background.fit
+        guard background.kind == .video else { return store.binding(keyPath) }
+        return Binding(
+            get: { store.settings[keyPath: keyPath].effectiveVideoFit },
+            set: { chosen in
+                store.update { document in
+                    document[keyPath: keyPath] = chosen
+                }
+            }
+        )
+    }
+
+    private var position: some View {
         SettingsGroup(title: "Position") {
             SettingsPickerRow(
                 title: "Anchor",
@@ -184,6 +238,12 @@ struct BackgroundSettingsGroups: View {
         }
     }
 
+    /// Opacity and tint always; grading only where there is an image to grade.
+    ///
+    /// Opacity rides on the view and the tint is painted over whatever was drawn,
+    /// so both work for every kind. The other four run inside
+    /// `BackgroundImageStore` and never touch a colour, a gradient, or a video's
+    /// own frames.
     private var effects: some View {
         SettingsGroup(title: "Effects") {
             SettingsSliderRow(
@@ -193,38 +253,40 @@ struct BackgroundSettingsGroups: View {
                 step: 0.05,
                 format: { String(format: "%.0f%%", $0 * 100) }
             )
-            SettingsSliderRow(
-                title: "Blur",
-                value: binding(\.appearance.background.effects.blurRadius),
-                range: 0...60,
-                step: 1,
-                format: { $0 <= 0.5 ? "None" : String(format: "%.0fpt", $0) }
-            )
-            SettingsSliderRow(
-                title: "Brightness",
-                value: binding(\.appearance.background.effects.brightness),
-                range: 0.2...2,
-                step: 0.05,
-                format: { String(format: "%.2f×", $0) }
-            )
-            SettingsSliderRow(
-                title: "Contrast",
-                value: binding(\.appearance.background.effects.contrast),
-                range: 0.2...2,
-                step: 0.05,
-                format: { String(format: "%.2f×", $0) }
-            )
-            SettingsSliderRow(
-                title: "Saturation",
-                value: binding(\.appearance.background.effects.saturation),
-                range: 0...2,
-                step: 0.05,
-                format: { $0 <= 0.01 ? "None" : String(format: "%.2f×", $0) }
-            )
             ColorRow(
                 title: "Tint",
                 color: binding(\.appearance.background.effects.overlay)
             )
+            if background.kind.showsGrading(hasPoster: background.hasPoster) {
+                SettingsSliderRow(
+                    title: "Blur",
+                    value: binding(\.appearance.background.effects.blurRadius),
+                    range: 0...60,
+                    step: 1,
+                    format: { $0 <= 0.5 ? "None" : String(format: "%.0fpt", $0) }
+                )
+                SettingsSliderRow(
+                    title: "Brightness",
+                    value: binding(\.appearance.background.effects.brightness),
+                    range: 0.2...2,
+                    step: 0.05,
+                    format: { String(format: "%.2f×", $0) }
+                )
+                SettingsSliderRow(
+                    title: "Contrast",
+                    value: binding(\.appearance.background.effects.contrast),
+                    range: 0.2...2,
+                    step: 0.05,
+                    format: { String(format: "%.2f×", $0) }
+                )
+                SettingsSliderRow(
+                    title: "Saturation",
+                    value: binding(\.appearance.background.effects.saturation),
+                    range: 0...2,
+                    step: 0.05,
+                    format: { $0 <= 0.01 ? "None" : String(format: "%.2f×", $0) }
+                )
+            }
         }
     }
 
@@ -281,11 +343,17 @@ struct BackgroundSettingsGroups: View {
                 )
             }
             ForEach(store.settings.appearance.background.gradient.stops) { stop in
-                GradientStopRow(stop: stopBinding(stop.id), onDelete: { removeStop(stop.id) })
+                GradientStopRow(
+                    stop: stopBinding(stop.id),
+                    canRemove: store.settings.appearance.background.gradient.stops.count > 2,
+                    onDelete: { removeStop(stop.id) }
+                )
             }
             SettingsButtonRow(
                 title: "Add Stop",
-                subtitle: background.gradient.stops.count >= 8 ? "Eight is the limit." : "A colour at a point along the gradient."
+                subtitle: background.gradient.stops.count >= 8
+                    ? "Eight is the limit."
+                    : "A colour at a point along the gradient."
             ) {
                 Button("Add") { addStop() }
                     .controlSize(.small)
@@ -384,7 +452,27 @@ struct BackgroundSettingsGroups: View {
                 step: 1,
                 format: { String(format: "%.0fs", $0) }
             )
+            SettingsButtonRow(
+                title: posterTitle,
+                subtitle: "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+            ) {
+                HStack(spacing: 6) {
+                    Button("Choose…") { choose(.poster) }
+                        .controlSize(.small)
+                    if background.video.posterPath != nil {
+                        Button("Clear") {
+                            store.update { $0.appearance.background.video.posterPath = nil }
+                        }
+                        .controlSize(.small)
+                    }
+                }
+            }
         }
+    }
+
+    private var posterTitle: String {
+        guard let path = background.video.posterPath else { return "No poster chosen" }
+        return URL(fileURLWithPath: path).lastPathComponent
     }
 
     // MARK: - Transparency
@@ -416,21 +504,31 @@ struct BackgroundSettingsGroups: View {
     /// Presents the open panel from inside a SwiftUI card hosted in an
     /// `NSHostingView`. `NSApp.activate` first, because the sheet belongs to the
     /// window and a background app would otherwise open it behind itself.
-    private func choose() {
+    ///
+    /// One panel for the media and the poster, differing only in what they accept
+    /// and which path they write.
+    private func choose(_ target: FileTarget = .media) {
+        let isPoster = target == .poster
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = background.kind == .video ? [.movie] : [.image]
+        panel.allowedContentTypes = isPoster ? [.image] : (background.kind == .video ? [.movie] : [.image])
         panel.prompt = "Use"
-        panel.message = background.kind == .video
-            ? "Choose a video to play behind the page."
-            : "Choose an image to show behind the page."
+        panel.message = isPoster
+            ? "Choose a still to show until the first video frame arrives."
+            : (background.kind == .video
+                ? "Choose a video to play behind the page."
+                : "Choose an image to show behind the page.")
 
         let apply: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .OK, let url = panel.url else { return }
             self.store.update { document in
-                document.appearance.background.path = url.path
+                if isPoster {
+                    document.appearance.background.video.posterPath = url.path
+                } else {
+                    document.appearance.background.path = url.path
+                }
             }
         }
 
@@ -441,11 +539,21 @@ struct BackgroundSettingsGroups: View {
         // over it, and it needs no extra coordination for that.
         panel.beginSheetModal(for: window) { response in apply(response) }
     }
+
+    /// Which of the two file-backed fields the panel is writing to.
+    private enum FileTarget {
+        case media
+        case poster
+    }
 }
 
 /// One gradient stop: a colour and where it sits.
 private struct GradientStopRow: View {
     @Binding var stop: BackgroundMediaConfiguration.Gradient.Stop
+    /// A gradient needs two stops to exist at all, and `isUsable` says so, so
+    /// below two the background quietly stops drawing with nothing on screen
+    /// saying why. Deleting is floored rather than allowed to blank the window.
+    var canRemove: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -461,6 +569,7 @@ private struct GradientStopRow: View {
                     .controlSize(.small)
                 Button("Remove", action: onDelete)
                     .controlSize(.small)
+                    .disabled(!canRemove)
             }
         }
     }

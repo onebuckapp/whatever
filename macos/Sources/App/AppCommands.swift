@@ -11,6 +11,11 @@ struct TabCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: .command)
 
+            Button("Focus Address Bar") {
+                BrowserCoordinator.shared.keyController?.focusAddressBar()
+            }
+            .keyboardShortcut("l", modifiers: .command)
+
             Button("New Window") {
                 BrowserCoordinator.shared.newWindow()
             }

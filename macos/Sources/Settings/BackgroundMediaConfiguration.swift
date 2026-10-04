@@ -32,6 +32,43 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
             case .video: "Video"
             }
         }
+
+        // Which sections apply to which renderer.
+        //
+        // Derived from what the renderers read rather than from what each control
+        // was written for, because a row that does nothing is worse than an
+        // absent one: it looks like it is working. See `BackgroundMediaView.draw`
+        // and `BackgroundVideoLayerView.apply` for the other end of this.
+
+        /// Fit, Scale and the media file. A colour and a gradient are generated at
+        /// window size, so there is nothing to size, place or point at a file.
+        var showsMediaSize: Bool {
+            self == .image || self == .video
+        }
+
+        /// Anchor and custom offsets.
+        ///
+        /// Never shown for video: `AVPlayerLayer.videoGravity` is the only lever
+        /// it has and it expresses scaling, not placement, so this cannot be made
+        /// to work and offering it would be a lie.
+        var showsPlacement: Bool {
+            self == .image
+        }
+
+        /// Tiling, which is image-only because `AVPlayerLayer` cannot tile.
+        var showsRepeat: Bool {
+            self == .image
+        }
+
+        /// Blur, brightness, contrast and saturation.
+        ///
+        /// These are baked into a decoded image by `BackgroundImageStore`, so they
+        /// only reach anything that is an image: a file, or a video's poster. A
+        /// video's own frames are never graded. A colour and a gradient are drawn
+        /// straight into the context and have no detail for a filter to act on.
+        func showsGrading(hasPoster: Bool) -> Bool {
+            self == .image || (self == .video && hasPoster)
+        }
     }
 
     /// How the media is scaled into the window.
@@ -54,6 +91,27 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
             case .fill: "Fill"
             case .stretch: "Stretch"
             case .custom: "Scale"
+            }
+        }
+
+        /// The only two that mean anything for a video.
+        ///
+        /// `BackgroundVideoLayerView` maps five cases onto `AVPlayerLayer`, which
+        /// has exactly two relevant values: `resizeAspect` and `resizeAspectFill`.
+        /// So three of these options would sit there looking distinct and doing
+        /// the same thing as another.
+        static let videoCases: [Fit] = [.contain, .fill]
+
+        /// Which of those two the renderer will actually do, for a stored value.
+        ///
+        /// Read when drawing the control for a video, so switching from an image
+        /// with `stretch` or a custom scale does not present a segmented control
+        /// with nothing selected. Nothing is written back, so an image's fit comes
+        /// back untouched when the kind returns to `.image`.
+        var effectiveVideoFit: Fit {
+            switch self {
+            case .original, .contain: .contain
+            case .fill, .stretch, .custom: .fill
             }
         }
     }
@@ -265,6 +323,12 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
         case .image, .video: !(path ?? "").isEmpty
         }
     }
+
+    /// Whether a poster image has been chosen for the video renderer.
+    ///
+    /// It is the one thing the grading filters can reach when the background is a
+    /// video, since only the poster is decoded as an image.
+    var hasPoster: Bool { !(video.posterPath ?? "").isEmpty }
 
     /// Tile axis decisions, for the renderer.
     var repeatsHorizontally: Bool { repeatMode == .horizontal || repeatMode == .both }

@@ -612,6 +612,17 @@ final class BrowserWindowController: NSWindowController {
         focusPane(step: -1)
     }
 
+    /// Puts the caret in the address bar, which is what a new tab wants.
+    ///
+    /// Call this *after* the tab has been added and selected, never before.
+    /// `selectTab` goes through `toolbarController.setTab`, which clears
+    /// `isEditingAddress` and rewrites the field's text; focusing first would
+    /// leave the field holding focus with that flag false, and the next
+    /// `syncControls` would then overwrite whatever had been typed into it.
+    func focusAddressBar() {
+        toolbarController.focusAddressField()
+    }
+
     private func focusPane(step: Int) {
         let visible = displayedTabs
         guard visible.count > 1, let tab = selectedTab,

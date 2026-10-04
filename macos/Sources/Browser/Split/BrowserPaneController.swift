@@ -141,7 +141,11 @@ extension BrowserPaneController: WKUIDelegate {
         guard let newTab = BrowserCoordinator.shared.newTab(
             url: nil,
             privacyMode: tab.privacyMode,
-            in: controller
+            in: controller,
+            // Not a person asking for a tab, so no address bar: WebKit is about to
+            // drive this view into the popup and the page that opened it still
+            // owns focus.
+            focusesAddressBar: false
         ) else {
             return nil
         }

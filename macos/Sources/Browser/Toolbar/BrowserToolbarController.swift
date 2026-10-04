@@ -61,6 +61,32 @@ final class BrowserToolbarController: NSObject {
         configureAddressField()
     }
 
+    // MARK: - Focus
+
+    /// Puts the caret in the address field with its contents selected.
+    ///
+    /// The selection comes for free: `controlTextDidBeginEditing` already defers a
+    /// `selectAll` by one runloop turn for exactly this reason, so there is no
+    /// second thing to keep in sync.
+    ///
+    /// A window that was just ordered front has not finished becoming key, and
+    /// `makeFirstResponder` fails outright in that window rather than deferring
+    /// itself, so a refusal is retried once the runloop has turned over. The
+    /// window may legitimately refuse if it is not key at all, which is why this
+    /// only reports whether the field ended up focused.
+    @discardableResult
+    func focusAddressField() -> Bool {
+        // The field's own window rather than a stored one: this controller has no
+        // window of its own, and the toolbar item is only ever in one window.
+        guard let window = addressField.window else { return false }
+        if window.makeFirstResponder(addressField) { return true }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            _ = window.makeFirstResponder(self.addressField)
+        }
+        return false
+    }
+
     // MARK: - Tab binding
 
     func setTab(_ tab: BrowserTab?) {

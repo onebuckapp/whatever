@@ -10,7 +10,7 @@ CORE_DIR := $(CURDIR)/../core
 CORE_LIB := $(CORE_DIR)/build/libbrowsercore.a
 CORE_SOURCES := $(shell find $(CORE_DIR)/nim-core -name '*.nim' 2>/dev/null)
 
-.PHONY: generate build run clean core test-core check-abi
+.PHONY: generate build release run run-release clean core test-core check-abi
 
 generate:
 	$(XCODEGEN) generate
@@ -30,8 +30,22 @@ $(CORE_LIB): $(CORE_SOURCES)
 build: generate $(CORE_LIB)
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -derivedDataPath "$(DERIVED_DATA)" build
 
+# The optimised configuration, alongside Debug rather than instead of it: both
+# products live under the same derived data path and neither build dirties the
+# other. `CONFIG` is a variable, so `make build CONFIG=Release` is equivalent; this
+# is the short form.
+#
+# Recursive rather than a target-specific `release: CONFIG=Release`, because a
+# command-line variable propagates into the sub-make and target-specific variables
+# would resolve $(APP) too late for anything that opens the result.
+release:
+	$(MAKE) build CONFIG=Release
+
 run: build
 	open "$(APP)"
+
+run-release:
+	$(MAKE) run CONFIG=Release
 
 clean:
 	rm -rf Build $(PROJECT)
