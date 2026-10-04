@@ -130,7 +130,12 @@ final class BrowserWindowContentViewController: NSViewController {
             return
         }
         dismissNoiseSettings()
-        installShield { [weak self] in
+        // Click semantics, not press semantics: a drag that starts on the
+        // card is owned by the card's gesture, and its release can fall
+        // through the host and the deafened page down to this shield. Firing
+        // on that lone release would dismiss the card the user was dragging
+        // inside of, so only a press and release both on the shield count.
+        installShield(dismissOnPress: false) { [weak self] in
             Task { @MainActor in
                 self?.dismissSettings()
             }
@@ -173,12 +178,24 @@ final class BrowserWindowContentViewController: NSViewController {
     /// view that consumes presses, but a `WKWebView` underneath keeps tracking the
     /// pointer for hover whether or not anything is intercepting clicks.
     private func installShield(onClick: @escaping () -> Void) {
+        installShield(dismissOnPress: true, onClick: onClick)
+    }
+
+    /// Covers the page so nothing under a card can be clicked, and tells the
+    /// window that its pages have to go inert with it.
+    ///
+    /// Both halves matter and neither is sufficient alone: the shield is a plain
+    /// view that consumes presses, but a `WKWebView` underneath keeps tracking the
+    /// pointer for hover whether or not anything is intercepting clicks.
+    private func installShield(dismissOnPress: Bool, onClick: @escaping () -> Void) {
         shield?.removeFromSuperview()
         // Below the toolbar, so navigation and the address bar keep working while
         // a card is up. The native toolbar used to sit outside the content view
         // entirely and was left interactive by default; now it is in here, so the
         // ordering has to be asked for.
-        shield = ModalEventShieldView.install(in: view, below: toolbarView, onClick: onClick)
+        let installed = ModalEventShieldView.install(in: view, below: toolbarView, onClick: onClick)
+        installed.dismissOnPress = dismissOnPress
+        shield = installed
         onShieldChanged?(true)
     }
 

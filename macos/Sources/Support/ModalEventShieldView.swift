@@ -17,6 +17,26 @@ final class ModalEventShieldView: NSView {
     /// it to dismiss whatever they presented.
     var onClick: (() -> Void)?
 
+    /// Whether a press alone dismisses, or only a completed click does.
+    ///
+    /// The legacy behavior (true) fires `onClick` on every press and every
+    /// release that reaches the shield. That misfires on releases that merely
+    /// fall through to it: a drag starting on the card above is owned by the
+    /// card's gesture, and when its release lands outside the card the host
+    /// declines it, the deafened page declines it, and the shield is left
+    /// holding a release whose press it never saw. With false the shield arms
+    /// on press and fires only when the release lands near that press, so
+    /// only a genuine click on the shield itself dismisses.
+    var dismissOnPress = true
+
+    /// Press position (window coordinates) arming a click while
+    /// `dismissOnPress` is false. Nil when no press is outstanding.
+    private var pressPoint: NSPoint?
+
+    /// Window movement between press and release that still counts as the
+    /// click which dismisses, mirroring the presenter's backdrop guard.
+    private static let clickSlop: CGFloat = 6
+
     override var isOpaque: Bool {
         false
     }
@@ -38,7 +58,14 @@ final class ModalEventShieldView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        onClick?()
+        if dismissOnPress {
+            onClick?()
+        } else {
+            // Arm only. Firing here would dismiss on the mere start of a
+            // drag, and a release landing here without its press having done
+            // so is a fall-through, not a click (see `dismissOnPress`).
+            pressPoint = event.locationInWindow
+        }
     }
 
     override func rightMouseDown(with event: NSEvent) {
@@ -52,7 +79,16 @@ final class ModalEventShieldView: NSView {
     /// A press that starts on the page and is released over the shield
     /// (or vice versa) must not activate the content underneath either.
     override func mouseUp(with event: NSEvent) {
-        onClick?()
+        if dismissOnPress {
+            onClick?()
+        } else {
+            defer { pressPoint = nil }
+            guard let press = pressPoint else { return }
+            let release = event.locationInWindow
+            if hypot(release.x - press.x, release.y - press.y) <= Self.clickSlop {
+                onClick?()
+            }
+        }
     }
 
     /// Scroll, magnify, and rotate land here and go nowhere, so the page

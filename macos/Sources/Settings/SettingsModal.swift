@@ -265,10 +265,33 @@ final class SettingsModalCoordinator {
 /// does, and Escape is the only host-side dismissal.
 @MainActor
 final class SettingsModalPresenter {
+    /// How far the pointer may move between press and release while the
+    /// release still counts as the click that dismisses the card.
+    ///
+    /// Past this the gesture was a drag, not a click, and its release must
+    /// not reach Mijick's tap-outside layer.
+    private static let backdropClickSlop: CGFloat = 6
+
     private weak var container: NSView?
     private var hostingView: NSHostingView<SettingsModalRootView>?
     private var stackID: PopupStackID?
     private var escapeMonitor: Any?
+
+    /// Swallows the release that ends a backdrop drag, so press-and-drag on
+    /// the dimmed area cannot dismiss the card the way a clean click does.
+    ///
+    /// Mijick's tap-outside fires on release without checking how the pointer
+    /// got there, which is why this presenter watches press and release
+    /// itself. Only releases are ever held back, and only when the press
+    /// began on the backdrop: anything starting on the card (scrolling a
+    /// pane, dragging a selection) passes through untouched, because the
+    /// card may be mid-gesture and waiting for that release.
+    private var backdropDragMonitor: Any?
+
+    /// Screen position of a press that began on the backdrop, while its
+    /// release is still outstanding. Nil when the press began on the card
+    /// (or when no button is down), in which case releases pass through.
+    private var backdropPressPoint: NSPoint?
     private var onDidDismiss: (() -> Void)?
 
     init(container: NSView, onDidDismiss: (() -> Void)? = nil) {
@@ -313,6 +336,11 @@ final class SettingsModalPresenter {
             }
             return event
         }
+        backdropDragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
+            guard let self else { return event }
+            // Local monitors run on the main thread during event dispatch.
+            return MainActor.assumeIsolated { self.filterBackdropDrag(event) }
+        }
         SettingsModalCoordinator.shared.register(id: popupID) { [weak self] in
             self?.tearDown()
         }
@@ -336,6 +364,49 @@ final class SettingsModalPresenter {
         notify?()
     }
 
+    /// Holds back the release that ends a drag which began on the backdrop.
+    ///
+    /// A clean click passes through and dismisses the card exactly as before.
+    /// Anything else (no armed press, or a release near its press) is also a
+    /// pass-through; only a release far from a backdrop press is swallowed.
+    private func filterBackdropDrag(_ event: NSEvent) -> NSEvent? {
+        switch event.type {
+        case .leftMouseDown:
+            // Screen coordinates, so a window move mid-gesture cannot skew
+            // the distance measured at release time.
+            backdropPressPoint = pressIsOnBackdrop(event) ? NSEvent.mouseLocation : nil
+            return event
+        case .leftMouseUp:
+            defer { backdropPressPoint = nil }
+            guard let press = backdropPressPoint else { return event }
+            let release = NSEvent.mouseLocation
+            let moved = hypot(release.x - press.x, release.y - press.y)
+            return moved > Self.backdropClickSlop ? nil : event
+        default:
+            return event
+        }
+    }
+
+    /// Whether a press landed on the dimmed backdrop rather than the card.
+    ///
+    /// The card's hit box is its 720 by 520 frame plus the 88pt of shadow
+    /// room above and below it, which is inside the card's tap area and
+    /// looks like backdrop. Centered in the host, which fills the container.
+    /// Expanded slightly, so a press on the boundary keeps today's behavior
+    /// instead of joining the drag guard.
+    private func pressIsOnBackdrop(_ event: NSEvent) -> Bool {
+        guard let container else { return false }
+        let point = container.convert(event.locationInWindow, from: nil)
+        let bounds = container.bounds
+        let box = NSRect(
+            x: (bounds.width - 736) / 2,
+            y: (bounds.height - 712) / 2,
+            width: 736,
+            height: 712
+        )
+        return !box.contains(point)
+    }
+
     /// Drops the host without notifying the owner, so a re-present cannot clear
     /// the owner's reference to this presenter mid-present.
     private func resetForReuse() {
@@ -348,6 +419,11 @@ final class SettingsModalPresenter {
             NSEvent.removeMonitor(escapeMonitor)
             self.escapeMonitor = nil
         }
+        if let backdropDragMonitor {
+            NSEvent.removeMonitor(backdropDragMonitor)
+            self.backdropDragMonitor = nil
+        }
+        backdropPressPoint = nil
         hostingView?.removeFromSuperview()
         hostingView = nil
         stackID = nil
@@ -356,6 +432,9 @@ final class SettingsModalPresenter {
     deinit {
         if let escapeMonitor {
             NSEvent.removeMonitor(escapeMonitor)
+        }
+        if let backdropDragMonitor {
+            NSEvent.removeMonitor(backdropDragMonitor)
         }
     }
 }
