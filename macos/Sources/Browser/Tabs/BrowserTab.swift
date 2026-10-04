@@ -64,6 +64,16 @@ final class BrowserTab: NSObject {
     /// the card opened still comes up unable to see the pointer.
     private(set) var acceptsMouseInput = true
 
+    /// Silences or unsilences the page. Held on the tab rather than on the view,
+    /// so a cross-site navigation cannot quietly undo it.
+    func toggleMute() {
+        tabController.toggleMuted()
+    }
+
+    func setMuted(_ muted: Bool) {
+        tabController.setMuted(muted)
+    }
+
     private let dataStore: WKWebsiteDataStore
     private let navigationController: NavigationController
 
@@ -78,6 +88,7 @@ final class BrowserTab: NSObject {
         var index: Int
         var title: String?
         var isPinned: Bool
+        var isMuted: Bool = false
     }
 
     init(
@@ -95,7 +106,12 @@ final class BrowserTab: NSObject {
             : .default()
         self.dataStore = dataStore
 
-        let tab = BrowserTabController(id: id, webView: nil, privacyMode: privacyMode)
+        let tab = BrowserTabController(
+            id: id,
+            webView: nil,
+            privacyMode: privacyMode,
+            isMuted: restored?.isMuted ?? false
+        )
         self.tabController = tab
 
         let navigation = NavigationController(history: history)

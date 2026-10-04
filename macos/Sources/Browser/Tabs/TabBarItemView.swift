@@ -9,6 +9,8 @@ final class TabBarItemView: NSView {
 
     var onPress: (() -> Void)?
     var onClose: (() -> Void)?
+    /// Silences or unsilences this tab, when its page is making sound.
+    var onToggleMute: (() -> Void)?
     var contextMenuProvider: (() -> NSMenu?)?
     /// Called with the screen point when a drag session ends, so the
     /// owner can check whether it landed anywhere.
@@ -23,17 +25,30 @@ final class TabBarItemView: NSView {
     /// still selects instead of starting a drag session.
     private static let dragThreshold: CGFloat = 5
 
+    /// The globe every tab starts with, and the one it falls back to whenever a
+    /// page has no icon of its own. Built once: there is one per cell and
+    /// `NSImage` is not free to decode.
+    private static let defaultFavicon: NSImage? = NSImage(
+        systemSymbolName: "globe",
+        accessibilityDescription: nil
+    )
+
     private let backgroundView = NSView()
     private let faviconView = NSImageView()
     private let spinner = NSProgressIndicator()
     private let titleLabel = NSTextField(labelWithString: "")
     private let closeButton: NSButton
+    private let audioButton: NSButton
     private var cancellables = Set<AnyCancellable>()
     private var trackingArea: NSTrackingArea?
     private var hover = false
     private var selected = false
     private var dragging = false
     private var pressLocation: NSPoint?
+    private var isLoading = false
+    /// Guards against rebuilding the symbol image on every appearance pass, which
+    /// `layout` triggers often.
+    private var appliedAudioSymbol: String?
 
     init(tab: BrowserTab) {
         self.tab = tab
@@ -44,6 +59,10 @@ final class TabBarItemView: NSView {
         )
         button.imagePosition = .imageOnly
         self.closeButton = button
+        let audio = NSButton(frame: .zero)
+        audio.imagePosition = .imageOnly
+        audio.isHidden = true
+        self.audioButton = audio
         super.init(frame: .zero)
         wantsLayer = true
         layer?.cornerRadius = 8
@@ -197,10 +216,7 @@ final class TabBarItemView: NSView {
         backgroundView.isHidden = true
         addSubview(backgroundView)
 
-        faviconView.image = NSImage(
-            systemSymbolName: "globe",
-            accessibilityDescription: nil
-        )
+        faviconView.image = Self.defaultFavicon
         faviconView.imageScaling = .scaleProportionallyDown
         faviconView.contentTintColor = .secondaryLabelColor
         addSubview(faviconView)
@@ -220,6 +236,15 @@ final class TabBarItemView: NSView {
         closeButton.isBordered = false
         closeButton.contentTintColor = .secondaryLabelColor
         addSubview(closeButton)
+
+        audioButton.target = self
+        audioButton.action = #selector(audioTapped)
+        audioButton.isBordered = false
+        audioButton.contentTintColor = .secondaryLabelColor
+        // Added after the close button so it sits in front of the title, matching
+        // how the spinner sits in front of the favicon.
+        addSubview(audioButton)
+        applyAudioState()
     }
 
     private func bind(to tab: BrowserTab) {
@@ -244,12 +269,71 @@ final class TabBarItemView: NSView {
             }
             .store(in: &cancellables)
 
+        // Both funnel into one handler: the icon and the room it takes in the
+        // cell are the same fact, and a tab's title has to give way either way.
+        tab.tabController.$isProducingAudio
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.audioStateChanged()
+            }
+            .store(in: &cancellables)
+
+        tab.tabController.$isMuted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.audioStateChanged()
+            }
+            .store(in: &cancellables)
+
+        // A page with no icon of its own reports nil, which is the globe the
+        // image view already holds, so this never has to clear it back.
+        tab.tabController.$favicon
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] image in
+                guard let image else { return }
+                self?.faviconView.image = image
+            }
+            .store(in: &cancellables)
+
         applyLoading(tab.tabController.isLoading)
     }
 
-    private func applyLoading(_ isLoading: Bool) {
-        spinner.isHidden = !isLoading
+    private func audioStateChanged() {
+        applyAudioState()
+        needsLayout = true
+    }
+
+    /// Whether this cell shows the mute button.
+    ///
+    /// Shown while the page is making sound, and kept while the tab is muted so a
+    /// silenced tab stays findable after its audio stops. It sits between the
+    /// favicon and the title rather than replacing either, so a tab that is both
+    /// loading and audible still shows what it is doing. Not on a pinned tab: that
+    /// cell is 44pt wide with room for a favicon only.
+    private var showsAudioButton: Bool {
+        tab.presentation.isPinned ? false : tab.tabController.isProducingAudio || tab.tabController.isMuted
+    }
+
+    private func applyAudioState() {
+        let symbol = tab.tabController.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"
+        if symbol != appliedAudioSymbol {
+            appliedAudioSymbol = symbol
+            let label = tab.tabController.isMuted ? "Unmute Tab" : "Mute Tab"
+            audioButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+            audioButton.toolTip = label
+        }
+        updateLeadingIcon()
+    }
+
+    /// Chooses which indicators show.
+    ///
+    /// The favicon and the spinner are alternatives for the same slot, while the
+    /// mute indicator is independent of both: it only appears when there is
+    /// something to mute, and it stays for the rest of the tab's life once used.
+    private func updateLeadingIcon() {
+        audioButton.isHidden = !showsAudioButton
         faviconView.isHidden = isLoading
+        spinner.isHidden = !isLoading
         if isLoading {
             spinner.startAnimation(nil)
         } else {
@@ -257,8 +341,17 @@ final class TabBarItemView: NSView {
         }
     }
 
+    private func applyLoading(_ isLoading: Bool) {
+        self.isLoading = isLoading
+        updateLeadingIcon()
+    }
+
     @objc private func closeTapped() {
         onClose?()
+    }
+
+    @objc private func audioTapped() {
+        onToggleMute?()
     }
 
     private func updateAppearance() {
@@ -288,6 +381,7 @@ final class TabBarItemView: NSView {
         let sideInset: CGFloat = tab.presentation.isPinned ? 0 : 8
         let iconSize: CGFloat = 16
         let y = (bounds.height - iconSize) / 2
+        let faviconRect = NSRect(x: sideInset, y: y, width: iconSize, height: iconSize)
 
         if tab.presentation.isPinned {
             faviconView.frame = NSRect(
@@ -299,12 +393,27 @@ final class TabBarItemView: NSView {
             spinner.frame = faviconView.frame
             titleLabel.isHidden = true
             closeButton.isHidden = true
+            audioButton.isHidden = true
             return
         }
 
         titleLabel.isHidden = false
-        faviconView.frame = NSRect(x: sideInset, y: y, width: iconSize, height: iconSize)
-        spinner.frame = faviconView.frame
+        // Favicon and spinner share the leading slot; the mute indicator follows
+        // it, and the title follows both.
+        faviconView.frame = faviconRect
+        spinner.frame = faviconRect
+
+        let audioSize: CGFloat = 14
+        if showsAudioButton {
+            audioButton.frame = NSRect(
+                x: faviconRect.maxX + 4,
+                y: (bounds.height - audioSize) / 2,
+                width: audioSize,
+                height: audioSize
+            )
+        } else {
+            audioButton.frame = .zero
+        }
 
         let closeSize: CGFloat = 14
         closeButton.frame = NSRect(
@@ -313,7 +422,10 @@ final class TabBarItemView: NSView {
             width: closeSize,
             height: closeSize
         )
-        let titleX = faviconView.frame.maxX + 6
+        // Only moves for the mute indicator while it is showing, so a tab that is
+        // neither audible nor muted lays out exactly as it did before.
+        let leadingEdge = showsAudioButton ? audioButton.frame.maxX : faviconRect.maxX
+        let titleX = leadingEdge + 6
         let titleMaxX = closeButton.frame.minX - 4
         titleLabel.frame = NSRect(
             x: titleX,

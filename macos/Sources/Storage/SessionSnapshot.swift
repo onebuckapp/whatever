@@ -126,6 +126,14 @@ struct SessionSnapshot: Codable, Equatable {
         var history: [String]
         /// Where `history` currently sits. Always a valid index when restored.
         var historyIndex: Int
+        /// Whether the user silenced this tab, so a restored tab comes back muted.
+        ///
+        /// Optional because a snapshot written before tab muting existed has no
+        /// such key, and Swift's synthesized `Decodable` throws `keyNotFound` for a
+        /// missing key even where the property has a default value. Optional
+        /// decodes to `nil`, and `nil` means unmuted, which is what those older
+        /// documents meant.
+        var isMuted: Bool?
 
         init(
             id: UUID,
@@ -133,7 +141,8 @@ struct SessionSnapshot: Codable, Equatable {
             title: String?,
             isPinned: Bool,
             history: [String],
-            historyIndex: Int
+            historyIndex: Int,
+            isMuted: Bool? = nil
         ) {
             self.id = id
             self.url = url
@@ -141,6 +150,7 @@ struct SessionSnapshot: Codable, Equatable {
             self.isPinned = isPinned
             self.history = history
             self.historyIndex = historyIndex
+            self.isMuted = isMuted
         }
 
         /// The address the tab was showing.

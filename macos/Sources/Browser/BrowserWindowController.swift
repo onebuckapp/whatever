@@ -70,7 +70,8 @@ final class BrowserWindowController: NSWindowController {
                     urls: urls,
                     index: min(tabRecord.restoredIndex, urls.count - 1),
                     title: tabRecord.title,
-                    isPinned: tabRecord.isPinned
+                    isPinned: tabRecord.isPinned,
+                    isMuted: tabRecord.isMuted ?? false
                 )
             )
         }
@@ -820,5 +821,9 @@ extension BrowserWindowController: TabBarViewDelegate {
 
     func tabBar(_ tabBar: TabBarView, didDropTab tab: BrowserTab, at index: Int) {
         BrowserCoordinator.shared.moveTab(tab, to: index, in: self)
+    }
+
+    func tabBar(_ tabBar: TabBarView, didToggleMuteFor tab: BrowserTab) {
+        tab.toggleMute()
     }
 }

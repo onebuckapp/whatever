@@ -84,7 +84,8 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                     title: tab.tabController.title,
                     isPinned: tab.presentation.isPinned,
                     history: slice.urls.map(\.absoluteString),
-                    historyIndex: slice.index
+                    historyIndex: slice.index,
+                    isMuted: tab.tabController.isMuted
                 )
             }
             guard !tabs.isEmpty else { return nil }
@@ -314,12 +315,13 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         destination.addTab(tab, at: index)
     }
 
-    /// Moves a tab to a new window, removing it from `source`. Used when
-    /// a drag ends outside every browser window.
+    /// Moves a tab to a new window, removing it from `source`, which closes
+    /// itself if that leaves it empty. A screen point positions the new window
+    /// under the drop; without one it is centred.
     func detach(
         tab: BrowserTab,
         from source: BrowserWindowController,
-        atScreenPoint point: NSPoint
+        atScreenPoint point: NSPoint? = nil
     ) {
         guard source.tabs.contains(where: { $0.id == tab.id }) else { return }
         // Keep the tab's session alive: nothing about the tab is torn

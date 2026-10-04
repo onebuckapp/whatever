@@ -5,7 +5,6 @@ import AppKit
 enum TabMenuAction: String {
     case newTab
     case duplicateTab
-    case moveTabToNewWindow
     case togglePin
     case splitWithNextTab
     case splitWithPreviousTab
@@ -13,6 +12,7 @@ enum TabMenuAction: String {
     case focusNextPane
     case focusPreviousPane
     case reloadTab
+    case toggleMute
     case openInNewWindow
     case copyURL
     case qrCode
@@ -77,7 +77,6 @@ enum BrowserTabContextMenu {
 
         add("New Tab", .newTab, to: menu, target: target)
         add("Duplicate Tab", .duplicateTab, to: menu, target: target)
-        add("Move Tab to New Window", .moveTabToNewWindow, to: menu, target: target)
         add(tab.presentation.isPinned ? "Unpin Tab" : "Pin Tab", .togglePin, to: menu, target: target)
 
         menu.addItem(.separator())
@@ -93,6 +92,12 @@ enum BrowserTabContextMenu {
         menu.addItem(.separator())
 
         add("Reload Tab", .reloadTab, to: menu, target: target)
+        add(
+            tab.tabController.isMuted ? "Unmute Tab" : "Mute Tab",
+            .toggleMute,
+            to: menu,
+            target: target
+        )
         add("Open in New Window", .openInNewWindow, to: menu, target: target)
         add("Copy URL", .copyURL, to: menu, target: target)
         add("Generate QR Code", .qrCode, to: menu, target: target)
@@ -122,9 +127,6 @@ enum BrowserTabContextMenu {
             coordinator.newTab(url: nil, in: controller)
         case .duplicateTab:
             controller.duplicateTab(tab)
-        case .moveTabToNewWindow:
-            controller.detachTab(tab)
-            coordinator.newWindow(containing: tab)
         case .togglePin:
             tab.presentation.isPinned.toggle()
             controller.refresh()
@@ -140,8 +142,13 @@ enum BrowserTabContextMenu {
             controller.focusPreviousPane()
         case .reloadTab:
             tab.tabController.reload()
+        case .toggleMute:
+            tab.toggleMute()
         case .openInNewWindow:
-            coordinator.newWindow(containing: tab)
+            // A move, not a copy: the tab leaves this window, and this window
+            // closes if it was the last one. Handing the same tab to a second
+            // window without detaching it would leave both windows claiming it.
+            coordinator.detach(tab: tab, from: controller)
         case .copyURL:
             // `displayURL` so the copy is the tab's address even if the tab has
             // no realized view yet.

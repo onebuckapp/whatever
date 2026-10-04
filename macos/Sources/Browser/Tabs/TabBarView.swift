@@ -4,6 +4,8 @@ protocol TabBarViewDelegate: AnyObject {
     func tabBar(_ tabBar: TabBarView, didSelect tab: BrowserTab)
     func tabBar(_ tabBar: TabBarView, didClose tab: BrowserTab)
     func tabBar(_ tabBar: TabBarView, menuFor tab: BrowserTab) -> NSMenu?
+    /// The tab's mute button was pressed.
+    func tabBar(_ tabBar: TabBarView, didToggleMuteFor tab: BrowserTab)
     /// A tab was dropped on this bar at the given insertion index.
     func tabBar(_ tabBar: TabBarView, didDropTab tab: BrowserTab, at index: Int)
 }
@@ -200,6 +202,10 @@ final class TabBarView: NSView {
         item.onClose = { [weak self] in
             guard let self else { return }
             self.delegate?.tabBar(self, didClose: tab)
+        }
+        item.onToggleMute = { [weak self] in
+            guard let self else { return }
+            self.delegate?.tabBar(self, didToggleMuteFor: tab)
         }
         item.contextMenuProvider = { [weak self] in
             guard let self else { return nil }
