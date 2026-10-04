@@ -55,15 +55,14 @@ final class SpotlightController {
             self.submitTyped(field.textField.stringValue)
         }
         field.onActivated = { [weak self] in
-            guard let self else { return }
-            // Focusing an empty field offers the most recent history, every time:
-            // that is what clicking the address bar is for. Non-empty text is left
-            // alone — typing already queries, and re-querying a URL on every focus
-            // would flash the panel open just to close it on the miss. An open
-            // panel is left alone for the same reason.
-            let text = field.textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard text.isEmpty, self.results.isEmpty else { return }
-            self.queryChanged("")
+            guard let self, !self.isOpen else { return }
+            // Every visit to the bar offers somewhere to go: empty shows the most
+            // recent history, typed text re-queries as-is. Opening is left to the
+            // results arriving rather than forced up front, so a query that misses
+            // never flashes the panel open just to close it. An already-open panel
+            // is current by construction — text cannot change without querying —
+            // so it is left alone instead of rebuilt under the mouse.
+            self.queryChanged(field.textField.stringValue, preopen: false)
         }
         field.onMoveSelection = { [weak self] offset in self?.moveSelection(by: offset) }
         field.onDismiss = { [weak self] in self?.close() }
@@ -71,7 +70,11 @@ final class SpotlightController {
 
     // MARK: - Querying
 
-    func queryChanged(_ text: String) {
+    /// - Parameter preopen: Whether the panel opens before the results arrive.
+    /// Typing pre-opens so the bar's corners square up immediately; a
+    /// focus-triggered query does not, so a query that misses never flashes an
+    /// empty panel open just to close it.
+    func queryChanged(_ text: String, preopen: Bool = true) {
         generation += 1
         let generation = self.generation
         pendingSearch?.cancel()
@@ -91,7 +94,9 @@ final class SpotlightController {
         // Opened before the query returns, so the panel is on screen with the bar's
         // own shape while it waits. Without this the bar's bottom corners stay
         // rounded with nothing under them and the join only appears a beat later.
-        openPanel()
+        if preopen {
+            openPanel()
+        }
 
         pendingSearch = Task { [weak self] in
             try? await Task.sleep(for: Self.debounce)
@@ -280,6 +285,11 @@ final class SpotlightController {
             SystemBeep.play()
             return
         }
+        // The bar shows where it is going immediately, rather than holding the
+        // typed query until the page reports back. Set directly, not typed: this
+        // must repaint only, never re-query.
+        fieldView?.textField.stringValue = entry.url
+        fieldView?.updateClearButton()
         close()
         onNavigate?(url)
     }

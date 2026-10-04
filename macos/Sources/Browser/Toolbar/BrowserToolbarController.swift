@@ -155,10 +155,12 @@ final class BrowserToolbarController: NSObject {
         backButton.isEnabled = state.canGoBack
         forwardButton.isEnabled = state.canGoForward
         reloadButton.isEnabled = true
+        // Same 13.5pt medium cut as every other toolbar glyph (see `configure`):
+        // this one is re-set on every state change, so it cannot reuse that path.
         reloadButton.image = NSImage(
             systemSymbolName: state.isLoading ? "xmark" : "arrow.clockwise",
             accessibilityDescription: state.isLoading ? "Stop" : "Reload"
-        )
+        )?.withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
         reloadButton.toolTip = state.isLoading ? "Stop" : "Reload"
 
         if !isEditingAddress {
@@ -232,7 +234,13 @@ final class BrowserToolbarController: NSObject {
     }
 
     private func configure(_ button: BrowserToolbarButton, symbol: String, help: String, action: Selector?) {
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)
+        // Measured, not guessed: the default cut renders ~16pt tall, and pointSize
+        // scales it linearly (18 renders 24), so 13.5 lands ~18 — two points
+        // larger, filling more of the 24pt frame. The medium weight keeps the
+        // stroke sharp rather than hairline at that size.
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
+            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        button.image = image
         button.toolTip = help
         button.target = action == nil ? nil : self
         button.action = action

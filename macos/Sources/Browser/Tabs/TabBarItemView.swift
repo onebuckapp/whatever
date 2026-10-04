@@ -212,6 +212,32 @@ final class TabBarItemView: NSView {
 
     // MARK: - Private
 
+    /// A 1pt outline on the left, top and right edges, drawn like the spotlight's
+    /// own chrome: same curve code, same coordinate system as the fill it follows.
+    /// The square bottom edge meets the page, so bordering it would draw a line
+    /// across the joint.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        // Snapped to device pixels, centered rather than shrunk: the strip divides
+        // its width between cells, so bounds are routinely fractional, and a 1pt
+        // stroke straddling pixels renders soft and uneven. Rounding (not flooring)
+        // keeps the border concentric with the fill underneath instead of walking
+        // off it.
+        var rect = bounds.insetBy(dx: 0.5, dy: 0.5)
+        if let scale = window?.backingScaleFactor, scale > 0 {
+            let minX = round(rect.minX * scale) / scale
+            let minY = round(rect.minY * scale) / scale
+            let maxX = round(rect.maxX * scale) / scale
+            let maxY = round(rect.maxY * scale) / scale
+            rect = NSRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
+        }
+        // Concentric with the layer's own 8pt corners: inset half the stroke.
+        let path = SpotlightField.topSidesPath(in: rect, topRadius: 8 - 0.5)
+        NSColor.separatorColor.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+    }
+
     private func setUpSubviews() {
         backgroundView.isHidden = true
         addSubview(backgroundView)
@@ -376,6 +402,8 @@ final class TabBarItemView: NSView {
     override func layout() {
         super.layout()
         backgroundView.frame = bounds
+        // The border is drawn, not layered, so it repaints with every layout.
+        needsDisplay = true
         updateAppearance()
 
         let sideInset: CGFloat = tab.presentation.isPinned ? 0 : 8

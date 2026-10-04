@@ -275,6 +275,27 @@ final class SpotlightField: NSView {
         return path
     }
 
+    /// The mirror image: rounded top corners, square bottom, no bottom edge.
+    ///
+    /// Draws tab cells, whose square bottoms meet the page. Same construction as
+    /// `sidesPath` so every chrome outline in the window is the same curve code —
+    /// a border built separately in layer coordinates visibly disagreed with the
+    /// fill it was meant to follow.
+    static func topSidesPath(in rect: NSRect, topRadius: CGFloat) -> NSBezierPath {
+        let cap = min(rect.width, rect.height) / 2
+        let top = min(max(topRadius, 0), cap)
+        let minX = rect.minX, maxX = rect.maxX, minY = rect.minY, maxY = rect.maxY
+
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: minX, y: minY))
+        path.line(to: NSPoint(x: minX, y: maxY - top))
+        appendArc(to: path, center: NSPoint(x: minX + top, y: maxY - top), radius: top, from: 180, to: 90, clockwise: true)
+        path.line(to: NSPoint(x: maxX - top, y: maxY))
+        appendArc(to: path, center: NSPoint(x: maxX - top, y: maxY - top), radius: top, from: 90, to: 0, clockwise: true)
+        path.line(to: NSPoint(x: maxX, y: minY))
+        return path
+    }
+
     /// A quarter arc, or the straight corner it would have been when the radius is
     /// zero.
     ///
@@ -321,17 +342,47 @@ final class SpotlightField: NSView {
 extension SpotlightField: NSTextFieldDelegate {
     func controlTextDidBeginEditing(_ obj: Notification) {
         isEditing = true
-        // Deferred a turn: the click that focused the field places its own caret,
-        // and selecting here instead would be undone by that.
-        DispatchQueue.main.async { [weak self] in
-            self?.textField.currentEditor()?.selectAll(nil)
-        }
+        selectAllOnFocus()
         updateClearButton()
         onEditingChanged?(true)
         // Focusing the bar is an intentional visit to it, the same as clicking it:
         // an empty field offers the most recent history. Fired for text clicks too,
         // which `mouseDown` never sees.
         onActivated?()
+    }
+
+    /// Selects the field's text on focus, without fighting the click that focused it.
+    ///
+    /// A click places its caret on mouse-up, which runs after the focus delegate
+    /// fires, so selecting there would first paint a selection and then watch it
+    /// be undone. Worse, a deferred selection can land between the first
+    /// keystrokes and leave the replacement itself selected, so continuing to
+    /// type eats it. Keyboard focus selects immediately, since no click is
+    /// coming. Mouse focus selects after the matching mouse-up, and only for a
+    /// clean click: a drag keeps the drag's own selection.
+    private func selectAllOnFocus() {
+        guard let down = NSApp.currentEvent, down.type == .leftMouseDown else {
+            textField.currentEditor()?.selectAll(nil)
+            return
+        }
+        let anchor = down.locationInWindow
+        // One-shot: removes itself on the matching mouse-up either way.
+        var monitor: Any?
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            guard let self,
+                  event.window === self.textField.window,
+                  abs(event.locationInWindow.x - anchor.x) < 4,
+                  abs(event.locationInWindow.y - anchor.y) < 4
+            else { return event }
+            // After delivery, not before: selecting now would be undone by the
+            // click's own caret placement. Queued work runs before the next event,
+            // so no keystroke can slip in between and get swallowed by the selection.
+            DispatchQueue.main.async { [weak self] in
+                self?.textField.currentEditor()?.selectAll(nil)
+            }
+            return event
+        }
     }
 
     func controlTextDidChange(_ obj: Notification) {

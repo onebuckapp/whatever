@@ -12,11 +12,10 @@ import AppKit
 /// shows no highlight at all, matching what AppKit does for its own buttons.
 @MainActor
 final class BrowserToolbarButton: NSButton {
-    /// The strip is 52pt and the address field beside these is 32pt, so at this size
-    /// the buttons matched the field exactly — which read as a row of tall slabs
-    /// rather than as controls. A little shorter than the field, and closer to the
-    /// 22pt a regular `NSControlSize` bezel button would have wanted.
-    private static let side: CGFloat = 28
+    /// The strip is 52pt and the address field beside these is 32pt, so these sit
+    /// tighter than either: close to the 22pt a regular `NSControlSize` bezel
+    /// button would have wanted.
+    private static let side: CGFloat = 24
     private static let fillRadius: CGFloat = 6
 
     /// Faint enough to be a hint rather than a highlight. Neutral rather than
@@ -46,6 +45,13 @@ final class BrowserToolbarButton: NSButton {
         imagePosition = .imageOnly
         imageHugsTitle = false
         translatesAutoresizingMaskIntoConstraints = false
+        // Explicit rather than intrinsic alone: the intrinsic size did not hold the
+        // height — buttons came out at their glyph's height plus bezel margins and
+        // overflowed the cluster.
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: Self.side + 2),
+            heightAnchor.constraint(equalToConstant: Self.side - 2),
+        ])
     }
 
     override var intrinsicContentSize: NSSize {

@@ -19,15 +19,17 @@ import WebKit
 /// The menu item is not ours to retarget, so the tab semantics have to live
 /// wherever the key equivalent ends up: here.
 final class BrowserWindow: NSWindow {
-    /// How far the three window buttons need nudging from AppKit's own placement.
+    /// How far the three window buttons move from AppKit's own placement.
     ///
-    /// While the top strip was an `NSToolbar`, AppKit put them at x 19 and y 18.
-    /// Without one it uses x 7 and y 6, which is 12pt further left and 12pt lower
-    /// than the strip they now sit in. Recorded as an offset rather than as absolute
-    /// coordinates because AppKit still owns where these go — in fullscreen it moves
-    /// them itself, and pinning absolute positions fought it badly enough that
-    /// leaving fullscreen left them 20pt off the top of the window.
-    private static let windowButtonOffset = NSSize(width: 12, height: 12)
+    /// Derived from the strip, not historical. While the top strip was an
+    /// `NSToolbar`, AppKit put them at container (19, 18) and that fit because the
+    /// container included the toolbar's height. Without one the container is 28pt
+    /// tall, so replaying +12 up parks their tops 6pt above the window and every
+    /// resize clips them. The strip is 52pt with a 32pt bar centred in it, so the
+    /// bar's centre is 26pt below the window top; 16pt buttons centred on it start
+    /// 12pt left of and 12pt below AppKit's spot — container (19, -6), fully
+    /// inside the window and clear of its rounded top corners.
+    private static let windowButtonOffset = NSSize(width: 12, height: -12)
 
     /// The frames the buttons were left in the last time they were nudged.
     ///
@@ -42,6 +44,18 @@ final class BrowserWindow: NSWindow {
     private var lastNudgedButtonFrames: [NSRect]?
     /// Resize notifications, held so they can be removed.
     private var positioningObservers: [NSObjectProtocol] = []
+    /// The buttons currently watched for AppKit moving them.
+    ///
+    /// The show path cannot win a race it cannot see: the buttons are created and
+    /// placed lazily across the first display passes, after every deferred nudge
+    /// has already run and found nothing. Watching their frames instead reacts to
+    /// the placement itself, whenever it lands — creation, resize layouts,
+    /// fullscreen transitions — and re-nudges from there.
+    private var trackedButtons: [NSButton] = []
+    private var buttonFrameObservations: [NSKeyValueObservation] = []
+    /// Set while moving the buttons, so the frame changes that move causes do not
+    /// re-enter the positioner and stack the offset on every pass.
+    private var isNudgingButtons = false
 
     override init(contentRect contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
@@ -63,6 +77,17 @@ final class BrowserWindow: NSWindow {
             positioningObservers.append(
                 center.addObserver(forName: name, object: self, queue: .main) { [weak self] _ in
                     self?.positionWindowButtonsOnceOnScreen()
+                }
+            )
+        }
+        // Fired once the window is visible and key, strictly after the show calls
+        // below — and after the first display pass that creates the buttons, which
+        // those calls race and lose. This is what finally places them on launch,
+        // where no resize ever comes to retrigger the layout.
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didBecomeMainNotification] {
+            positioningObservers.append(
+                center.addObserver(forName: name, object: self, queue: .main) { [weak self] _ in
+                    self?.positionWindowButtonsForShow()
                 }
             )
         }
@@ -93,11 +118,12 @@ final class BrowserWindow: NSWindow {
     /// The show path, where AppKit creates and places the buttons lazily across
     /// the first display passes: a single deferred nudge races that layout and
     /// loses, leaving them at AppKit's own spot until the next resize. Retrying a
-    /// few times across the show converges regardless of when the layout lands,
-    /// and every pass after the first is a no-op.
+    /// few times across the show converges regardless of when the layout lands —
+    /// the tail retry covers a first launch still busy loading content — and
+    /// every pass after the first is a no-op.
     private func positionWindowButtonsForShow() {
         positionWindowButtonsOnceOnScreen()
-        for delay in [0.1, 0.4] {
+        for delay in [0.1, 0.5, 1.5] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 self?.positionStandardWindowButtons()
             }
@@ -130,11 +156,13 @@ final class BrowserWindow: NSWindow {
             standardWindowButton(.zoomButton),
         ].compactMap { $0 }
         guard !buttons.isEmpty else { return }
+        trackButtons(buttons)
 
         // Already where they were put: AppKit has not moved them since.
         let current = buttons.map(\.frame)
         if let last = lastNudgedButtonFrames, last == current { return }
 
+        isNudgingButtons = true
         for button in buttons {
             button.setFrameOrigin(
                 NSPoint(
@@ -143,7 +171,28 @@ final class BrowserWindow: NSWindow {
                 )
             )
         }
+        isNudgingButtons = false
         lastNudgedButtonFrames = buttons.map(\.frame)
+    }
+
+    /// Watches the buttons' frames, re-observing when AppKit swaps the instances.
+    ///
+    /// A change the positioner did not make is AppKit placing them, so it comes
+    /// straight back here for a nudge. A change it did make is skipped by the
+    /// flag, without which every nudge would re-enter and walk the buttons away.
+    private func trackButtons(_ buttons: [NSButton]) {
+        let wanted = Set(buttons.map(ObjectIdentifier.init))
+        guard wanted != Set(trackedButtons.map(ObjectIdentifier.init)) else { return }
+        buttonFrameObservations.removeAll()
+        trackedButtons = buttons
+        for button in buttons {
+            buttonFrameObservations.append(
+                button.observe(\.frame, options: [.new]) { [weak self] _, _ in
+                    guard let self, !self.isNudgingButtons else { return }
+                    self.positionStandardWindowButtons()
+                }
+            )
+        }
     }
 
     /// ⌘W closes the current tab, and only closes the window once there is no tab
