@@ -21,10 +21,13 @@ struct TabCommands: Commands {
             }
             .keyboardShortcut("n", modifiers: .command)
 
-            Button("Close Tab") {
-                BrowserCoordinator.shared.closeSelectedTab()
-            }
-            .keyboardShortcut("w", modifiers: .command)
+            // Deliberately no "Close Tab" item here. Declaring one with ⌘W used to
+            // get its key equivalent silently stripped, because SwiftUI gives a
+            // duplicate to whichever menu comes first and the File menu's
+            // system-provided Close comes before Tab. The item would sit there
+            // reachable by click but showing no shortcut, next to the ⌘W that
+            // really closes the tab. `BrowserWindow.performClose` is where ⌘W is
+            // handled, and `AppDelegate` renames that File item to match.
 
             Button("Reopen Closed Tab") {
                 BrowserCoordinator.shared.reopenClosedTab()

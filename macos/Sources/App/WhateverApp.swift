@@ -30,6 +30,22 @@ struct WhateverApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// SwiftUI's own File menu owns ⌘W, and it is labelled "Close", but in this
+    /// app it closes the current tab and only closes the window when there is no
+    /// tab left. Renamed so the menu says what it does.
+    ///
+    /// Best effort by design: the behaviour lives in `BrowserWindow.performClose`,
+    /// so if SwiftUI ever rebuilds this menu the worst outcome is the old label
+    /// coming back rather than ⌘W going back to closing the window. Anything that
+    /// had tried to fix this by clearing the item's key equivalent instead would
+    /// have that failure the other way round.
+    private static func renameSystemCloseItemToCloseTab() {
+        guard let fileMenu = NSApp.mainMenu?.items.first(where: { $0.title == "File" }),
+              let item = fileMenu.submenu?.items.first(where: { $0.title == "Close" })
+        else { return }
+        item.title = "Close Tab"
+    }
+
     /// Opens the settings modal on whichever browser window is frontmost.
     ///
     /// Falls back to the first window, and opens a window if there are none, so
@@ -48,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.renameSystemCloseItemToCloseTab()
         // One subscription, so a web setting changed anywhere — a settings
         // control, a migration, a future programmatic caller — reaches open
         // pages the same way.

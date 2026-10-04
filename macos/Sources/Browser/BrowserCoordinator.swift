@@ -236,11 +236,6 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         controller.close()
     }
 
-    func closeSelectedTab() {
-        guard let controller = keyController, let tab = controller.selectedTab else { return }
-        controller.closeTab(tab)
-    }
-
     // MARK: - Tabs
 
     /// Adds a tab to `controller`, or to the key window's controller,

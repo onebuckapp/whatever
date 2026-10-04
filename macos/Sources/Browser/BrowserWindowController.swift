@@ -8,6 +8,47 @@ import WebKit
 /// `.single` renders one tab, `.split` renders two tabs side by side.
 /// Splitting therefore changes presentation only: the tabs stay in the
 /// window's collection and in the tab bar.
+/// Where ⌘W actually lands.
+///
+/// SwiftUI builds `File > Close` from the scene and it owns ⌘W. The app's own
+/// `Close Tab` item is in the menu but has had its key equivalent stripped,
+/// because SwiftUI resolves a duplicate ⌘W in favour of the earlier menu, and
+/// File comes before Tab. So ⌘W could only ever reach `performClose:`, and that
+/// closed the whole window no matter how many tabs were open.
+///
+/// The menu item is not ours to retarget, so the tab semantics have to live
+/// wherever the key equivalent ends up: here.
+final class BrowserWindow: NSWindow {
+    /// ⌘W closes the current tab, and only closes the window once there is no tab
+    /// left to close.
+    ///
+    /// Two different things arrive here and they do not mean the same thing. The
+    /// red close button sends itself as the sender; `File > Close`, which is what
+    /// owns ⌘W, sends nothing. In a browser ⌘W is a tab close and the button is
+    /// not, so the sender is what tells them apart.
+    ///
+    /// Falling through to `super` once a single tab is left is also what stops
+    /// this recursing: closing that last tab brings the window back here by way of
+    /// `removeTab`'s empty-tabs branch, and with nothing left to close it goes
+    /// straight through.
+    ///
+    /// The button is told apart rather than retargeted on purpose. Assigning a new
+    /// action to `standardWindowButton(.closeButton)` before the window is shown
+    /// corrupts the close path badly enough that lldb faults in the middle of the
+    /// next close, and there is no earlier moment than that to do it in.
+    override func performClose(_ sender: Any?) {
+        guard !(sender is NSButton),
+              let controller = BrowserCoordinator.shared.controller(for: self),
+              controller.tabs.count > 1,
+              let tab = controller.selectedTab
+        else {
+            super.performClose(sender)
+            return
+        }
+        controller.closeTab(tab)
+    }
+}
+
 final class BrowserWindowController: NSWindowController {
     enum ContentLayout: Equatable {
         case single(tabID: UUID)
@@ -145,7 +186,7 @@ final class BrowserWindowController: NSWindowController {
     // MARK: - Init plumbing
 
     private static func makeWindow(content: BrowserWindowContentViewController) -> NSWindow {
-        let window = NSWindow(contentViewController: content)
+        let window = BrowserWindow(contentViewController: content)
         // `fullSizeContentView` puts the content view across the whole window
         // rather than starting below the titlebar, which combined with the
         // transparent titlebar below is what lets the page background run up
@@ -156,7 +197,7 @@ final class BrowserWindowController: NSWindowController {
         ]
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isReleasedWhenClosed = false
+window.isReleasedWhenClosed = false
         return window
     }
 
@@ -396,11 +437,16 @@ final class BrowserWindowController: NSWindowController {
         tabs.remove(at: index)
 
         switch layout {
-        case .split(let leading, let trailing, let ratio):
+        case .split(let leading, let trailing, _):
+            // A split needs two distinct tabs, so taking either displayed pane
+            // leaves one and the split has to go. Pointing both panes at the
+            // survivor instead would show the same tab twice and still report
+            // `isSplit`, which is what this used to do. The ratio goes with it:
+            // there is nothing left to divide.
             if leading == tab.id {
-                layout = .split(leadingTabID: trailing, trailingTabID: trailing, ratio: ratio)
+                layout = .single(tabID: trailing)
             } else if trailing == tab.id {
-                layout = .split(leadingTabID: leading, trailingTabID: leading, ratio: ratio)
+                layout = .single(tabID: leading)
             }
         case .single(let tabID) where tabID == tab.id:
             // `index` may now point past the end when the detached tab
@@ -440,11 +486,16 @@ final class BrowserWindowController: NSWindowController {
             layout = tabs.isEmpty
                 ? .single(tabID: tab.id)
                 : .single(tabID: tabs[min(index, tabs.count - 1)].id)
-        case .split(let leading, let trailing, let ratio):
+        case .split(let leading, let trailing, _):
+            // A split needs two distinct tabs, so taking either displayed pane
+            // leaves one and the split has to go. Pointing both panes at the
+            // survivor instead would show the same tab twice and still report
+            // `isSplit`, which is what this used to do. The ratio goes with it:
+            // there is nothing left to divide.
             if leading == tab.id {
-                layout = .split(leadingTabID: trailing, trailingTabID: trailing, ratio: ratio)
+                layout = .single(tabID: trailing)
             } else if trailing == tab.id {
-                layout = .split(leadingTabID: leading, trailingTabID: leading, ratio: ratio)
+                layout = .single(tabID: leading)
             }
         case .single:
             break
