@@ -5,14 +5,38 @@ import SwiftUI
 ///
 /// The store holds a single JSON object (see `core/nim-core/storage/schema.nim`
 /// and `WhateverSettingsProtocol`), so a schema change is one version check
-/// rather than a sweep over per-key migrations. Every section decodes from
-/// defaults, which is what lets a document written by an older build load
-/// without a migration step: absent keys fall back to the property defaults.
+/// rather than a sweep over per-key migrations. A document written by an older
+/// build is missing the groups that build came later, and each group decodes
+/// through `decodeIfPresent` so an absent one falls back to its defaults instead
+/// of taking the document down with it.
+///
+/// That fallback is written out rather than left to the synthesized decoder,
+/// which does not do it: `decode(_:forKey:)` throws `keyNotFound` for a missing
+/// key even where the property has a default value, so adding a group the
+/// obvious way silently loses every setting a user had, and the failure is
+/// invisible because `load` falls back to defaults anyway.
 struct AppSettings: Codable, Equatable {
     var general = GeneralSettings()
     var appearance = AppearanceSettings()
     var web = WebSettings()
     var search = SearchSettings()
+
+    enum CodingKeys: String, CodingKey {
+        case general, appearance, web, search
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        general = try container.decodeIfPresent(GeneralSettings.self, forKey: .general)
+            ?? GeneralSettings()
+        appearance = try container.decodeIfPresent(AppearanceSettings.self, forKey: .appearance)
+            ?? AppearanceSettings()
+        web = try container.decodeIfPresent(WebSettings.self, forKey: .web) ?? WebSettings()
+        search = try container.decodeIfPresent(SearchSettings.self, forKey: .search)
+            ?? SearchSettings()
+    }
 
     /// Startup and history defaults.
     struct GeneralSettings: Codable, Equatable {
@@ -31,6 +55,27 @@ struct AppSettings: Codable, Equatable {
     /// uses; this is its stored mirror.
     struct AppearanceSettings: Codable, Equatable {
         var noise = StoredNoise()
+        var background = BackgroundMediaConfiguration()
+
+        enum CodingKeys: String, CodingKey {
+            case noise, background
+        }
+
+        init() {}
+
+        /// Tolerant for the same reason as `AppSettings`: `background` was added
+        /// after `noise`, so every document written before it lacks the key.
+        ///
+        /// Only the outer level is written this way. These documents are always
+        /// written whole by `update`, so a group is either present and complete
+        /// or absent, and a hand-edited document with a half-filled group is not a
+        /// case worth carrying a decoder for.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            noise = try container.decodeIfPresent(StoredNoise.self, forKey: .noise) ?? StoredNoise()
+            background = try container.decodeIfPresent(BackgroundMediaConfiguration.self, forKey: .background)
+                ?? BackgroundMediaConfiguration()
+        }
 
         /// Codable mirror of `NoiseOverlayConfiguration`. `NSColor` is not
         /// `Codable`, so the tint round-trips through its sRGB components.

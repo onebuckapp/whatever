@@ -38,6 +38,23 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             }
         }
     }
+
+    /// Pushes the window background onto every open page.
+    ///
+    /// Only the page-transparency part needs pushing: the background layer
+    /// itself reads the store directly, one subscription per window.
+    func applyLiveBackgroundSettings() {
+        let background = SettingsStore.shared.settings.appearance.background
+        // Inert unless there is a background to reveal. A transparent page over
+        // the plain window colour is a different appearance, not this feature.
+        let enabled = background.isActive && background.showThroughPages
+        for window in windows {
+            for tab in window.tabs {
+                guard let webView = tab.webView else { continue }
+                PageTransparency.apply(enabled: enabled, to: webView)
+            }
+        }
+    }
     /// Suppresses session writes while a session is being rebuilt.
     ///
     /// Restoring runs the same `addTab` and `selectTab` paths as any other

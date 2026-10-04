@@ -14,6 +14,27 @@ final class BrowserWebView: WKWebView {
     /// Called when the injected page-menu item is chosen.
     var onGenerateQRCode: (() -> Void)?
 
+    /// Whether WebKit should be left to paint an opaque page background.
+    ///
+    /// Turned off for the opt-in "show the window background through pages"
+    /// setting. `isOpaque` is get-only on `NSView`, so this is the only way to
+    /// answer it, and this subclass is the only place that legally can.
+    ///
+    /// Necessary but nowhere near sufficient: WebKit paints the *page's* own
+    /// background whatever this says, so on its own this changes nothing visible.
+    /// See `PageTransparency`.
+    var drawsOpaquePageBackground = true {
+        didSet {
+            guard drawsOpaquePageBackground != oldValue else { return }
+            layer?.backgroundColor = drawsOpaquePageBackground ? nil : .clear
+            needsDisplay = true
+        }
+    }
+
+    override var isOpaque: Bool {
+        drawsOpaquePageBackground
+    }
+
     /// Whether the page is allowed to see the mouse.
     ///
     /// Set to `false` for as long as a modal card covers the window. Closing the

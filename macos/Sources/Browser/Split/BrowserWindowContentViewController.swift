@@ -12,6 +12,8 @@ final class BrowserWindowContentViewController: NSViewController {
     private var dropPreview: NSView?
     private let progressBar = NSView()
     private var noiseOverlay: NoiseOverlayView?
+    private var backgroundMedia: BackgroundMediaView?
+    private var backgroundSubscription: AnyCancellable?
     private var settingsSubscription: AnyCancellable?
     private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
     private var settingsPresenter: SettingsModalPresenter?
@@ -194,8 +196,12 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Page area in the content view's coordinates, directly below the
     /// tab bar with no gap. The progress indicator overlays its top
     /// edge, so it takes no part in this rect.
+    ///
+    /// Measured from the tab bar's own frame rather than from the tab bar's
+    /// height, because the bar is inset by the window's safe area now that the
+    /// window is full-size.
     var pageAreaRect: NSRect {
-        let top = Self.tabBarHeight
+        let top = tabBar.frame.maxY
         return NSRect(
             x: 0,
             y: top,
@@ -229,7 +235,11 @@ final class BrowserWindowContentViewController: NSViewController {
         view.addSubview(progressBar)
 
         NSLayoutConstraint.activate([
-            tabBar.topAnchor.constraint(equalTo: view.topAnchor),
+            // The safe area, not the top of the view: the window is full-size so
+            // that the background can run behind the toolbar, which means the
+            // view's own top is now the top of the window rather than the top of
+            // the chrome-free area.
+            tabBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),
@@ -256,6 +266,22 @@ final class BrowserWindowContentViewController: NSViewController {
                 overlay?.configuration = configuration
             }
         overlay.configuration = NoiseOverlaySettings.shared.configuration
+
+        // The window background, at the very back. Installed before the grain so
+        // the grain lands in front of it, and pinned to the bounds rather than
+        // the safe area so it runs up behind the transparent toolbar.
+        let background = BackgroundMediaView.install(in: view)
+        backgroundMedia = background
+        // Read straight off the settings store rather than through a mirror: the
+        // stored shape is the in-memory shape here, so a second observable would
+        // be pure overhead. `appearance` is already a published section, and
+        // `changedKeys` already reports it.
+        backgroundSubscription = SettingsStore.shared.$settings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak background] settings in
+                background?.configuration = settings.appearance.background
+            }
+        background.configuration = SettingsStore.shared.settings.appearance.background
     }
 
     /// Shows one child and hides the rest, without taking anything out of the
@@ -283,7 +309,10 @@ final class BrowserWindowContentViewController: NSViewController {
             view.addSubview(controller.view)
             forgetConstraints(for: controller)
             childConstraints[key] = [
-                controller.view.topAnchor.constraint(equalTo: view.topAnchor, constant: Self.tabBarHeight),
+                // Anchored to the tab bar rather than to the view's top plus the
+                // bar's height, because the bar no longer sits at the top of the
+                // view now that the window is full-size.
+                controller.view.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
                 controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),

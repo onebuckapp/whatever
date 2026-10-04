@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// Two panes side by side. Panes are retained by their window so the
 /// existing web views are reparented rather than recreated, and the
@@ -10,6 +11,7 @@ final class BrowserSplitViewController: NSSplitViewController {
     static let defaultRatio: CGFloat = 0.5
 
     private(set) var paneControllers: [BrowserPaneController] = []
+    private var backgroundSubscription: AnyCancellable?
 
     /// Reports the divider position as a 0...1 fraction whenever it
     /// changes, so the window can restore it later.
@@ -23,6 +25,39 @@ final class BrowserSplitViewController: NSSplitViewController {
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.delegate = self
+        applySplitBackgroundTransparency()
+        // The split view is created and thrown away as the layout changes, so it
+        // reads the setting itself rather than being told.
+        backgroundSubscription = SettingsStore.shared.$settings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.applySplitBackgroundTransparency()
+            }
+    }
+
+    /// Lets the window background show between the panes.
+    ///
+    /// `NSSplitView` has no `drawsBackground` at all: not declared, and not
+    /// present on the class at runtime on macOS 14.8, which is why the obvious
+    /// `setValue(_:forKey:)` route is not an option — KVC raises
+    /// `NSUnknownKeyException` for an unknown key and takes the process with it.
+    /// That was a real crash here before this was checked.
+    ///
+    /// Its background is painted by its layer, so clearing that is the way
+    /// through. Whether that is enough to reveal the window background in the
+    /// gutter is a question for the eye rather than the API; if it turns out not
+    /// to be, the honest outcome is that the gutter keeps AppKit's own colour
+    /// while everything around the split still shows the background.
+    ///
+    /// Only applied while a background is configured: with none, the split is
+    /// left exactly as AppKit drew it.
+    private func applySplitBackgroundTransparency() {
+        guard SettingsStore.shared.settings.appearance.background.isActive else {
+            splitView.layer?.backgroundColor = nil
+            return
+        }
+        splitView.wantsLayer = true
+        splitView.layer?.backgroundColor = .clear
     }
 
     // MARK: - Panes

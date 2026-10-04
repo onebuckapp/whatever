@@ -129,14 +129,16 @@ struct AppearanceSettingsView: View {
                     step: 0.1,
                     format: { String(format: "%.1f", $0) }
                 )
-                SettingsSliderRow(
+SettingsSliderRow(
                     title: "Grain Size",
                     value: grain.grainScaleBinding,
                     range: 1...4,
                     step: 0.1,
-                    format: { String(format: "%.1f", $0) }
+                    format: { String(format: "%.1f×", $0) }
                 )
             }
+
+            BackgroundSettingsGroups()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

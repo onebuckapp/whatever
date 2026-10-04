@@ -25,6 +25,15 @@ enum WebViewFactory {
         // The half of the user's web settings WebKit only reads here. The other
         // half is applied by `applyLiveWebSettings` once the view exists.
         SettingsStore.shared.settings.web.apply(to: configuration)
-        return BrowserWebView(frame: .zero, configuration: configuration)
+        let webView = BrowserWebView(frame: .zero, configuration: configuration)
+        // Read here rather than pushed later, so a page built after the setting
+        // changed is already see-through instead of opaque until something else
+        // happens to it.
+        let background = SettingsStore.shared.settings.appearance.background
+        PageTransparency.apply(
+            enabled: background.isActive && background.showThroughPages,
+            to: webView
+        )
+        return webView
     }
 }

@@ -146,7 +146,14 @@ final class BrowserWindowController: NSWindowController {
 
     private static func makeWindow(content: BrowserWindowContentViewController) -> NSWindow {
         let window = NSWindow(contentViewController: content)
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        // `fullSizeContentView` puts the content view across the whole window
+        // rather than starting below the titlebar, which combined with the
+        // transparent titlebar below is what lets the page background run up
+        // behind the toolbar. The content view's safe area keeps the tab bar and
+        // the page below it clear of that strip.
+        window.styleMask = [
+            .titled, .closable, .miniaturizable, .resizable, .fullSizeContentView,
+        ]
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
