@@ -81,13 +81,10 @@ struct AppearanceSettingsView: View {
                     title: "New pattern",
                     subtitle: "Same settings, different grain."
                 ) {
-                    Button {
+                    Button("Generate") {
                         grain.rerollSeed()
-                    } label: {
-                        Image(systemName: "dice")
                     }
-                    .help("Generate a different grain")
-                    .buttonStyle(.borderless)
+                    .controlSize(.small)
                 }
                 SettingsButtonRow(
                     title: "Reset",
@@ -233,13 +230,9 @@ struct BookmarksSettingsView: View {
     @State private var failure: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            content
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task { await load() }
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .task { await load() }
     }
 
     private var header: some View {
@@ -257,10 +250,21 @@ struct BookmarksSettingsView: View {
         .padding(.vertical, 12)
     }
 
+    /// The pane body, which is either a placeholder centered on its own or a
+    /// list under the header.
+    ///
+    /// The placeholder is deliberately the whole body rather than the leftover
+    /// space under the header. A placeholder centers itself in the space it is
+    /// given, so nesting it below the header put its center lower than the same
+    /// placeholder in a pane with no header, and History lower still because it
+    /// has more chrome above it. Hiding the header when there is nothing to list
+    /// is also the honest version: the header's only controls are disabled here.
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
+            listed {
+                ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else if let failure {
             SettingsPlaceholder(
                 symbol: "exclamationmark.triangle",
@@ -274,14 +278,25 @@ struct BookmarksSettingsView: View {
                 message: "Bookmarks you add will be listed here."
             )
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(entries) { entry in
-                        row(entry)
+            listed {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(entries) { entry in
+                            row(entry)
+                        }
                     }
+                    .padding(.horizontal, 20)
                 }
-                .padding(.horizontal, 20)
             }
+        }
+    }
+
+    /// Header and divider above a body that has rows under them.
+    private func listed<Content: View>(_ body: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            body()
         }
     }
 
@@ -392,18 +407,12 @@ struct HistorySettingsView: View {
     @State private var isLoading = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            recordingControls
-            Divider()
-            list
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task { await load() }
-        .onChange(of: store.settings.general.recordsHistory) {
-            Task { await load() }
-        }
+        list
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .task { await load() }
+            .onChange(of: store.settings.general.recordsHistory) {
+                Task { await load() }
+            }
     }
 
     private var header: some View {
@@ -445,10 +454,14 @@ struct HistorySettingsView: View {
         .padding(.vertical, 10)
     }
 
+    /// The pane body. See `BookmarksSettingsView.content` for why the empty
+    /// states drop the header rather than sitting under it.
     @ViewBuilder
     private var list: some View {
         if isLoading {
-            ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
+            listed {
+                ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else if entries.isEmpty {
             SettingsPlaceholder(
                 symbol: "clock",
@@ -456,14 +469,28 @@ struct HistorySettingsView: View {
                 message: "Pages you visit show up here."
             )
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(entries) { entry in
-                        row(entry)
+            listed {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(entries) { entry in
+                            row(entry)
+                        }
                     }
+                    .padding(.horizontal, 20)
                 }
-                .padding(.horizontal, 20)
             }
+        }
+    }
+
+    /// Header, divider and the recording controls above a body that has rows
+    /// under them.
+    private func listed<Content: View>(_ body: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+            recordingControls
+            Divider()
+            body()
         }
     }
 
@@ -529,12 +556,178 @@ struct HistorySettingsView: View {
 // MARK: - Search
 
 struct SearchSettingsView: View {
+    @ObservedObject private var store = SettingsStore.shared
+    @State private var isAdding = false
+    @State private var draft = CustomSearchEngine()
+
     var body: some View {
-        SettingsPlaceholder(
-            symbol: "magnifyingglass",
-            title: "Search is DuckDuckGo",
-            message: "The address bar sends searches to DuckDuckGo. A choice of engine is coming."
+        SettingsDetailStack {
+            SettingsGroup(
+                title: "Default Engine",
+                footnote: "What the address field sends a search to. Anything that looks like a web address still loads directly."
+            ) {
+                ForEach(PredefinedSearchEngine.allCases) { engine in
+                    SettingsRadioRow(
+                        title: engine.title,
+                        subtitle: engine.isPrivate ? nil : "Records what you search for",
+                        isSelected: store.settings.search.isSelected(engine.rawValue)
+                    ) {
+                        select(engine.rawValue)
+                    }
+                }
+            }
+
+            customGroup
+
+            if isAdding {
+                addForm
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    /// The added engines, and the way into the form.
+    ///
+    /// Its own group rather than a section of the list above, so it is obvious
+    /// which engines ship with the app and which the user added.
+    @ViewBuilder
+    private var customGroup: some View {
+        SettingsGroup(
+            title: "Your Engines",
+            footnote: store.settings.search.customEngines.isEmpty
+                ? "Add an engine to search somewhere these do not go."
+                : nil
+        ) {
+            ForEach(store.settings.search.customEngines) { engine in
+                SettingsRadioRow(
+                    title: engine.name,
+                    subtitle: engine.address,
+                    isSelected: store.settings.search.isSelected(engine.id.uuidString)
+                ) {
+                    select(engine.id.uuidString)
+                } accessory: {
+                    Button {
+                        remove(engine)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .help("Remove this engine")
+                }
+            }
+
+            SettingsButtonRow(
+                title: isAdding ? "Cancel" : "Add Engine",
+                subtitle: "An address, and the query parameter it takes."
+            ) {
+                Button(isAdding ? "Cancel" : "Add") {
+                    if isAdding {
+                        isAdding = false
+                    } else {
+                        draft = CustomSearchEngine()
+                        isAdding = true
+                    }
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
+    /// The add form, shown in place rather than as a dialog.
+    ///
+    /// In place keeps the validation message next to the field it is about, which
+    /// is the whole reason to show it at all.
+    private var addForm: some View {
+        SettingsGroup(title: "New Engine") {
+            labelledField("Name", text: $draft.name, placeholder: "My search")
+            labelledField("Address", text: $draft.address, placeholder: "https://example.com/search")
+            labelledField("Query parameter", text: $draft.queryItem, placeholder: "q")
+
+            if let problem {
+                Text(problem)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    isAdding = false
+                }
+                .controlSize(.small)
+                Button("Save") {
+                    add()
+                }
+                .controlSize(.small)
+                .disabled(problem != nil)
+            }
+        }
+    }
+
+    private func labelledField(
+        _ title: String,
+        text: Binding<String>,
+        placeholder: String
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 12))
+            TextField(placeholder, text: text)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+                .font(.system(size: 11))
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Why the draft cannot be saved, or nil when it can.
+    ///
+    /// Reached through the trimmed values so a field of only spaces is rejected
+    /// the same way an empty one is.
+    private var problem: String? {
+        CustomEngineValidator.problem(
+            name: draft.name,
+            address: draft.address,
+            queryItem: draft.queryItem
         )
+    }
+
+    private func select(_ id: String) {
+        store.update { document in
+            document.search.defaultEngine = id
+        }
+    }
+
+    private func add() {
+        guard problem == nil else { return }
+        var engine = draft
+        // Trimmed on the way in, so the saved engine has no stray whitespace to
+        // break its address or its name in the list.
+        engine.name = engine.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        engine.address = engine.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        engine.queryItem = engine.queryItem.trimmingCharacters(in: .whitespacesAndNewlines)
+        store.update { document in
+            document.search.customEngines.append(engine)
+            document.search.defaultEngine = engine.id.uuidString
+        }
+        isAdding = false
+    }
+
+    /// Removes an engine, and moves the default off it if it was selected.
+    ///
+    /// Leaving `defaultEngine` pointing at a deleted engine would work, because
+    /// `engine()` falls back, but the list would then show nothing selected. Moving
+    /// the default keeps the two consistent.
+    private func remove(_ engine: CustomSearchEngine) {
+        store.update { document in
+            document.search.customEngines.removeAll { $0.id == engine.id }
+            if document.search.defaultEngine == engine.id.uuidString {
+                document.search.defaultEngine = PredefinedSearchEngine.duckDuckGo.rawValue
+            }
+        }
     }
 }
 

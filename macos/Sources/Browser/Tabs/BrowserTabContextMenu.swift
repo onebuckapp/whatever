@@ -110,45 +110,6 @@ enum BrowserTabContextMenu {
         return menu
     }
 
-    /// Menu for the toolbar's page button. Same command set as the tab's
-/// context menu, minus the pane-only entries that need a split.
-    @MainActor
-    static func pageMenu(
-        for tab: BrowserTab,
-        controller: BrowserWindowController
-    ) -> NSMenu {
-        let target = controller.tabMenuTarget(for: tab)
-        let menu = NSMenu()
-
-        add("New Tab", .newTab, to: menu, target: target)
-        add("Duplicate Tab", .duplicateTab, to: menu, target: target)
-        add("Move Tab to New Window", .moveTabToNewWindow, to: menu, target: target)
-        add(tab.presentation.isPinned ? "Unpin Tab" : "Pin Tab", .togglePin, to: menu, target: target)
-
-        menu.addItem(.separator())
-
-        add("Split with Next Tab", .splitWithNextTab, to: menu, target: target)
-        add("Split with Previous Tab", .splitWithPreviousTab, to: menu, target: target)
-
-        menu.addItem(.separator())
-
-        add("Reload Tab", .reloadTab, to: menu, target: target)
-        add("Copy URL", .copyURL, to: menu, target: target)
-        add("Generate QR Code", .qrCode, to: menu, target: target)
-
-        menu.addItem(.separator())
-
-        add("Close Tab", .closeTab, to: menu, target: target)
-        add("Close Other Tabs", .closeOtherTabs, to: menu, target: target)
-        add("Close Tabs to the Right", .closeTabsToTheRight, to: menu, target: target)
-
-        menu.addItem(.separator())
-
-        add("Settings\u{2026}", .settings, to: menu, target: target)
-
-        return menu
-    }
-
     @MainActor
     static func perform(
         _ command: TabMenuAction,

@@ -47,15 +47,29 @@ struct SettingsModalPopup: CenterPopup {
 /// a click on empty card space falls through to Mijick's tap-outside layer and
 /// closes the dialog the user was trying to click inside.
 private struct SettingsModalCard: View {
-    /// Left and right inset for the sidebar's own content.
+    /// The optical left edge that the heading and every row's first glyph sit on,
+    /// measured from the card's own edge.
     ///
-    /// The sidebar's background is flush with the card's rounded left edge, so
-    /// without a generous inset the first glyph of every row sits almost on the
-    /// margin and the selection highlight looks like it is falling off the card.
+    /// The sidebar's background is flush with the card's rounded left edge, so the
+    /// glyphs need a real inset from it. This is that inset, and it is the number
+    /// the text is aligned to.
+    private static let textInset: CGFloat = 18
+
+    /// Inset of a row from the sidebar's edges, which is the margin the selection
+    /// pill ends up with.
     ///
-    /// One constant for the heading and the rows so the two stay aligned; they are
-    /// the same optical left edge.
-    private static let rowInset: CGFloat = 18
+    /// A row's padding is applied before its background, so the highlight covers
+    /// that padding as well and ran the full width of the sidebar, flush against
+    /// both edges. Insetting the list is what gives the pill a margin; the row's
+    /// own padding then hands the glyph back to `textInset`.
+    private static let listInset: CGFloat = 8
+
+    /// Padding inside a row, so `listInset` plus this lands on `textInset`.
+    ///
+    /// Derived rather than written down, because the heading and the rows share
+    /// this one value and are only aligned to each other while it stays in step
+    /// with the list inset.
+    private static var rowInset: CGFloat { textInset - listInset }
 
     let stackID: PopupStackID
     let popupID: String
@@ -63,23 +77,63 @@ private struct SettingsModalCard: View {
     /// Which pane the card opened on. The sidebar moves the selection from here.
     @State private var selected: SettingsSection
 
+    /// Sections whose pane is currently in the tree, in the order they were first
+    /// opened.
+    ///
+    /// Panes are kept mounted and switched with `hidden` rather than replaced, and
+    /// this is the whole reason. Measured in the running app: a switch that builds
+    /// the pane costs 240 to 350ms of main-thread work, and a switch to the pane
+    /// already showing costs 0.08ms. The state change itself is free (0.03ms), and
+    /// the card's two large shadows turned out to be irrelevant to it, so the cost
+    /// is entirely SwiftUI building the pane's subtree, paid again on every click.
+    ///
+    /// It only ever grows while the modal is open. A section is mounted the first
+    /// time it is opened and every later visit is a visibility toggle, which also
+    /// keeps each pane's `@State`, so History and Bookmarks do not refetch and
+    /// reshow their spinner.
+    ///
+    /// Two things follow from keeping a pane alive that used to be reset on every
+    /// switch, both deliberate: a pane keeps its scroll offset, so returning to a
+    /// long section lands where it was left, and its fetched rows are not reloaded
+    /// until the modal is closed.
+    @State private var mounted: [SettingsSection]
+
     init(stackID: PopupStackID, popupID: String, section: SettingsSection) {
         self.stackID = stackID
         self.popupID = popupID
         _selected = State(initialValue: section)
+        _mounted = State(initialValue: [section])
     }
 
     var body: some View {
         HStack(spacing: 0) {
             sidebar
             Divider()
-            ScrollView {
-                SettingsDetailView.view(for: selected)
-                    // One pane replaces the next, so the scroll offset belongs to
-                    // the pane that is going away rather than carrying over.
-                    .id(selected)
+            // No scroll view wraps the panes. A vertical one proposes nil height, and a
+            // pane that wants to fill the card vertically, which every centered
+            // placeholder does, cannot fill a proposal of nil: it collapses to its
+            // ideal height and sits at the top. Scrolling belongs to the panes that
+            // need it instead, so a short pane gets the card's real height and a
+            // tall one still scrolls.
+            //
+            // Every pane the user has opened is stacked, and only the selected one
+            // is visible, so a return visit is a visibility toggle instead of a
+            // rebuild. Iterating `mounted` is also what pins each pane's position
+            // in the tree, and that position is what preserves its `@State` and its
+            // scroll offset across re-evaluations.
+            ZStack {
+                ForEach(mounted, id: \.self) { entry in
+                    SettingsDetailView.view(for: entry)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .opacity(entry == selected ? 1 : 0)
+                        // `hidden()` takes no argument, so visibility is
+                        // opacity plus hit-testing. The second half is not
+                        // optional: an invisible pane that still took clicks
+                        // would swallow every click on the pane below it.
+                        .allowsHitTesting(entry == selected)
+                        .accessibilityHidden(entry != selected)
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 720, height: 520)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -110,6 +164,10 @@ private struct SettingsModalCard: View {
             }
             Spacer(minLength: 0)
         }
+        // Before the frame, so the frame still fixes the sidebar's outer width and
+        // the rows are laid out inside the inset. Padding after it would widen the
+        // sidebar to 212 and drag the divider out with it.
+        .padding(.horizontal, Self.listInset)
         .frame(width: 196)
         .padding(.bottom, 10)
         .background(Color(nsColor: .underPageBackgroundColor))
@@ -124,6 +182,11 @@ private struct SettingsModalCard: View {
     private func row(_ entry: SettingsSection) -> some View {
         let isSelected = entry == selected
         return Button {
+            // Mount before selecting, so the pane is built in the same update
+            // that shows it rather than one frame later.
+            if !mounted.contains(entry) {
+                mounted.append(entry)
+            }
             selected = entry
         } label: {
             HStack(spacing: 8) {

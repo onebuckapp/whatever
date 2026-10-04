@@ -304,9 +304,22 @@ final class TabBarContainerView: NSView {
     }
 
     private func setUpSubviews() {
+        // No scroller bars at all, and this is load-bearing rather than
+        // cosmetic. `NSScrollView` reserves about 15pt of layout height for a
+        // horizontal scroller whenever one can appear, and shrinks its document
+        // view to match. The document view here is the tab strip, so that fed
+        // straight into the tab height: measured, a window narrow enough for the
+        // tabs to overflow collapsed them from 32pt to 17pt, and flickered
+        // between the two as the scroller came and went with the strip's width.
+        //
+        // `scrollerStyle = .overlay` is the obvious fix and does not work: this
+        // scroll view reports the style back as legacy regardless of when it is
+        // set. Scrolling does not need a bar. `NSScrollView` still scrolls a
+        // document view wider than its clip view with `hasHorizontalScroller` off,
+        // the bar was set to autohide anyway, and `autoScroll` already drives
+        // `contentView.scroll(to:)` directly during a tab drag.
         scrollView.hasVerticalScroller = false
-        scrollView.hasHorizontalScroller = true
-        scrollView.autohidesScrollers = true
+        scrollView.hasHorizontalScroller = false
         scrollView.drawsBackground = false
         scrollView.documentView = strip
         addSubview(scrollView)
@@ -362,12 +375,15 @@ final class TabBarContainerView: NSView {
             width: 20,
             height: 20
         )
-        let contentHeight = scrollView.contentView.bounds.height
+        // The strip's height comes from the container, which the window pins to
+        // `tabBarHeight`, rather than being read back from the clip view. Reading
+        // it back let the scroll view decide the height, which is the coupling
+        // that made the tabs change height as the window was resized.
         strip.frame = NSRect(
             x: 0,
             y: 0,
             width: max(strip.preferredWidth, scrollView.contentSize.width),
-            height: contentHeight
+            height: bounds.height
         )
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }

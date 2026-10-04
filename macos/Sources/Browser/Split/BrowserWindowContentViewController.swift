@@ -35,7 +35,11 @@ final class BrowserWindowContentViewController: NSViewController {
     /// when the child is replaced: constraints retain the views they
     /// pin, so abandoned ones keep discarded pages (and their
     /// processes) alive.
-    private var childConstraints: [NSLayoutConstraint] = []
+    /// Constraints pinning each child to the page area, one set per child.
+    ///
+    /// Per child rather than one set for whichever is current, because children are
+    /// kept in the hierarchy and hidden instead of removed. See `showChild`.
+    private var childConstraints: [ObjectIdentifier: [NSLayoutConstraint]] = [:]
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -254,29 +258,54 @@ final class BrowserWindowContentViewController: NSViewController {
         overlay.configuration = NoiseOverlaySettings.shared.configuration
     }
 
-    /// Installs a child controller flush under the tab bar, replacing
-    /// any previous child. The progress indicator stays above it so it
-    /// can overlay the page's top edge.
+    /// Shows one child and hides the rest, without taking anything out of the
+    /// window.
+    ///
+    /// This used to remove every child and add the new one, which is what made a
+    /// tab switch feel slow. `WKWebView` tears down its layer tree when its view
+    /// leaves the window and has to build and render it again on the way back in,
+    /// so the page you just asked for arrived as a blank frame first. A child that
+    /// is already parented here is now only unhidden, and WebKit never loses the
+    /// window.
+    ///
+    /// The model's part of a switch was never the problem: measured in the running
+    /// app, `selectTab` costs 1 to 3ms for pages that already exist and under 6ms
+    /// for one whose web view has not been built yet.
     func showChild(_ controller: NSViewController) {
-        for child in children {
-            child.view.removeFromSuperview()
-            child.removeFromParent()
+        releaseOrphanedChildren()
+        let key = ObjectIdentifier(controller)
+
+        if controller.view.superview !== view {
+            // Arriving from somewhere else, which in practice means a pane coming
+            // back out of a split. Hand it over and pin it to the page area again.
+            addChild(controller)
+            controller.view.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(controller.view)
+            forgetConstraints(for: controller)
+            childConstraints[key] = [
+                controller.view.topAnchor.constraint(equalTo: view.topAnchor, constant: Self.tabBarHeight),
+                controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ]
         }
 
-        addChild(controller)
-        controller.view.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(controller.view)
-        view.addSubview(progressBar)
+        for child in children {
+            let isCurrent = child === controller
+            child.view.isHidden = !isCurrent
+            let constraints = childConstraints[ObjectIdentifier(child)] ?? []
+            if isCurrent {
+                NSLayoutConstraint.activate(constraints)
+            } else {
+                NSLayoutConstraint.deactivate(constraints)
+            }
+        }
 
-        NSLayoutConstraint.deactivate(childConstraints)
-        let top = Self.tabBarHeight
-        childConstraints = [
-            controller.view.topAnchor.constraint(equalTo: view.topAnchor, constant: top),
-            controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ]
-        NSLayoutConstraint.activate(childConstraints)
+        // No reordering of the children themselves: only one is visible at a time, so
+        // their order against each other cannot show. Bringing one to the front
+        // would mean taking it out of the window and adding it back, which is the
+        // very thing this is here to avoid.
+        view.addSubview(progressBar)
 
         // The child was just added, so it sits above the preview unless
         // it is pushed back. The grain stays above everything.
@@ -284,6 +313,39 @@ final class BrowserWindowContentViewController: NSViewController {
             view.subviews = view.subviews.filter { $0 !== dropPreview } + [dropPreview]
         }
         noiseOverlay?.moveToFront()
+    }
+
+    /// Drops a child for good, for a pane whose tab is gone.
+    ///
+    /// Children are retained so their pages can stay in the window, which means
+    /// closing a tab has to release one explicitly or it would be held for the rest
+    /// of the window's life.
+    func forgetChild(_ controller: NSViewController) {
+        controller.view.removeFromSuperview()
+        controller.removeFromParent()
+        forgetConstraints(for: controller)
+    }
+
+    private func forgetConstraints(for controller: NSViewController) {
+        guard let constraints = childConstraints.removeValue(forKey: ObjectIdentifier(controller))
+        else { return }
+        NSLayoutConstraint.deactivate(constraints)
+        // `NSLayoutConstraint.remove()` is not exposed to Swift, and dropping
+        // our reference is not enough: a deactivated constraint stays installed on
+        // the view and would keep the pane's web view alive.
+        view.removeConstraints(constraints)
+    }
+
+    /// Releases children that are in no hierarchy at all.
+    ///
+    /// A pane that a split has let go of has lost its superview without being
+    /// forgotten, and would otherwise sit here as a child for the rest of the
+    /// window's life.
+    private func releaseOrphanedChildren() {
+        for child in children where child.view.superview == nil {
+            child.removeFromParent()
+            forgetConstraints(for: child)
+        }
     }
 }
 

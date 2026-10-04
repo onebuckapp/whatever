@@ -2,8 +2,8 @@ import AppKit
 import Combine
 
 /// Native window toolbar: back / forward / reload on the leading side,
-/// the address field in the middle, and a page menu on the trailing
-/// side. It follows the window's active tab, so switching tabs updates
+/// the address field in the middle, and bookmarks / downloads / settings on the
+/// trailing side. It follows the window's active tab, so switching tabs updates
 /// the navigation state and the address text.
 @MainActor
 final class BrowserToolbarController: NSObject {
@@ -12,9 +12,9 @@ final class BrowserToolbarController: NSObject {
     private static let forwardID = NSToolbarItem.Identifier("whatever.navigation.forward")
     private static let reloadID = NSToolbarItem.Identifier("whatever.navigation.reload")
     private static let addressID = NSToolbarItem.Identifier("whatever.address")
-    private static let grainSettingsID = NSToolbarItem.Identifier("whatever.grain-settings")
     private static let settingsID = NSToolbarItem.Identifier("whatever.settings")
-    private static let pageMenuID = NSToolbarItem.Identifier("whatever.page-menu")
+    private static let downloadsID = NSToolbarItem.Identifier("whatever.downloads")
+    private static let bookmarksID = NSToolbarItem.Identifier("whatever.bookmarks")
     /// macOS only exposes the space identifiers as raw constants.
     private static let flexibleSpaceID = NSToolbarItem.Identifier(
         rawValue: "NSToolbarFlexibleSpaceItem"
@@ -29,9 +29,9 @@ final class BrowserToolbarController: NSObject {
     )
     private let addressContainer = NSView()
     private let addressField = AddressSearchField()
-    private let pageMenuButton = NSButton()
-    private let grainSettingsButton = NSButton()
     private let settingsButton = NSButton()
+    private let downloadsButton = NSButton()
+    private let bookmarksButton = NSButton()
     private let backButton = NSButton()
     private let forwardButton = NSButton()
     private let reloadButton = NSButton()
@@ -42,10 +42,12 @@ final class BrowserToolbarController: NSObject {
     private var isEditingAddress = false
 
     var onAddressSubmitted: ((URL) -> Void)?
-    /// Opens the grain overlay settings card.
-    var onGrainSettings: (() -> Void)?
     /// Opens the settings modal.
     var onSettings: (() -> Void)?
+    /// Opens the settings modal on the Downloads section.
+    var onDownloads: (() -> Void)?
+    /// Opens the settings modal on the Bookmarks section.
+    var onBookmarks: (() -> Void)?
 
     init(controller: BrowserWindowController) {
         self.controller = controller
@@ -94,7 +96,6 @@ final class BrowserToolbarController: NSObject {
             .store(in: &cancellables)
 
         syncControls()
-        rebuildPageMenu()
     }
 
     private func syncControls() {
@@ -123,11 +124,6 @@ final class BrowserToolbarController: NSObject {
         }
     }
 
-    private func rebuildPageMenu() {
-        guard let controller, let tab else { return }
-        pageMenuButton.menu = BrowserTabContextMenu.pageMenu(for: tab, controller: controller)
-    }
-
     // MARK: - Actions
 
     @objc private func goBack() {
@@ -147,12 +143,16 @@ final class BrowserToolbarController: NSObject {
         }
     }
 
-    @objc private func toggleGrainSettings() {
-        onGrainSettings?()
-    }
-
     @objc private func openSettings() {
         onSettings?()
+    }
+
+    @objc private func openDownloads() {
+        onDownloads?()
+    }
+
+    @objc private func openBookmarks() {
+        onBookmarks?()
     }
 
     // MARK: - Setup
@@ -162,16 +162,22 @@ final class BrowserToolbarController: NSObject {
         configure(forwardButton, symbol: "chevron.right", help: "Forward", action: #selector(goForward))
         configure(reloadButton, symbol: "arrow.clockwise", help: "Reload", action: #selector(toggleReload))
 
-        configure(pageMenuButton, symbol: "line.3.horizontal", help: "Page Menu", action: nil)
-        pageMenuButton.menu = NSMenu()
-
-        configure(
-            grainSettingsButton,
-            symbol: "circle.dotted",
-            help: "Grain Overlay",
-            action: #selector(toggleGrainSettings)
-        )
         configure(settingsButton, symbol: "gearshape", help: "Settings", action: #selector(openSettings))
+        // `arrow.down.to.line` is the plain download glyph: an arrow descending
+        // onto a baseline, which reads as "fetching" without needing the tray
+        // shape Safari uses or the circle the empty Downloads pane uses.
+        configure(
+            downloadsButton,
+            symbol: "arrow.down.to.line",
+            help: "Downloads",
+            action: #selector(openDownloads)
+        )
+        configure(
+            bookmarksButton,
+            symbol: "bookmark",
+            help: "Bookmarks",
+            action: #selector(openBookmarks)
+        )
     }
 
     private func configure(_ button: NSButton, symbol: String, help: String, action: Selector?) {
@@ -227,17 +233,18 @@ final class BrowserToolbarController: NSObject {
 
 extension BrowserToolbarController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        // Flexible space on both sides keeps the wide address field
-        // centred, with the settings, grain, and page buttons pinned
-        // to the trailing edge.
+        // Flexible space on both sides keeps the wide address field centred, with
+        // the trailing buttons pinned to the right edge. Identifiers run left to
+        // right, so this trailing group reads bookmarks, downloads, settings, or
+        // settings, downloads, bookmarks from the right.
         [
             Self.navigationID,
             Self.flexibleSpaceID,
             Self.addressID,
             Self.flexibleSpaceID,
+            Self.bookmarksID,
+            Self.downloadsID,
             Self.settingsID,
-            Self.grainSettingsID,
-            Self.pageMenuID,
         ]
     }
 
@@ -253,23 +260,23 @@ extension BrowserToolbarController: NSToolbarDelegate {
         switch itemIdentifier {
         case Self.navigationID:
             return makeNavigationGroup()
-        case Self.pageMenuID:
-            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-            item.view = pageMenuButton
-            item.label = "Page Menu"
-            item.toolTip = "Page Menu"
-            return item
-        case Self.grainSettingsID:
-            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-            item.view = grainSettingsButton
-            item.label = "Grain"
-            item.toolTip = "Grain Overlay Settings"
-            return item
         case Self.settingsID:
             let item = NSToolbarItem(itemIdentifier: itemIdentifier)
             item.view = settingsButton
             item.label = "Settings"
             item.toolTip = "Settings"
+            return item
+        case Self.downloadsID:
+            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+            item.view = downloadsButton
+            item.label = "Downloads"
+            item.toolTip = "Downloads"
+            return item
+        case Self.bookmarksID:
+            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+            item.view = bookmarksButton
+            item.label = "Bookmarks"
+            item.toolTip = "Bookmarks"
             return item
         case Self.addressID:
             return addressItem
@@ -362,7 +369,10 @@ extension BrowserToolbarController: NSSearchFieldDelegate {
 
     private func submitAddress() {
         let text = addressField.stringValue
-        guard let url = AddressParser.url(from: text) else { return }
+        // Read the engine here rather than in the parser, so the parser stays a
+        // pure function of its input and the store is touched once per search.
+        let engine = SettingsStore.shared.settings.search.engine()
+        guard let url = AddressParser.url(from: text, searchEngine: engine) else { return }
         onAddressSubmitted?(url)
     }
 }

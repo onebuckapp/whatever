@@ -4,12 +4,11 @@ import Foundation
 ///
 /// - Text with a scheme (`https://…`) loads as-is.
 /// - Scheme-less text containing a dot (`example.com`) becomes `https://…`.
-/// - Anything else is sent to the search engine.
+/// - Anything else is sent to the search engine the user chose.
 enum AddressParser {
-    static func url(
-        from input: String,
-        searchBaseURL: URL = BrowserConstants.searchBaseURL
-    ) -> URL? {
+    /// The engine is a parameter rather than a constant because the user can pick
+    /// it, or add their own, in Settings.
+    static func url(from input: String, searchEngine: ResolvedSearchEngine) -> URL? {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
 
@@ -21,8 +20,6 @@ enum AddressParser {
             return url
         }
 
-        var components = URLComponents(url: searchBaseURL, resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: BrowserConstants.searchQueryItemName, value: text)]
-        return components?.url
+        return searchEngine.searchURL(for: text)
     }
 }

@@ -183,12 +183,16 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onAddressSubmitted = { [weak self] url in
             self?.selectedTab?.navigate(to: url)
         }
-        toolbarController.onGrainSettings = { [weak self] in
-            guard let self else { return }
-            self.contentController.toggleNoiseSettings()
-        }
         toolbarController.onSettings = { [weak self] in
             self?.presentSettings()
+        }
+        // The trailing buttons are shortcuts into the settings modal rather than
+        // separate surfaces, so there is one place for those panes to live.
+        toolbarController.onDownloads = { [weak self] in
+            self?.presentSettings(section: .downloads)
+        }
+        toolbarController.onBookmarks = { [weak self] in
+            self?.presentSettings(section: .bookmarks)
         }
         // A modal card takes the mouse away from the pages for its duration.
         contentController.onShieldChanged = { [weak self] shielded in
@@ -364,7 +368,9 @@ final class BrowserWindowController: NSWindowController {
     /// or adopted by another window.
     func tearDown() {
         for tab in tabs {
-            paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
+            if let pane = paneCache.removeValue(forKey: tab.id) {
+                contentController.forgetChild(pane)
+            }
             // The window is closing, so nothing will ever need these pages
             // again; dropping the views releases their processes.
             tab.discardWebView()
@@ -398,7 +404,9 @@ final class BrowserWindowController: NSWindowController {
             break
         }
 
-        paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
+        if let pane = paneCache.removeValue(forKey: tab.id) {
+            contentController.forgetChild(pane)
+        }
         // The view moves with the tab, so it is only unparented here.
         tab.webView?.removeFromSuperview()
         menuTargets.removeValue(forKey: tab.id)
@@ -434,7 +442,9 @@ final class BrowserWindowController: NSWindowController {
             break
         }
 
-        paneCache.removeValue(forKey: tab.id)?.view.removeFromSuperview()
+        if let pane = paneCache.removeValue(forKey: tab.id) {
+            contentController.forgetChild(pane)
+        }
         tab.webView?.removeFromSuperview()
         menuTargets.removeValue(forKey: tab.id)
 
@@ -666,7 +676,9 @@ final class BrowserWindowController: NSWindowController {
     private func webViewReplaced(for tab: BrowserTab) {
         guard tabs.contains(where: { $0.id == tab.id }) else { return }
         dismissQRCode()
-        paneCache.removeValue(forKey: tab.id)
+        if let pane = paneCache.removeValue(forKey: tab.id) {
+            contentController.forgetChild(pane)
+        }
         rebuildContent()
     }
 

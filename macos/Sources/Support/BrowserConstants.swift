@@ -19,10 +19,6 @@ enum BrowserConstants {
     /// no user-facing address; see `URL.isAddresslessPage`.
     static let homePageURL = URL(string: "whtvr://about")!
 
-    /// Search engine used when the address field input is not a URL.
-    /// DuckDuckGo takes the query in the `q` query item.
-    static let searchBaseURL = URL(string: "https://duckduckgo.com/")!
-    static let searchQueryItemName = "q"
 }
 
 extension URL {

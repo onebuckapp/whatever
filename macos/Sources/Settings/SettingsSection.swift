@@ -154,6 +154,64 @@ struct SettingsPickerRow<Label: Hashable & Identifiable>: View {
     }
 }
 
+/// One row of a single-choice list.
+///
+/// Built by hand rather than from `Picker` with a `.radio` style, which SwiftUI
+/// does not have: the stock styles are menu and segmented, and a segmented control
+/// for a list this long would not fit a 720pt card. The whole row is the target, so
+/// the click area is the row rather than the glyph.
+struct SettingsRadioRow<Accessory: View>: View {
+    let title: String
+    var subtitle: String?
+    let isSelected: Bool
+    let onSelect: () -> Void
+    @ViewBuilder var accessory: Accessory
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.primary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 12)
+                accessory
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .padding(.vertical, 3)
+    }
+}
+
+extension SettingsRadioRow where Accessory == EmptyView {
+    init(
+        title: String,
+        subtitle: String? = nil,
+        isSelected: Bool,
+        onSelect: @escaping () -> Void
+    ) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            isSelected: isSelected,
+            onSelect: onSelect,
+            accessory: { EmptyView() }
+        )
+    }
+}
+
 /// A Bootstrap-style surface for one section of a detail pane.
 ///
 /// Bootstrap's card, in the plain sense: its own background, a hairline border,
@@ -209,6 +267,11 @@ struct SettingsButtonRow<Accessory: View>: View {
 ///
 /// Says what is missing rather than rendering an empty pane, so an unimplemented
 /// section never looks like a bug.
+///
+/// This centers itself in whatever space it is given, which means a pane that
+/// puts a header above it lands the placeholder lower than a pane that does not.
+/// Panes that use this are expected to show it on its own, as the whole body,
+/// rather than below their own chrome.
 struct SettingsPlaceholder: View {
     let symbol: String
     let title: String
@@ -227,22 +290,32 @@ struct SettingsPlaceholder: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Padding before the flexible frame, not after: a trailing padding is
+        // applied outside the frame, so the view finished 24pt taller than the
+        // space it was given and made its pane scrollable.
         .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 /// Vertical rhythm shared by every detail pane.
+///
+/// Owns its own scroll view. The card hands this a bounded height so that a pane
+/// can center itself in it, which it could not do inside a scroll view of the
+/// card's own: the scroll view that can scroll is the one that would have to pass
+/// the height down.
 struct SettingsDetailStack<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            content
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
     }
 }
 

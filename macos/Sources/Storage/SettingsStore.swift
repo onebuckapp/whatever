@@ -12,6 +12,7 @@ struct AppSettings: Codable, Equatable {
     var general = GeneralSettings()
     var appearance = AppearanceSettings()
     var web = WebSettings()
+    var search = SearchSettings()
 
     /// Startup and history defaults.
     struct GeneralSettings: Codable, Equatable {
@@ -98,6 +99,25 @@ struct AppSettings: Codable, Equatable {
         /// `WKWebViewConfiguration.applicationNameForUserAgent`, sent as
         /// `Whatever/<version>` so sites see the real app.
         var applicationNameForUserAgent = "Whatever"
+    }
+
+    /// Which engine the address field sends a search to, and any the user added.
+    ///
+    /// Both the selection and the added engines live in this document rather than
+    /// in the core, because the core stores the settings document as opaque bytes
+    /// and knows nothing about what is in it.
+    struct SearchSettings: Codable, Equatable {
+        /// Id of the engine searches go to: a `PredefinedSearchEngine` raw value,
+        /// or a custom engine's `id`.
+        ///
+        /// Held as a string rather than one of the two types because it has to
+        /// name both, and because a document written by a build that knew an
+        /// engine this one does not still has to decode. `engine()` resolves it
+        /// and falls back rather than failing.
+        var defaultEngine = PredefinedSearchEngine.duckDuckGo.rawValue
+
+        /// Engines the user added, in the order they were added.
+        var customEngines: [CustomSearchEngine] = []
     }
 
     /// Identifiers of the `WebSettings` properties WebKit only reads when a
@@ -245,6 +265,7 @@ final class SettingsStore: ObservableObject {
         if old.general != new.general { keys.insert("general") }
         if old.appearance != new.appearance { keys.insert("appearance") }
         if old.web != new.web { keys.insert("web") }
+        if old.search != new.search { keys.insert("search") }
         return keys
     }
 
