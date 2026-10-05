@@ -277,6 +277,52 @@ proc thin(kept: var seq[Candidate], cap: int) =
       survivors.add(candidate)
   kept = survivors
 
+type
+  MatchField* = enum
+    ## Which half of a candidate a match was scored against.
+    ##
+    ## Only one candidate ever needs a match: a row is found by its title or its
+    ## URL, and scoring both halves separately and keeping the better is what the
+    ## ranking below is built on. `mfCombined` is the third option and the only
+    ## one that can span the two.
+
+    mfCombined, mfTitle, mfUrl
+
+  ScoredMatch = object
+    ## A candidate's best scoring for one query, and where that score came from.
+    field: MatchField
+    score: float32
+    positions: seq[int]
+
+proc bestScoreFor(candidate: Candidate, query: string): ScoredMatch =
+  ## The best of three scorings: the title, the URL, and the two joined.
+  ##
+  ## The joined score exists so a query can run off the end of a title and into
+  ## the URL — "githb" reaching into `github.com` for a row whose title is
+  ## something else entirely. It is not enough on its own, because
+  ## `fuzzyScoreImpl` divides by the candidate's length: joining a ten-character
+  ## title onto a forty-character URL dilutes a perfect title match by a factor of
+  ## five, so "Is it real" at a deep URL scored 2.04 while "Stream and listen" at
+  ## a short one scored 2.60 and outranked it despite matching four scattered
+  ## characters against a perfect contiguous run at a word start. Scoring each
+  ## half on its own puts those at 10.40 and 4.59, which is the order a person
+  ## expects.
+  ##
+  ## Ties keep the earlier field, so a match good in both halves reports the title
+  ## and highlights there rather than in the URL.
+  var best: ScoredMatch
+  var matched = false
+  for (field, text) in [
+      (mfTitle, candidate.title),
+      (mfUrl, candidate.url),
+      (mfCombined, candidateText(candidate))]:
+    let scored = fuzzyScore(query, text)
+    if scored.matched and (not matched or scored.score > best.score):
+      matched = true
+      best = ScoredMatch(field: field, score: scored.score,
+                         positions: scored.positions)
+  best
+
 proc fuzzyCandidates(table: DbTable): seq[Candidate] =
   ## Up to `FuzzyScanLimit` rows, spread across the whole table.
   var kept: seq[Candidate] = @[]
@@ -286,29 +332,36 @@ proc fuzzyCandidates(table: DbTable): seq[Candidate] =
       thin(kept, FuzzyScanLimit)
   kept
 
-proc fuzzyEntryJson(candidate: Candidate, matched: FuzzyMatch): JsonNode =
+proc fuzzyEntryJson(candidate: Candidate, matched: ScoredMatch): JsonNode =
   ## One result, with the match positions split back onto the two fields.
   ##
-  ## The positions `fuzzySearch` reports are byte offsets into the combined
-  ## candidate string, so they have to be divided here rather than in Swift:
-  ## splitting in Nim keeps the separator an implementation detail and leaves
+  ## Which half the positions belong to depends on which scoring won: a title or
+  ## URL match already reports offsets into that field alone, while a combined
+  ## match reports offsets into the joined string and has to be divided here.
+  ## Splitting in Nim keeps the separator an implementation detail and leaves
   ## each field's positions relative to that field alone, which is the only form
   ## the UI can use to build ranges.
   var titlePositions: seq[int] = @[]
   var urlPositions: seq[int] = @[]
-  let titleBytes = candidate.title.len
-  if titleBytes == 0:
-    # The candidate is the bare URL, so every offset is already a URL offset.
+  case matched.field
+  of mfTitle:
+    titlePositions = matched.positions
+  of mfUrl:
     urlPositions = matched.positions
-  else:
-    for position in matched.positions:
-      if position < titleBytes:
-        titlePositions.add(position)
-      elif position > titleBytes:
-        # One past the separator, which sits at `titleBytes`.
-        urlPositions.add(position - titleBytes - FuzzyFieldSeparator.len)
-      # A match landing exactly on the separator is dropped: there is no
-      # character there to highlight.
+  of mfCombined:
+    let titleBytes = candidate.title.len
+    if titleBytes == 0:
+      # The candidate is the bare URL, so every offset is already a URL offset.
+      urlPositions = matched.positions
+    else:
+      for position in matched.positions:
+        if position < titleBytes:
+          titlePositions.add(position)
+        elif position > titleBytes:
+          # One past the separator, which sits at `titleBytes`.
+          urlPositions.add(position - titleBytes - FuzzyFieldSeparator.len)
+        # A match landing exactly on the separator is dropped: there is no
+        # character there to highlight.
   # Built outside the `%*` macro: `Float64` is not resolvable from inside it,
   # and the score is the one value here that is not an integer.
   result = %*{
@@ -333,14 +386,14 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
   ## than from recency, so a page visited once and named exactly what you typed
   ## can outrank the one you open every morning.
   ##
-  ## Each row is scored as its title and URL joined, and the reported positions
-  ## are split back onto those two fields, so one row is one result however many
-  ## fields matched.
+  ## Each row is scored three ways — its title, its URL, and the two joined — and
+  ## keeps the best, so one row is one result however many fields matched and a
+  ## tight title match is not diluted by the length of a long URL. The reported
+  ## positions are split back onto the two fields; see `bestScoreFor`.
   ##
-  ## `caseSensitive` is left at openparser's default of false and `minScore` at 0.
-  ## Scores are normalised by candidate length, so a gappy match across a long
-  ## URL can land below zero; letting those through would fill the list with
-  ## rows that barely matched at all.
+  ## `caseSensitive` is left at openparser's default of false, and scores at or
+  ## below zero are dropped rather than relying on `minScore`, which the library
+  ## would have applied to the joined candidate alone.
   let db = storeRef()
   let needle = if query.isNil: "" else: $query
   let wanted = max(1'i32, min(limit, int32(MaxResults))).int
@@ -368,10 +421,36 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
         else:
           texts.add(text)
           byText[text] = candidate
-      let matches = fuzzySearch(needle, texts, FuzzyOptions(limit: wanted))
-      for matched in matches:
-        if byText.hasKey(matched.text):
-          document.add(fuzzyEntryJson(byText[matched.text], matched))
+
+      # Scored here rather than handed to `fuzzySearch` as one joined list,
+      # because the ranking needs a candidate's best of three scorings while the
+      # library's top-N is over a single score per candidate. Ranking the joined
+      # strings directly is what made a good title match lose to a bad one on a
+      # shorter URL; see `bestScoreFor`.
+      #
+      # `texts` is the parallel index into `byText`, so the match and the row it
+      # came from stay together through the sort — sorting `ScoredMatch` alone
+      # would lose which candidate each score belonged to.
+      var ranked: seq[tuple[index: int, match: ScoredMatch]] = @[]
+      for index, text in texts:
+        let best = bestScoreFor(byText[text], needle)
+        # Below zero is the same bar `minScore = 0` drew when the library did the
+        # ranking: scores are normalised by field length, so a gappy match across
+        # a long field can land negative and barely matched at all.
+        if best.score > 0.0'f32:
+          ranked.add((index, best))
+      let order = proc(a, b: tuple[index: int, match: ScoredMatch]): int =
+        # Score first, then the joined text, which is the order the library used
+        # and what keeps equally-scoring rows stable across runs.
+        if a.match.score != b.match.score:
+          cmp(b.match.score, a.match.score)
+        else:
+          cmp(texts[a.index], texts[b.index])
+      ranked.sort(order)
+      if ranked.len > wanted:
+        ranked.setLen(wanted)
+      for entry in ranked:
+        document.add(fuzzyEntryJson(byText[texts[entry.index]], entry.match))
     Ok
   if status != Ok: return status
   emitJson(document, buffer, capacity, needed)

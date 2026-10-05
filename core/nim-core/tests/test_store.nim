@@ -232,16 +232,18 @@ suite "store c abi":
     check accented[14] == 'Z'
 
   test "history fuzzy search matches multi-byte query characters byte by byte":
-    ## Documents a limitation rather than asserting correctness: the matcher walks
-    ## bytes, and its case folding only covers ASCII, so a query character outside
-    ## ASCII is matched as its individual bytes. 'ü' is C3 BC, and the title's
-    ## 'é' also begins with C3 — so the matcher can satisfy the query with the
-    ## 'é' supplying the first byte and the 'ü' supplying the second.
+    ## The matcher is still byte-oriented and its case folding still covers ASCII
+    ## only, so a query character outside ASCII is matched as its individual
+    ## bytes. What changed is which bytes it picks. A leftmost walk satisfied the
+    ## query 'ü' — C3 BC — with the C3 of the 'é' and the BC of the 'ü', two
+    ## different characters, because it had to take the first C3 it saw. Choosing
+    ## the best alignment instead prefers the adjacent BC at byte 8 that pairs
+    ## with the C3 at byte 7, which is the 'ü' itself.
     ##
-    ## The upshot for the UI is that highlighting is only reliable for an ASCII
-    ## query, which is what an address bar almost always holds. If this test ever
-    ## starts failing, the matcher grew real Unicode support and the Swift side
-    ## can stop defending against this.
+    ## This is not Unicode support and must not be read as it: the bytes are
+    ## still matched one at a time, so a query can still align onto bytes that do
+    ## not form a character. The UI's byte-to-character conversion is still what
+    ## stops a bad alignment being painted, so the Swift side keeps its guard.
     let accented = "Café Zürich Zebra"
     let url = "https://byteseek.example.com/multi-byte-row"
     check historyRecord(url.cstring, accented.cstring, 1_700_000_255, -1) == Ok
@@ -251,9 +253,8 @@ suite "store c abi":
     check hits.len > 0
     let positions = hits[0]["titlePositions"].getElems
     check positions.len == 2
-    ## C3 lands on the 'é' at byte 3 rather than the 'ü' at byte 7, which is the
-    ## whole behaviour being pinned down.
-    check positions[0].getInt == 3
+    ## The two bytes of the 'ü' at offset 7, not C3 from the 'é' at offset 3.
+    check positions[0].getInt == 7
     check positions[1].getInt == 8
 
   test "history fuzzy search on an empty query returns an empty array":
@@ -267,18 +268,58 @@ suite "store c abi":
     ## other only as a run across two words. The better-formed match has to come
     ## first, which is the whole reason for scoring rather than substring
     ## matching.
+    ##
+    ## The scattered title used to be "Nim Build Manual", which is the same match
+    ## geometry as "Nim Bridges" over a longer string and so only lost under the
+    ## old normalize-by-candidate-length rule — the two now score the same, which
+    ## is the correct answer for two equally good matches. It has to actually be
+    ## scattered to test what this test says it tests.
     check historyRecord(
       "https://rank.example.com/tight".cstring,
       "Nim Bridges".cstring, 1_700_000_260, -1) == Ok
     check historyRecord(
       "https://rank.example.com/scattered".cstring,
-      "Nim Build Manual".cstring, 1_700_000_261, -1) == Ok
+      "Nim manual builds".cstring, 1_700_000_261, -1) == Ok
 
     let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
       historyFuzzySearch("nb".cstring, 50, buffer, capacity, needed))
     check hits.len >= 2
     check hits[0]["url"].getStr == "https://rank.example.com/tight"
     check hits[0]["score"].getFloat > hits[1]["score"].getFloat
+
+  test "history fuzzy search ranks a tight title match on a long url above a scattered one":
+    ## "real" has to put "Is it real" first even though "Stream and listen"
+    ## matches four scattered characters. The two rows differ in URL length on
+    ## purpose: scores are normalised by candidate length, so ranking the title
+    ## and URL joined let the short URL win on a worse match. Regression for
+    ## that, and the reason `bestScoreFor` scores each field on its own.
+    check historyRecord(
+      "https://example.com/questions/is-it-real".cstring,
+      "Is it real".cstring, 1_700_000_270, -1) == Ok
+    check historyRecord(
+      "https://a.co".cstring,
+      "Stream and listen".cstring, 1_700_000_271, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("real".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 2
+    check hits[0]["url"].getStr == "https://example.com/questions/is-it-real"
+    check hits[0]["score"].getFloat > hits[1]["score"].getFloat
+
+  test "history fuzzy search still matches across title into url":
+    ## The joined scoring is what makes a query run off the end of a title and
+    ## into the URL, so scoring the fields separately must not lose it.
+    check historyRecord(
+      "https://github.com/login".cstring,
+      "Sign in to your account".cstring, 1_700_000_280, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("githb".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 1
+    check hits[0]["url"].getStr == "https://github.com/login"
+    # The match landed in the URL, so only the URL carries positions.
+    check hits[0]["titlePositions"].len == 0
+    check hits[0]["urlPositions"].len > 0
 
   test "history delete removes exactly one entry":
     let url = "https://example.com/deletable"
