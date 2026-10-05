@@ -24,6 +24,7 @@ import ./api/settings_api
 import ./api/bookmark_api
 import ./api/history_api
 import ./api/session_api
+import ./api/feed_api
 import ./api/filter_api
 import ./api/find_api
 
@@ -32,6 +33,7 @@ export settings_api
 export bookmark_api
 export history_api
 export session_api
+export feed_api
 export filter_api
 export find_api
 

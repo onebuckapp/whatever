@@ -250,6 +250,104 @@ int32_t bc_session_save(const char *document);
 /* Forgets the stored snapshot, so the next launch opens a fresh session. */
 int32_t bc_session_clear(void);
 
+/* ------------------------------------------------------------------- feeds */
+
+/* Feed subscriptions and cached articles in a separate `feeds` store.
+ *
+ * Networking stays outside these calls: the app downloads page, feed,
+ * favicon, and thumbnail bytes, and the core parses, normalizes, and persists
+ * them. Payload strings must not contain NUL bytes, because they cross as C
+ * strings and the two-phase protocol relies on a single terminator.
+ *
+ * Images are Base64 text because the store has text rather than binary
+ * columns. MIME, dimensions, source, and size limits are checked before bytes
+ * are persisted. Listings omit bodies and image bytes; dedicated article and
+ * media calls return the heavy fields for the rows actually on screen. */
+
+/* Records a subscription without fetching anything. `site_name` may be NULL
+ * or empty, in which case the page host is used until a feed title arrives. */
+int32_t bc_feed_subscribe(const char *feed_url, const char *page_url,
+                          const char *site_name, const char *declared_title,
+                          const char *declared_type, int64_t subscribed_at);
+
+/* Removes a subscription and its cached articles, children first. */
+int32_t bc_feed_unsubscribe(const char *feed_url);
+
+/* Every subscription as a JSON array, newest first, with article and unread
+ * counts. */
+int32_t bc_feed_subscriptions(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Parses one downloaded feed document and replaces the subscription's cached
+ * articles with the normalized result.
+ *
+ * The NULL-buffer size query parses but does not persist; the exactly sized
+ * call persists. `fetched_at` of 0 or less means "now". BC_ERR_NOT_FOUND when
+ * the feed was never subscribed. */
+int32_t bc_feed_ingest(const char *feed_url, int64_t fetched_at,
+                       const char *payload, char *buffer, int32_t capacity,
+                       int32_t *needed);
+
+/* Strict variant of `bc_feed_ingest`. Nothing is recovered: malformed feeds,
+ * missing required metadata, and RDF/RSS 1.0 documents are recorded as parse
+ * errors and refused. */
+int32_t bc_feed_ingest_strict(const char *feed_url, int64_t fetched_at,
+                              const char *payload, char *buffer,
+                              int32_t capacity, int32_t *needed);
+
+/* Retains the newest `maximum_articles` rows for one subscription and deletes
+ * the rest. `maximum_articles` is between 1 and 5000. */
+int32_t bc_feed_prune(const char *feed_url, int32_t maximum_articles);
+
+/* Records a fetch outcome that carried no parseable replacement, such as a
+ * conditional 304 or a transport failure. `status` is one of "ok",
+ * "not-modified", "transport-error", "http-error", or "parse-error". */
+int32_t bc_feed_note_fetch(const char *feed_url, int64_t checked_at,
+                           const char *status, const char *error,
+                           const char *etag, const char *last_modified);
+
+/* Article summaries, newest first. An empty `feed_url` lists every
+ * subscription. Pagination uses the sort key rather than an offset:
+ * `before_published_at` greater than zero selects older rows, and `before_id`
+ * breaks ties within the same timestamp. */
+int32_t bc_feed_articles(const char *feed_url, int32_t only_unread,
+                         int32_t limit, int64_t before_published_at,
+                         int64_t before_id, char *buffer, int32_t capacity,
+                         int32_t *needed);
+
+/* One article, including bodies and any persisted thumbnail bytes. */
+int32_t bc_feed_article(int64_t article_id, char *buffer, int32_t capacity,
+                        int32_t *needed);
+
+/* Sets read/saved display state. Each flag is 0 or 1. */
+int32_t bc_feed_set_article_state(int64_t article_id, int32_t is_read,
+                                  int32_t is_saved);
+
+/* Stores validated thumbnail bytes for one article. */
+int32_t bc_feed_attach_thumbnail(int64_t article_id, const char *mime,
+                                 int64_t width, int64_t height,
+                                 const char *image_base64);
+
+/* One article's persisted thumbnail metadata and bytes. BC_ERR_NOT_FOUND when
+ * the article or its bytes are absent. */
+int32_t bc_feed_thumbnail(int64_t article_id, char *buffer, int32_t capacity,
+                          int32_t *needed);
+
+/* Stores validated favicon bytes for one subscription. */
+int32_t bc_feed_attach_favicon(const char *feed_url, const char *remote_url,
+                               const char *mime, const char *image_base64);
+
+/* One subscription's persisted favicon metadata and bytes. BC_ERR_NOT_FOUND
+ * when the subscription or its bytes are absent. */
+int32_t bc_feed_favicon(const char *feed_url, char *buffer, int32_t capacity,
+                        int32_t *needed);
+
+/* Candidate feeds declared by explicitly supplied page source. The live
+ * browser path should prefer the rendered DOM; this is for manual and
+ * recovery flows where downloading the page again is explicit. */
+int32_t bc_feed_discover_from_html(const char *page_url, const char *html,
+                                   char *buffer, int32_t capacity,
+                                   int32_t *needed);
+
 /* ---------------------------------------------------------------------- QR */
 
 /* Error correction levels accepted by bc_qr_encode. */

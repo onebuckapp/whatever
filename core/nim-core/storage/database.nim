@@ -35,6 +35,7 @@ type
     bookmarks*: DocumentStore
     history*: Store
     sessions*: Store
+    feeds*: Store
     root*: string
 
 proc defaultRoot*(): string =
@@ -107,6 +108,14 @@ proc openDatabase*(root: string = defaultRoot()): Database =
       checkpointEveryOps = 32'u32,
       walFlushEveryOps = 1'u32,
       enableConcurrency = true
+    ),
+    feeds: newStore(
+      root / "feeds",
+      smDisk,
+      enableWal = true,
+      checkpointEveryOps = 128'u32,
+      walFlushEveryOps = 1'u32,
+      enableConcurrency = true
     )
   )
 
@@ -117,3 +126,4 @@ proc shutdown*(db: var Database) =
   db.bookmarks.close()
   db.history.close()
   db.sessions.close()
+  db.feeds.close()
