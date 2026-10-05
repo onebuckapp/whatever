@@ -87,7 +87,7 @@ final class BrowserWindow: NSWindow {
         for name in [NSWindow.didBecomeKeyNotification, NSWindow.didBecomeMainNotification] {
             positioningObservers.append(
                 center.addObserver(forName: name, object: self, queue: .main) { [weak self] _ in
-                    self?.positionWindowButtonsForShow()
+                    self?.positionWindowButtonsOnceOnScreen()
                 }
             )
         }
@@ -107,27 +107,12 @@ final class BrowserWindow: NSWindow {
     /// doubling up is harmless: a pass that finds them already placed is a no-op.
     override func orderFront(_ sender: Any?) {
         super.orderFront(sender)
-        positionWindowButtonsForShow()
+        positionWindowButtonsOnceOnScreen()
     }
 
     override func makeKeyAndOrderFront(_ sender: Any?) {
         super.makeKeyAndOrderFront(sender)
-        positionWindowButtonsForShow()
-    }
-
-    /// The show path, where AppKit creates and places the buttons lazily across
-    /// the first display passes: a single deferred nudge races that layout and
-    /// loses, leaving them at AppKit's own spot until the next resize. Retrying a
-    /// few times across the show converges regardless of when the layout lands —
-    /// the tail retry covers a first launch still busy loading content — and
-    /// every pass after the first is a no-op.
-    private func positionWindowButtonsForShow() {
         positionWindowButtonsOnceOnScreen()
-        for delay in [0.1, 0.5, 1.5] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.positionStandardWindowButtons()
-            }
-        }
     }
 
     /// Applied again once the window is on screen, and after every resize.
@@ -136,6 +121,13 @@ final class BrowserWindow: NSWindow {
     /// positions the buttons during the display pass that follows a frame change,
     /// not inside it. The deferred pass is what catches that layout; the
     /// immediate one covers programmatic changes whose layout already settled.
+    ///
+    /// This used to retry three more times at 0.1s, 0.5s and 1.5s. Those retries
+    /// were standing in for the ability to see AppKit's placement, which the frame
+    /// observation below now provides directly, and they were the visible half of
+    /// the problem: a placement that landed after the last retry was corrected
+    /// hundreds of milliseconds late, so activating the window showed the buttons
+    /// at AppKit's own position and then, visibly, snapping to the nudged one.
     func positionWindowButtonsOnceOnScreen() {
         positionStandardWindowButtons()
         DispatchQueue.main.async { [weak self] in
@@ -162,7 +154,14 @@ final class BrowserWindow: NSWindow {
         let current = buttons.map(\.frame)
         if let last = lastNudgedButtonFrames, last == current { return }
 
+        // Without this, Core Animation treats the move as an implicit transition
+        // and slides the buttons from wherever AppKit put them to the nudged
+        // position, which reads as the buttons wandering across the strip. The
+        // correction has to be a single step or it is the same artefact the retry
+        // timers used to cause, just slower.
         isNudgingButtons = true
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         for button in buttons {
             button.setFrameOrigin(
                 NSPoint(
@@ -171,6 +170,7 @@ final class BrowserWindow: NSWindow {
                 )
             )
         }
+        CATransaction.commit()
         isNudgingButtons = false
         lastNudgedButtonFrames = buttons.map(\.frame)
     }
