@@ -713,6 +713,17 @@ final class BrowserWindowController: NSWindowController {
         removeTab(tab)
     }
 
+    /// Closes the tab hosting `webView` because its page called `window.close()`.
+    ///
+    /// Deliberately not `closeTab`: that records the tab for reopening, and a
+    /// popup taking itself back out is not a visit anyone asked to undo. It would
+    /// also reopen as the homepage, since a popup has no address of its own until
+    /// WebKit finishes navigating it.
+    func closePopupTab(_ webView: WKWebView) {
+        guard let tab = tabs.first(where: { $0.webView === webView }) else { return }
+        removeTab(tab)
+    }
+
     func closeOtherTabs(except tab: BrowserTab) {
         for other in tabs where other.id != tab.id {
             removeTab(other)

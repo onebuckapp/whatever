@@ -14,6 +14,22 @@ import WebKit
 /// `#if TARGET_OS_IPHONE`; only the former has a usable stand-in
 /// (`WKWebpagePreferences.allowsContentJavaScript`), and the second has no macOS
 /// equivalent at all, so Whatever does not offer it.
+extension AppSettings.MediaAutoplayPolicy {
+    /// The WebKit option set this policy means.
+    ///
+    /// Built from the case rather than hard-coded per case so WebKit's values
+    /// (`None` is 0, `All` is `NSUIntegerMax`) come from the enum, and `.never`
+    /// cannot drift into passing `.all` because someone ordered two cases oddly.
+    var mediaTypes: WKAudiovisualMediaTypes {
+        switch self {
+        case .never: []
+        case .video: [.video]
+        case .audio: [.audio]
+        case .all: [.all]
+        }
+    }
+}
+
 extension AppSettings.WebSettings {
     /// Applies everything WebKit reads at view-construction time.
     ///
@@ -28,6 +44,7 @@ extension AppSettings.WebSettings {
         preferences.isElementFullscreenEnabled = elementFullscreenEnabled
         preferences.tabFocusesLinks = tabFocusesLinks
 
+        configuration.mediaTypesRequiringUserActionForPlayback = mediaAutoplay.mediaTypes
         configuration.upgradeKnownHostsToHTTPS = upgradeKnownHostsToHTTPS
         configuration.limitsNavigationsToAppBoundDomains = limitsNavigationsToAppBoundDomains
         configuration.suppressesIncrementalRendering = suppressesIncrementalRendering

@@ -100,6 +100,28 @@ struct AppSettings: Codable, Equatable {
         }
     }
 
+    /// Which media WebKit will start playing without a click.
+    ///
+    /// Mirrors `WKAudiovisualMediaTypes`, which WebKit only reads when a view is
+    /// built, so a change lands on the next page rather than the current one.
+    enum MediaAutoplayPolicy: String, Codable, Equatable, CaseIterable, Identifiable {
+        /// For `SettingsPickerRow`, which wants each option to be a stable item.
+        var id: String { rawValue }
+        /// Nothing autoplays. Every video and every audio track waits for a click.
+        case never
+        /// Video plays on its own; audio waits, so a page cannot start making
+        /// noise unasked.
+        case video
+        /// Sound plays on its own, muted pages included. What WebKit does by
+        /// default.
+        case audio
+        /// Anything with audio or video starts playing.
+        case all
+
+        /// Whether a change here needs a new page before it shows.
+        var needsNewPage: Bool { true }
+    }
+
     /// Browser engine preferences.
     ///
     /// The split mirrors what WebKit allows. `WKWebViewConfiguration` values are
@@ -115,7 +137,7 @@ struct AppSettings: Codable, Equatable {
         var upgradeKnownHostsToHTTPS = false
         /// `WKWebViewConfiguration.mediaTypesRequiringUserActionForPlayback`:
         /// which media needs a click before it plays.
-        var mediaTypesRequiringUserAction: [String] = ["all"]
+        var mediaAutoplay = MediaAutoplayPolicy.all
         /// `WKWebViewConfiguration.limitsNavigationsToAppBoundDomains`. Left
         /// off: the `whtvr://` homepage handler is part of this app, and
         /// app-bound navigation is strict about what that covers.
@@ -150,6 +172,58 @@ struct AppSettings: Codable, Equatable {
         /// `WKWebViewConfiguration.applicationNameForUserAgent`, sent as
         /// `Whatever/<version>` so sites see the real app.
         var applicationNameForUserAgent = "Whatever"
+
+        /// What a document from before any of these keys existed decodes to.
+        ///
+        /// One instance rather than a fresh `WebSettings()` per field: the
+        /// decoder fills in maybe fifteen of these and every call would otherwise
+        /// allocate a whole document to read one default out of it.
+        private static let undocumented = WebSettings()
+
+        init() {}
+
+        /// Tolerant because `mediaAutoplay` was stored as a `[String]` before it
+        /// was an enum, and every document written back then still holds the old
+        /// key. A hand-edited document naming a policy that no longer exists
+        /// falls back to WebKit's own default rather than failing the whole load.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            allowsJavaScript = try container.decodeIfPresent(Bool.self, forKey: .allowsJavaScript)
+                ?? Self.undocumented.allowsJavaScript
+            upgradeKnownHostsToHTTPS = try container.decodeIfPresent(Bool.self, forKey: .upgradeKnownHostsToHTTPS)
+                ?? Self.undocumented.upgradeKnownHostsToHTTPS
+            mediaAutoplay = try container.decodeIfPresent(MediaAutoplayPolicy.self, forKey: .mediaAutoplay)
+                ?? MediaAutoplayPolicy.all
+            limitsNavigationsToAppBoundDomains = try container.decodeIfPresent(
+                Bool.self, forKey: .limitsNavigationsToAppBoundDomains
+            ) ?? Self.undocumented.limitsNavigationsToAppBoundDomains
+            suppressesIncrementalRendering = try container.decodeIfPresent(Bool.self, forKey: .suppressesIncrementalRendering)
+                ?? Self.undocumented.suppressesIncrementalRendering
+            pageZoom = try container.decodeIfPresent(Double.self, forKey: .pageZoom) ?? Self.undocumented.pageZoom
+            minimumFontSize = try container.decodeIfPresent(Double.self, forKey: .minimumFontSize)
+                ?? Self.undocumented.minimumFontSize
+            javaScriptCanOpenWindowsAutomatically = try container.decodeIfPresent(
+                Bool.self, forKey: .javaScriptCanOpenWindowsAutomatically
+            ) ?? Self.undocumented.javaScriptCanOpenWindowsAutomatically
+            fraudulentWebsiteWarningEnabled = try container.decodeIfPresent(Bool.self, forKey: .fraudulentWebsiteWarningEnabled)
+                ?? Self.undocumented.fraudulentWebsiteWarningEnabled
+            siteSpecificQuirksModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .siteSpecificQuirksModeEnabled)
+                ?? Self.undocumented.siteSpecificQuirksModeEnabled
+            elementFullscreenEnabled = try container.decodeIfPresent(Bool.self, forKey: .elementFullscreenEnabled)
+                ?? Self.undocumented.elementFullscreenEnabled
+            tabFocusesLinks = try container.decodeIfPresent(Bool.self, forKey: .tabFocusesLinks)
+                ?? Self.undocumented.tabFocusesLinks
+            customUserAgent = try container.decodeIfPresent(String.self, forKey: .customUserAgent)
+            allowsLinkPreview = try container.decodeIfPresent(Bool.self, forKey: .allowsLinkPreview)
+                ?? Self.undocumented.allowsLinkPreview
+            allowsBackForwardNavigationGestures = try container.decodeIfPresent(
+                Bool.self, forKey: .allowsBackForwardNavigationGestures
+            ) ?? Self.undocumented.allowsBackForwardNavigationGestures
+            allowsMagnification = try container.decodeIfPresent(Bool.self, forKey: .allowsMagnification)
+                ?? Self.undocumented.allowsMagnification
+            applicationNameForUserAgent = try container.decodeIfPresent(String.self, forKey: .applicationNameForUserAgent)
+                ?? Self.undocumented.applicationNameForUserAgent
+        }
     }
 
     /// Which engine the address field sends a search to, and any the user added.
@@ -262,7 +336,7 @@ struct AppSettings: Codable, Equatable {
     static let configTimeWebKeys: Set<String> = [
         "allowsJavaScript",
         "upgradeKnownHostsToHTTPS",
-        "mediaTypesRequiringUserAction",
+        "mediaAutoplay",
         "limitsNavigationsToAppBoundDomains",
         "suppressesIncrementalRendering",
         "minimumFontSize",
@@ -273,6 +347,38 @@ struct AppSettings: Codable, Equatable {
         "tabFocusesLinks",
         "applicationNameForUserAgent",
     ]
+
+    /// Which `WebSettings` properties change on open pages immediately, rather
+    /// than on the next page.
+    ///
+    /// The inverse of `configTimeWebKeys`, and derived from it rather than
+    /// maintained beside it: two hand-kept lists of the same fields is how the
+    /// Display group came to claim "applies to open pages immediately" for a
+    /// minimum font size that WebKit only reads when a view is built.
+    static func needsNewPage<Value>(_ keyPath: KeyPath<AppSettings.WebSettings, Value>) -> Bool {
+        configTimeWebKeys.contains(propertyName(of: keyPath))
+    }
+
+    /// The property a key path names, taken from its description.
+    ///
+    /// `KeyPath.lastName` is stdlib-internal, so this goes through
+    /// `String(describing:)` instead, which renders a key path as
+    /// `\Whatever.AppSettings.WebSettings.allowsJavaScript`. Taking the last
+    /// dot-separated component recovers the name, and an unparseable key path
+    /// yields an empty string, which is in neither set and so is treated as live.
+    ///
+    /// The alternative — passing property names as strings at the call site —
+    /// would compile against a renamed or deleted field without complaint, which
+    /// is exactly the drift this exists to prevent.
+    private static func propertyName<Value>(
+        of keyPath: KeyPath<AppSettings.WebSettings, Value>
+    ) -> String {
+        String(describing: keyPath)
+            .split(separator: ".")
+            .last
+            .map(String.init)?
+            .trimmingCharacters(in: CharacterSet(charactersIn: "?")) ?? ""
+    }
 }
 
 /// Reads and writes `AppSettings` through the store service.

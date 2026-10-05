@@ -155,7 +155,7 @@ struct WebSettingsView: View {
         SettingsDetailStack {
             SettingsGroup(
                 title: "Pages",
-                footnote: "These are read when a page view is built. Changing one takes effect on the next page."
+                footnote: Self.effect(of: [\AppSettings.WebSettings.allowsJavaScript])
             ) {
                 SettingsToggleRow(
                     title: "Allow JavaScript",
@@ -166,11 +166,31 @@ struct WebSettingsView: View {
                     title: "Upgrade known hosts to HTTPS",
                     isOn: store.binding(\.web.upgradeKnownHostsToHTTPS)
                 )
+                SettingsToggleRow(
+                    title: "JavaScript may open windows",
+                    subtitle: "Lets a page open a tab without a click. Popups land in this window.",
+                    isOn: store.binding(\.web.javaScriptCanOpenWindowsAutomatically)
+                )
+            }
+
+            SettingsGroup(
+                title: "Media",
+                footnote: Self.effect(of: [\AppSettings.WebSettings.mediaAutoplay])
+            ) {
+                SettingsPickerRow(
+                    title: "Play without a click",
+                    options: AppSettings.MediaAutoplayPolicy.allCases,
+                    selection: store.binding(\.web.mediaAutoplay),
+                    label: Self.autoplayLabel
+                )
             }
 
             SettingsGroup(
                 title: "Privacy",
-                footnote: "Applies to pages opened from now on."
+                footnote: Self.effect(of: [
+                    \AppSettings.WebSettings.fraudulentWebsiteWarningEnabled,
+                    \AppSettings.WebSettings.siteSpecificQuirksModeEnabled,
+                ])
             ) {
                 SettingsToggleRow(
                     title: "Fraudulent website warnings",
@@ -180,13 +200,15 @@ struct WebSettingsView: View {
                     title: "Site-specific quirks mode",
                     isOn: store.binding(\.web.siteSpecificQuirksModeEnabled)
                 )
-                SettingsToggleRow(
-                    title: "JavaScript may open windows",
-                    isOn: store.binding(\.web.javaScriptCanOpenWindowsAutomatically)
-                )
             }
 
-            SettingsGroup(title: "Display", footnote: "Applies to open pages immediately.") {
+            SettingsGroup(
+                title: "Display",
+                footnote: Self.effect(of: [
+                    \AppSettings.WebSettings.pageZoom,
+                    \AppSettings.WebSettings.minimumFontSize,
+                ])
+            ) {
                 SettingsSliderRow(
                     title: "Page zoom",
                     value: store.binding(\.web.pageZoom),
@@ -223,6 +245,38 @@ struct WebSettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    /// What the group needs to say about when a change lands.
+    ///
+    /// Answers from the key paths rather than being written by hand, because the
+    /// hand-written version drifted: the Display group promised "applies to open
+    /// pages immediately" directly above a minimum font size that WebKit only
+    /// reads while building a view. Derived from the same
+    /// `configTimeWebKeys` the application path uses, so the two cannot disagree.
+    ///
+    /// A group holding both kinds says so, which is the honest answer and is why
+    /// `Upgrade known hosts to HTTPS` and `JavaScript may open windows` moved up
+    /// into Pages: they are config-time, and the Pages group was already saying
+    /// so.
+    private static func effect<Value>(of keyPaths: [KeyPath<AppSettings.WebSettings, Value>]) -> String {
+        let needsNewPage = keyPaths.filter { AppSettings.needsNewPage($0) }.count
+        if needsNewPage == 0 {
+            return "Applies to open pages immediately."
+        }
+        if needsNewPage == keyPaths.count {
+            return "Read when a page is opened. Changes take effect on the next page."
+        }
+        return "Some of these take effect on the next page."
+    }
+
+    private static func autoplayLabel(_ policy: AppSettings.MediaAutoplayPolicy) -> String {
+        switch policy {
+        case .never: "Nothing"
+        case .video: "Video"
+        case .audio: "Audio"
+        case .all: "Everything"
+        }
     }
 }
 

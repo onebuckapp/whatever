@@ -43,6 +43,24 @@ extension NavigationController: WKNavigationDelegate {
         owner.noteCommitted(url: url)
     }
 
+    /// Opens a new tab for `url`, in the window `webView` is showing.
+    ///
+    /// A free function because it needs the window the page is on, which the
+    /// navigation delegate has and the tab does not: the tab knows nothing about
+    /// which window is hosting it. The opener's privacy mode is inherited, so a
+    /// private tab can only ever open another private one.
+    @MainActor
+    private func openPopup(_ url: URL, from webView: WKWebView, owner: BrowserTab) {
+        let controller = BrowserCoordinator.shared.controller(for: webView.window)
+            ?? BrowserCoordinator.shared.keyController
+        // Focus follows here rather than being deferred: the address bar is
+        // pre-filled with the popup's own address, so a user who then types
+        // replaces that rather than adding to it.
+        _ = BrowserCoordinator.shared.newTab(
+            url: url,
+            privacyMode: owner.privacyMode,
+            in: controller
+        )
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -87,13 +105,37 @@ extension NavigationController: WKNavigationDelegate {
             decisionHandler(policy)
             return
         }
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        // A link that asks for a new window, whether `target="_blank"` or a
+        // scripted `window.open`, arrives here with no target frame. Both are
+        // handled by opening a real tab and cancelling, rather than by answering
+        // `createWebViewWith`: WebKit performs the navigation it delegates only
+        // after that call returns, by which point the new tab is already
+        // selected and loading its own address, so the popup lands on the
+        // homepage rather than the page that opened it.
+        if navigationAction.targetFrame == nil,
+           navigationAction.navigationType != .backForward,
+           let owner {
+            guard NavigationPolicy.canLoadInPage(navigationAction.request) else {
+                // A scheme the web view cannot draw, such as mailto: or tel:.
+                // The tab is never opened; the link goes to the app that handles
+                // it, which is what a click on it means anywhere else.
+                NavigationPolicy.handOffToSystem(url)
+                decisionHandler(.cancel)
+                return
+            }
+            openPopup(url, from: webView, owner: owner)
+            decisionHandler(.cancel)
+            return
+        }
         // Same-tab link: load it in a fresh view through the tab, which
-        // records it in the tab's own history. New-window links
-        // (targetFrame == nil) keep the popup flow; forms, reloads, and
-        // scripted navigations stay in place.
+        // records it in the tab's own history. Forms, reloads, and scripted
+        // navigations stay in place.
         if navigationAction.navigationType == .linkActivated,
            navigationAction.targetFrame?.isMainFrame == true,
-           let url = navigationAction.request.url,
            let scheme = url.scheme?.lowercased(),
            ["http", "https", "whtvr"].contains(scheme),
            let owner {

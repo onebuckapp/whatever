@@ -38,6 +38,11 @@ enum WebViewFactory {
         // from future loads.
         configuration.userContentController.addUserScript(FindBridge.script)
         let webView = BrowserWebView(frame: .zero, configuration: configuration)
+        // The live half too, not just the configuration half. Without this a page
+        // opened after the user changed their zoom or user agent came up ignoring
+        // both until some unrelated change fanned `web` out and pushed them onto
+        // every open view.
+        SettingsStore.shared.settings.web.apply(toWebView: webView)
         // Read here rather than pushed later, so a page built after the setting
         // changed is already see-through instead of opaque until something else
         // happens to it.
