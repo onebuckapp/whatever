@@ -77,10 +77,10 @@ final class BrowserTab: NSObject {
     private let dataStore: WKWebsiteDataStore
     private let navigationController: NavigationController
 
-    /// Committed addresses in visit order; `historyIndex` is the current
-    /// page.
-    private var history: [URL] = []
-    private var historyIndex = -1
+    /// Committed addresses in visit order and the current position. A value
+    /// type on purpose: every mutation goes through `TabHistory`, whose rules
+    /// are unit-tested, so this file only decides _when_ to record or move.
+    private var tabHistory = TabHistory()
 
     /// A tab rebuilt from a stored session.
     struct RestoredState {
@@ -121,15 +121,25 @@ final class BrowserTab: NSObject {
         navigation.owner = self
 
         if let restored {
-            self.history = restored.urls
-            self.historyIndex = restored.index
+            self.tabHistory = TabHistory(urls: restored.urls,
+                                         index: restored.index)
             presentation.isPinned = restored.isPinned
             // Shown until the page reports a title of its own, so a restored tab
             // bar reads correctly before the first load finishes.
             tab.setPlaceholderTitle(restored.title)
         } else {
-            self.history = [initialURL ?? BrowserConstants.homePageURL]
-            self.historyIndex = 0
+            self.tabHistory = TabHistory(
+                urls: [initialURL ?? BrowserConstants.homePageURL], index: 0)
+        }
+        // After super.init: capturing self earlier is a compile error.
+        // Sees every address change, including same-document ones `didFinish`
+        // never reports. Hops to the main actor: WebKit delivers these
+        // observations on the main thread, and the hop keeps that an
+        // assumption rather than a crash if it ever changes.
+        tab.onURLChange = { [weak self] url in
+            Task { @MainActor in
+                self?.noteCommitted(url: url)
+            }
         }
         updateHistoryNavigation()
     }
@@ -140,7 +150,7 @@ final class BrowserTab: NSObject {
     /// the same before a view exists. A caller wanting what is actually on
     /// screen wants `webView?.url` instead.
     var currentURL: URL {
-        history.indices.contains(historyIndex) ? history[historyIndex] : BrowserConstants.homePageURL
+        tabHistory.currentURL ?? BrowserConstants.homePageURL
     }
 
     /// What the page area should show this tab as.
@@ -163,6 +173,7 @@ final class BrowserTab: NSObject {
         acceptsMouseInput = accepts
         (webView as? BrowserWebView)?.takesMouseInput = accepts
     }
+
 
     /// Builds the view if it does not exist, and loads the current address into
     /// it. Returns the view either way.
@@ -192,18 +203,41 @@ final class BrowserTab: NSObject {
         tabController.detachFromWebView()
     }
 
+    /// Puts the current address back after the page's process was killed.
+    ///
+    /// Loads in place rather than going through `navigate(to:)`, which would
+    /// append a second copy of the address to the history: the user never asked
+    /// to go anywhere, the page simply died where it was. The view is intact even
+    /// though its document is not, so this is a plain load onto the same page.
+    func reloadAfterContentProcessTermination() {
+        guard let webView else { return }
+        let url = webView.url ?? currentURL
+        webView.load(URLRequest(url: url))
+    }
+
     /// Navigates to a new address: records it, dropping any forward entries.
     ///
     /// Stays in the current page when the address is on the same site, and only
     /// replaces the page when it is not. See `load(_:from:)`.
     func navigate(to url: URL) {
         let previous = currentURL
-        if historyIndex < history.count - 1 {
-            history.removeSubrange((historyIndex + 1)..<history.count)
-        }
-        history.append(url)
-        historyIndex = history.count - 1
+        tabHistory.navigate(to: url)
         load(url, from: previous)
+        updateHistoryNavigation()
+        BrowserCoordinator.shared.sessionDidChange()
+    }
+
+    /// Logs an address the page committed to without going through
+    /// `navigate(to:)` — scripted, form, and redirect navigations, which WebKit
+    /// performs in place. Without this the tab's history disagrees with what is
+    /// on screen and Back jumps over the missing entry.
+    ///
+    /// No-op when the committed address matches the current one, so reloads
+    /// and back/forward loads (which move the index first) never duplicate.
+    /// Deliberately unconditional: every new address access is logged, and
+    /// nothing here collapses repeats.
+    func noteCommitted(url: URL) {
+        guard tabHistory.noteCommitted(url) else { return }
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
     }
@@ -211,26 +245,27 @@ final class BrowserTab: NSObject {
     /// Re-accesses the previous address with a new view. Nothing is
     /// restored from cache; the address is loaded anew.
     func goBack() {
-        guard historyIndex > 0 else {
+        // Captured before the move: `currentURL` already answers with the new
+        // one by the time `load` runs, and `load` needs the old one.
+        let previous = currentURL
+        guard let target = tabHistory.moveBack() else {
             SystemBeep.play()
             return
         }
-        let previous = currentURL
-        historyIndex -= 1
-        load(history[historyIndex], from: previous)
+        load(target, from: previous)
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
     }
 
     /// Re-accesses the next address with a new view.
     func goForward() {
-        guard historyIndex >= 0, historyIndex < history.count - 1 else {
+        // Captured before the move, for the same reason as in `goBack`.
+        let previous = currentURL
+        guard let target = tabHistory.moveForward() else {
             SystemBeep.play()
             return
         }
-        let previous = currentURL
-        historyIndex += 1
-        load(history[historyIndex], from: previous)
+        load(target, from: previous)
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
     }
@@ -240,7 +275,7 @@ final class BrowserTab: NSObject {
     /// Only meaningful for a regular tab: private tabs are filtered out before a
     /// snapshot is built.
     func historySnapshot() -> (urls: [URL], index: Int) {
-        (history, historyIndex)
+        (tabHistory.urls, tabHistory.index)
     }
 
     /// Shows `url`, keeping the current page when the two addresses are on the
@@ -280,8 +315,8 @@ final class BrowserTab: NSObject {
 
     private func updateHistoryNavigation() {
         tabController.setHistoryNavigation(
-            canGoBack: historyIndex > 0,
-            canGoForward: historyIndex >= 0 && historyIndex < history.count - 1
+            canGoBack: tabHistory.canGoBack,
+            canGoForward: tabHistory.canGoForward
         )
     }
 }

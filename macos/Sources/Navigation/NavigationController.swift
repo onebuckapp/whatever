@@ -32,12 +32,17 @@ extension NavigationController: WKNavigationDelegate {
         // The in-memory homepage is not a visit worth remembering, and neither is
         // anything in a private tab or a tab with recording turned off. The tab
         // owns that decision because it is the thing that knows its privacy mode.
-        guard let owner, owner.shouldRecordHistory, let url = webView.url,
-              !url.isAddresslessPage
-        else {
+        guard let owner, let url = webView.url, !url.isAddresslessPage else {
             return
         }
-        history.record(url: url, title: webView.title)
+        if owner.shouldRecordHistory {
+            history.record(url: url, title: webView.title)
+        }
+        // The tab's own history logs every commit regardless of recording
+        // mode: back/forward has to work in private tabs too.
+        owner.noteCommitted(url: url)
+    }
+
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -54,6 +59,21 @@ extension NavigationController: WKNavigationDelegate {
             return
         }
         webView.window?.title = "Failed to Load"
+    }
+
+    /// The page's WebContent process died under it.
+    ///
+    /// The view survives this but the document is gone, and WebKit does not
+    /// recover on its own: what is left is a permanently blank frame with no way
+    /// back short of the user noticing and reloading by hand. Re-navigating to
+    /// the address the view was on is the whole recovery.
+    ///
+    /// Asked of the tab rather than answered here, because the tab's own history
+    /// is what knows the address that was on screen.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard owner != nil else { return }
+        webView.window?.title = "Reloading…"
+        owner?.reloadAfterContentProcessTermination()
     }
 
     func webView(

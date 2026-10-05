@@ -64,6 +64,13 @@ final class BrowserTabController: ObservableObject {
     private let audioMonitor: TabAudioMonitor
     private var observations: [NSKeyValueObservation] = []
 
+    /// Called with the page's address whenever it changes, including for
+    /// same-document navigations (`pushState`, fragments) that never produce
+    /// a `didFinish` callback. The tab wires this to its history reconcile so
+    /// those addresses are logged too; the reconcile is idempotent, so the
+    /// overlap with `didFinish` on full loads is harmless.
+    var onURLChange: ((URL) -> Void)?
+
     /// The page an icon lookup was started for, so a slow fetch for a page the tab
     /// has already left cannot come back and put the wrong site's icon on it.
     private var faviconPage: URL?
@@ -182,7 +189,12 @@ final class BrowserTabController: ObservableObject {
         // Back/Forward ability comes from the tab's own URL history.
         observations = [
             webView.observe(\.title, options: [.new]) { [weak self] _, _ in self?.syncAll() },
-            webView.observe(\.url, options: [.new]) { [weak self] _, _ in self?.syncAll() },
+            webView.observe(\.url, options: [.new]) { [weak self, weak webView] _, _ in
+                self?.syncAll()
+                if let url = webView?.url {
+                    self?.onURLChange?(url)
+                }
+            },
             webView.observe(\.isLoading, options: [.new]) { [weak self] _, _ in self?.syncAll() },
             webView.observe(\.estimatedProgress, options: [.new]) { [weak self] _, _ in self?.syncAll() },
         ]

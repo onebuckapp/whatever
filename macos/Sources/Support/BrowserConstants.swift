@@ -27,4 +27,30 @@ extension URL {
     var isAddresslessPage: Bool {
         absoluteString == "about:blank" || scheme?.lowercased() == "whtvr"
     }
+
+    /// Whether two addresses name the same page for history purposes: same
+    /// scheme, host, port, path, query, and fragment.
+    ///
+    /// A bare-host path compares equal to `/`: WebKit reports a committed
+    /// bare host with the trailing slash the address bar never typed, and
+    /// without this the reconcile in `BrowserTab.noteCommitted(url:)` would log
+    /// a duplicate entry for every such navigation.
+    func hasSameAddress(as other: URL) -> Bool {
+        func normalizedPath(_ url: URL) -> String {
+            // Trailing slashes carry no address meaning here: WebKit reports a
+            // committed bare host with one the address bar never typed, and
+            // servers treat a trailing slash as the same resource.
+            var path = url.path
+            while path.hasSuffix("/") {
+                path.removeLast()
+            }
+            return path
+        }
+        return scheme?.lowercased() == other.scheme?.lowercased()
+            && host?.lowercased() == other.host?.lowercased()
+            && port == other.port
+            && normalizedPath(self) == normalizedPath(other)
+            && query == other.query
+            && fragment == other.fragment
+    }
 }

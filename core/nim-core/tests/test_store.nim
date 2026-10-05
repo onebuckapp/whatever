@@ -124,6 +124,25 @@ suite "store c abi":
         check entry["visitCount"].getInt >= 1
     check rows == 2
 
+  test "distinct addresses never collapse into each other":
+    ## The collapse window only ever folds a URL into itself: visiting pages
+    ## along one path in quick succession must log every address, or back
+    ## navigation has entries to return to. Same-URL revisits inside the
+    ## window still collapse (see above); different URLs never do, no matter
+    ## how fast they follow.
+    let base = "https://example.com/distinct"
+    let pages = [base, base & "/products", base & "/products/tshirt"]
+    for index, page in pages:
+      check historyRecord(page.cstring, "Page".cstring,
+        1_700_000_000'i64 + int64(index), -1) == Ok
+    let entries = readRecent(200)
+    for page in pages:
+      var rows = 0
+      for entry in entries:
+        if entry["url"].getStr() == page:
+          inc rows
+      check rows == 1
+
   test "history by day matches the local-time bucket":
     let url = "https://example.com/day"
     let visitedAt = 1_700_000_000'i64

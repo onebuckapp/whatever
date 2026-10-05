@@ -127,3 +127,17 @@ targets:
         OTHER_LDFLAGS:
           - $(inherited)
           - -lbrowsercore
+
+  WhateverTests:
+    type: bundle.unit-test
+    platform: macOS
+    bundleId: com.onebuckapps.whatever.tests
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Whatever
+    settings:
+      base:
+        PRODUCT_NAME: WhateverTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever.tests
+        GENERATE_INFOPLIST_FILE: YES
