@@ -10,6 +10,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case web
     case contentBlocker
     case bookmarks
+    case rssFeeds
     case history
     case search
     case downloads
@@ -23,6 +24,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .web: "Web"
         case .contentBlocker: "Content Blocker"
         case .bookmarks: "Bookmarks"
+        case .rssFeeds: "RSS & Feeds"
         case .history: "History"
         case .search: "Search"
         case .downloads: "Downloads"
@@ -36,6 +38,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .web: "globe"
         case .contentBlocker: "shield"
         case .bookmarks: "bookmark"
+        case .rssFeeds: "rss"
         case .history: "clock"
         case .search: "magnifyingglass"
         case .downloads: "arrow.down.circle"

@@ -427,6 +427,12 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onAdBlock = { [weak self] in
             self?.presentAdBlockPopup()
         }
+        toolbarController.onFeed = { [weak self] candidates in
+            self?.presentFeedReader(candidates: candidates)
+        }
+        contentController.onOpenFeedArticle = { [weak self] url, newTab in
+            self?.openFeedArticle(url, inNewTab: newTab)
+        }
         // A modal card takes the mouse away from the pages for its duration.
         contentController.onShieldChanged = { [weak self] shielded in
             self?.setPagesInteractive(!shielded)
@@ -1007,6 +1013,32 @@ final class BrowserWindowController: NSWindowController {
     func presentAdBlockPopup() {
         guard let tab = selectedTab else { return }
         contentController.presentAdBlockPopup(for: tab)
+    }
+
+    /// Opens the reader for the selected tab's advertised feeds.
+    ///
+    /// Behind the toolbar feed button, which is only visible when the page
+    /// advertised at least one document. The reader itself decides whether the
+    /// tab may subscribe or only browse what is already saved.
+    func presentFeedReader(candidates: [FeedCandidate]) {
+        guard let tab = selectedTab, !candidates.isEmpty else {
+            SystemBeep.play()
+            return
+        }
+        contentController.presentFeedReader(candidates: candidates, tab: tab)
+    }
+
+    /// Opens one reader article, either in place or in a new tab.
+    ///
+    /// The reader always closes first: opening in place would otherwise leave
+    /// the card covering the page it just navigated to.
+    func openFeedArticle(_ url: URL, inNewTab: Bool) {
+        contentController.dismissFeedReader()
+        if inNewTab {
+            BrowserCoordinator.shared.newTab(url: url, in: self, focusesAddressBar: false)
+        } else {
+            selectedTab?.navigate(to: url)
+        }
     }
 
     /// Closes every open QR card, used when the layout or selection changes

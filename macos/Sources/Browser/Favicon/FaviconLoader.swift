@@ -24,40 +24,48 @@ final class FaviconLoader {
     private let cache = NSCache<NSString, NSImage>()
     private var hostsWithoutIcons = Set<String>()
     private var inFlight = Set<String>()
+    private var sourceByHost: [String: URL] = [:]
 
-    /// Hands back the site's icon, or `nil` when it has none and the caller
-    /// should draw its default.
+    /// Hands back the site's icon and the address it came from, or nils when it
+    /// has none and the caller should draw its default.
     ///
     /// The completion runs on the main actor, but not necessarily before this
     /// returns: a cache hit is synchronous and everything else is a fetch.
-    func icon(forPageAt url: URL, in webView: WKWebView, completion: @escaping (NSImage?) -> Void) {
+    func icon(
+        forPageAt url: URL,
+        in webView: WKWebView,
+        completion: @escaping (NSImage?, URL?) -> Void
+    ) {
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
             let host = url.host
         else {
             // A homepage or an address without a site has no icon to look up.
-            completion(nil)
+            completion(nil, nil)
             return
         }
         if let cached = cache.object(forKey: host as NSString) {
-            completion(cached)
+            completion(cached, sourceByHost[host])
             return
         }
         guard !hostsWithoutIcons.contains(host), !inFlight.contains(host) else {
-            completion(nil)
+            completion(nil, nil)
             return
         }
         inFlight.insert(host)
         requestDeclaredIcons(in: webView, pageURL: url) { [weak self] icons in
             guard let self else { return }
             let candidates = icons.isEmpty ? [FaviconLoader.fallbackIconURL(for: url)] : icons
-            self.loadFirst(candidates, host: host) { image in
+            self.loadFirst(candidates, host: host) { image, source in
                 if let image {
                     self.cache.setObject(image, forKey: host as NSString)
                 } else {
                     self.hostsWithoutIcons.insert(host)
                 }
+                if let source {
+                    self.sourceByHost[host] = source
+                }
                 self.inFlight.remove(host)
-                completion(image)
+                completion(image, source)
             }
         }
     }
@@ -65,6 +73,7 @@ final class FaviconLoader {
     /// Drops a site's icon, so the next page that asks refetches it.
     func forget(host: String) {
         cache.removeObject(forKey: host as NSString)
+        sourceByHost.removeValue(forKey: host)
         hostsWithoutIcons.remove(host)
     }
 
@@ -103,16 +112,16 @@ final class FaviconLoader {
     private func loadFirst(
         _ candidates: [URL],
         host: String,
-        completion: @escaping (NSImage?) -> Void
+        completion: @escaping (NSImage?, URL?) -> Void
     ) {
         guard let next = candidates.first else {
-            completion(nil)
+            completion(nil, nil)
             return
         }
         let rest = Array(candidates.dropFirst())
         fetch(next) { [weak self] image in
             if let image {
-                completion(image)
+                completion(image, next)
             } else {
                 self?.loadFirst(rest, host: host, completion: completion)
             }

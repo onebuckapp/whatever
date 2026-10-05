@@ -15,6 +15,8 @@ final class BrowserToolbarController: NSObject {
     /// Installed into the window's content view by `BrowserWindowController`.
     let toolbarView: BrowserToolbarView
     private let addressContainer = NSView()
+    private let centerStack = NSStackView()
+    private let feedButton = BrowserToolbarButton()
     /// The drawn spotlight and the dropdown under it. The old `AddressSearchField`
     /// is gone: see `SpotlightField` for why a stock search field could not do this.
     private let spotlight = SpotlightField()
@@ -44,6 +46,8 @@ final class BrowserToolbarController: NSObject {
     var onBookmarks: (() -> Void)?
     /// Opens the per-site content-blocker card for the current tab.
     var onAdBlock: (() -> Void)?
+    /// Offers the selected tab's advertised feeds. Empty when hidden.
+    var onFeed: (([FeedCandidate]) -> Void)?
 
     init(controller: BrowserWindowController) {
         self.controller = controller
@@ -53,13 +57,14 @@ final class BrowserToolbarController: NSObject {
         // and are set just after.
         let toolbar = BrowserToolbarView(
             leading: [backButton, forwardButton, reloadButton],
-            center: addressContainer,
+            center: centerStack,
             trailing: [adblockButton, bookmarksButton, downloadsButton, settingsButton]
         )
         self.toolbarView = toolbar
         super.init()
 
         configureButtons()
+        configureCenterStack()
         configureAddressField()
         configureSpotlight()
         // Wired here rather than in the spotlight's own init because it needs `self`.
@@ -122,6 +127,16 @@ final class BrowserToolbarController: NSObject {
             return
         }
 
+        tab.tabController.setFeedsEnabled(SettingsStore.shared.settings.feeds.isEnabled)
+        SettingsStore.shared.$settings
+            .map(\.feeds.isEnabled)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isEnabled in
+                self?.tab?.tabController.setFeedsEnabled(isEnabled)
+                self?.syncFeedButton()
+            }
+            .store(in: &cancellables)
         tab.tabController.$canGoBack
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncControls() }
@@ -142,6 +157,10 @@ final class BrowserToolbarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncControls() }
             .store(in: &cancellables)
+        tab.tabController.$feedCandidates
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncFeedButton() }
+            .store(in: &cancellables)
 
         syncControls()
     }
@@ -153,6 +172,7 @@ final class BrowserToolbarController: NSObject {
             reloadButton.isEnabled = false
             addressField.stringValue = ""
             spotlight.updateClearButton()
+            syncFeedButton()
             return
         }
 
@@ -179,6 +199,21 @@ final class BrowserToolbarController: NSObject {
             // The dropdown's results were a function of the previous tab's field.
             spotlightController.fieldDidEndEditing()
         }
+        syncFeedButton()
+    }
+
+    /// Shows the feed control exactly when the selected tab advertises feeds.
+    ///
+    /// The candidates are keyed to the page that produced them and cleared on
+    /// navigation, so the button follows the page rather than lingering from
+    /// the previous one.
+    private func syncFeedButton() {
+        let isEnabled = SettingsStore.shared.settings.feeds.isEnabled
+        let candidates = isEnabled ? tab?.tabController.feedCandidates ?? [] : []
+        feedButton.isHidden = candidates.isEmpty
+        feedButton.toolTip = candidates.count == 1
+            ? "Available feed"
+            : "\(candidates.count) available feeds"
     }
 
     // MARK: - Actions
@@ -216,12 +251,20 @@ final class BrowserToolbarController: NSObject {
         onAdBlock?()
     }
 
+    @objc private func openFeed() {
+        guard SettingsStore.shared.settings.feeds.isEnabled else { return }
+        let candidates = tab?.tabController.feedCandidates ?? []
+        guard !candidates.isEmpty else { return }
+        onFeed?(candidates)
+    }
+
     // MARK: - Setup
 
     private func configureButtons() {
         configure(backButton, symbol: "chevron.left", help: "Back", action: #selector(goBack))
         configure(forwardButton, symbol: "chevron.right", help: "Forward", action: #selector(goForward))
         configure(reloadButton, symbol: "arrow.clockwise", help: "Reload", action: #selector(toggleReload))
+        configureFeedButton()
 
         configure(settingsButton, symbol: "gearshape", help: "Settings", action: #selector(openSettings))
         // `arrow.down.to.line` is the plain download glyph: an arrow descending
@@ -245,6 +288,35 @@ final class BrowserToolbarController: NSObject {
             help: "Content Blocker",
             action: #selector(openAdBlock)
         )
+    }
+
+    private func configureCenterStack() {
+        // The address container keeps its own preferred size; the stack only
+        // holds the feed button directly after it. Hiding the button removes
+        // its arranged space too, so the field does not keep a gap where the
+        // control would have been.
+        centerStack.orientation = .horizontal
+        centerStack.alignment = .centerY
+        centerStack.spacing = 6
+        centerStack.addArrangedSubview(addressContainer)
+        centerStack.addArrangedSubview(feedButton)
+    }
+
+    private func configureFeedButton() {
+        // Bundled vector rather than a system glyph, so the control always
+        // shows the project’s RSS mark. It is a template image, matching the
+        // toolbar’s label color, and is sized like the neighboring glyphs.
+        let image = NSImage(named: "RSS")
+        image?.accessibilityDescription = "Available feeds"
+        image?.isTemplate = true
+        image?.size = NSSize(width: 18, height: 18)
+        feedButton.image = image
+        feedButton.toolTip = "Available feeds"
+        feedButton.target = self
+        feedButton.action = #selector(openFeed)
+        // Shown only for a page that advertises feeds; `syncFeedButton` owns
+        // this from here on.
+        feedButton.isHidden = true
     }
 
     private func configure(_ button: BrowserToolbarButton, symbol: String, help: String, action: Selector?) {

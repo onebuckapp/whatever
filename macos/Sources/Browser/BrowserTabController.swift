@@ -40,12 +40,37 @@ final class BrowserTabController: ObservableObject {
     /// The page's own icon, or `nil` to leave the caller on its default globe.
     @Published private(set) var favicon: NSImage?
 
+    /// Standard feed documents advertised by the current page, in document
+    /// order. Empty when the page advertises none, has not finished loading,
+    /// or has no committed HTTP(S) address yet.
+    @Published private(set) var feedCandidates: [FeedCandidate] = []
+
+    /// Whether feed discovery may run for the current page. Set from the
+    /// toolbar binding because settings live on the main actor and this
+    /// controller does not.
+    private(set) var feedsEnabled = true
+
+    /// Enables or disables feed discovery. Disabling clears any candidates
+    /// immediately, so the toolbar cannot keep offering the previous page's
+    /// feeds after the feature is switched off.
+    func setFeedsEnabled(_ enabled: Bool) {
+        feedsEnabled = enabled
+        if !enabled {
+            feedPage = nil
+            feedCandidates = []
+        }
+    }
+
     private let audioMonitor: TabAudioMonitor
     private var observations: [NSKeyValueObservation] = []
 
     /// The page an icon lookup was started for, so a slow fetch for a page the tab
     /// has already left cannot come back and put the wrong site's icon on it.
     private var faviconPage: URL?
+
+    /// The page a feed-discovery lookup was started for, for the same reason:
+    /// discovery is asynchronous and navigation may move on before it answers.
+    private var feedPage: URL?
 
     /// Title to show until the page reports one of its own.
     ///
@@ -118,6 +143,10 @@ final class BrowserTabController: ObservableObject {
         // Same reasoning for the icon: the page that owned it is gone.
         faviconPage = nil
         favicon = nil
+        // And for its advertised feeds: candidates belong to a committed page,
+        // not to the tab in the abstract.
+        feedPage = nil
+        feedCandidates = []
         // Clears the audio flag and drops the poll. The mute stays: it belongs to
         // the tab, and is re-applied to whichever view comes next.
         audioMonitor.detach()
@@ -173,6 +202,7 @@ final class BrowserTabController: ObservableObject {
         isLoading = webView?.isLoading ?? false
         estimatedProgress = webView?.estimatedProgress ?? 0
         updateFavicon()
+        updateFeedCandidates()
     }
 
     /// Asks for the site's icon once the tab has settled on a page.
@@ -183,9 +213,26 @@ final class BrowserTabController: ObservableObject {
     private func updateFavicon() {
         guard !isLoading, let webView, let page = webView.url, page != faviconPage else { return }
         faviconPage = page
-        FaviconLoader.shared.icon(forPageAt: page, in: webView) { [weak self] image in
+        FaviconLoader.shared.icon(forPageAt: page, in: webView) { [weak self] image, _ in
             guard let self, self.faviconPage == page else { return }
             self.favicon = image
+        }
+    }
+
+    /// Asks the settled page for its advertised feeds.
+    ///
+    /// Same gating as the icon: discovery reads the parsed document, and the
+    /// address check means `syncAll` running repeatedly does not rerun the
+    /// script for the same page. Candidates are cleared as soon as the page
+    /// changes, so the toolbar cannot show the previous page's feeds while the
+    /// new page is still loading.
+    private func updateFeedCandidates() {
+        guard feedsEnabled, !isLoading, let webView, let page = webView.url, page != feedPage else { return }
+        feedPage = page
+        feedCandidates = []
+        FeedDiscovery.shared.candidates(forPageAt: page, in: webView) { [weak self] candidates in
+            guard let self, self.feedPage == page else { return }
+            self.feedCandidates = candidates
         }
     }
 

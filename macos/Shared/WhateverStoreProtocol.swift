@@ -63,6 +63,83 @@ import Foundation
     func sessionSave(_ document: Data, reply: @escaping (NSError?) -> Void)
     func sessionClear(reply: @escaping (NSError?) -> Void)
 
+    // MARK: Feeds
+
+    func feedSubscribe(
+        _ feedURL: String,
+        _ pageURL: String,
+        _ siteName: String?,
+        _ declaredTitle: String?,
+        _ declaredType: String?,
+        _ subscribedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedUnsubscribe(_ feedURL: String, reply: @escaping (NSError?) -> Void)
+    func feedSubscriptions(reply: @escaping (Data?, NSError?) -> Void)
+    func feedIngest(
+        _ feedURL: String,
+        _ fetchedAt: Int64,
+        _ payload: Data,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
+    func feedIngestStrict(
+        _ feedURL: String,
+        _ fetchedAt: Int64,
+        _ payload: Data,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
+    func feedPrune(
+        _ feedURL: String,
+        _ maximumArticles: Int32,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedNoteFetch(
+        _ feedURL: String,
+        _ checkedAt: Int64,
+        _ status: String,
+        _ error: String?,
+        _ etag: String?,
+        _ lastModified: String?,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedArticles(
+        _ feedURL: String,
+        _ onlyUnread: Int32,
+        _ limit: Int32,
+        _ beforePublishedAt: Int64,
+        _ beforeID: Int64,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
+    func feedArticle(_ articleID: Int64, reply: @escaping (Data?, NSError?) -> Void)
+    func feedSetArticleState(
+        _ articleID: Int64,
+        _ isRead: Int32,
+        _ isSaved: Int32,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedAttachThumbnail(
+        _ articleID: Int64,
+        _ mime: String,
+        _ width: Int64,
+        _ height: Int64,
+        _ imageBase64: String,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedThumbnail(_ articleID: Int64, reply: @escaping (Data?, NSError?) -> Void)
+    func feedAttachFavicon(
+        _ feedURL: String,
+        _ remoteURL: String?,
+        _ mime: String,
+        _ imageBase64: String,
+        reply: @escaping (NSError?) -> Void
+    )
+    func feedFavicon(_ feedURL: String, reply: @escaping (Data?, NSError?) -> Void)
+    func feedDiscoverFromHTML(
+        _ pageURL: String,
+        _ html: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
+
     // MARK: QR
 
     /// Renders a Model 2 QR symbol as a standalone SVG document.

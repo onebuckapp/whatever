@@ -18,6 +18,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
     private var settingsPresenter: SettingsModalPresenter?
     private var adBlockPresenter: AdBlockPopupPresenter?
+    private var feedReaderPresenter: FeedReaderPresenter?
     private var shield: ModalEventShieldView?
 
     /// Set by the window controller. `onDropZoneChanged` receives nil
@@ -32,6 +33,9 @@ final class BrowserWindowContentViewController: NSViewController {
     /// pages noticing the pointer at all, and both are needed for the page to be
     /// genuinely inert while a card is up.
     var onShieldChanged: ((Bool) -> Void)?
+    /// Opens a feed article from the reader. `true` means a new tab; false
+    /// means the selected tab.
+    var onOpenFeedArticle: ((URL, Bool) -> Void)?
 
     let tabBar = TabBarContainerView(newTabAction: {})
     /// Constraints pinning the current child. They must be deactivated
@@ -158,6 +162,41 @@ final class BrowserWindowContentViewController: NSViewController {
         settingsPresenter = nil
         removeShield()
         noiseOverlay?.moveToFront()
+    }
+
+    /// Opens the reader for the selected tab's advertised feeds, or closes it
+    /// when already open.
+    ///
+    /// No shield goes in: the reader is a browsing surface of its own, and the
+    /// page may stay interactive underneath it. Subscriptions and downloads
+    /// still require a regular tab; private tabs get a read-only view of the
+    /// already-persisted library plus the current page's transient candidates.
+    func presentFeedReader(candidates: [FeedCandidate], tab: BrowserTab) {
+        guard isViewLoaded else { return }
+        if feedReaderPresenter != nil {
+            dismissFeedReader()
+            // Fall through and reopen: the candidates belong to this tab and
+            // this press, not to whatever the previous card was showing.
+        }
+        let presenter = FeedReaderPresenter(container: view) { [weak self] in
+            self?.feedReaderPresenter = nil
+        }
+        feedReaderPresenter = presenter
+        presenter.present(
+            candidates: candidates,
+            pageURL: tab.displayURL,
+            siteName: tab.tabController.title,
+            webView: tab.webView,
+            allowsPersistence: tab.privacyMode == .regular,
+            onOpenArticle: { [weak self] url, newTab in
+                self?.onOpenFeedArticle?(url, newTab)
+            }
+        )
+    }
+
+    func dismissFeedReader() {
+        feedReaderPresenter?.dismiss()
+        feedReaderPresenter = nil
     }
 
     /// Opens the per-site content-blocker card for `tab`, or closes it when

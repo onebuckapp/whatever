@@ -21,9 +21,10 @@ struct AppSettings: Codable, Equatable {
     var web = WebSettings()
     var search = SearchSettings()
     var adblock = AdBlockSettings()
+    var feeds = FeedSettings()
 
     enum CodingKeys: String, CodingKey {
-        case general, appearance, web, search, adblock
+        case general, appearance, web, search, adblock, feeds
     }
 
     init() {}
@@ -39,6 +40,8 @@ struct AppSettings: Codable, Equatable {
             ?? SearchSettings()
         adblock = try container.decodeIfPresent(AdBlockSettings.self, forKey: .adblock)
             ?? AdBlockSettings()
+        feeds = try container.decodeIfPresent(FeedSettings.self, forKey: .feeds)
+            ?? FeedSettings()
     }
 
     /// Startup and history defaults.
@@ -192,6 +195,58 @@ struct AppSettings: Codable, Equatable {
         var snapshotVersion: String?
     }
 
+    /// Feed-reader preferences.
+    ///
+    /// These live in the settings document because they control behavior and
+    /// presentation across launches. Subscriptions, articles, and image bytes
+    /// live in the separate feeds store; this group only decides how that
+    /// store is filled and shown.
+    struct FeedSettings: Codable, Equatable {
+        /// Master switch for feed discovery and persistence. Existing cached
+        /// feeds remain stored while disabled, but no new subscription,
+        /// refresh, download, or feed-button activity is started.
+        var isEnabled = true
+        /// Whether opening the reader may refresh stale subscriptions without
+        /// an explicit Refresh press.
+        var autoRefreshEnabled = true
+        /// Staleness threshold for automatic refreshes, in minutes.
+        var refreshIntervalMinutes = 30.0
+        /// Maximum retained articles per subscription. Applied when feeds are
+        /// ingested and when retention is applied explicitly.
+        var maximumArticlesPerFeed = 200
+        /// Which thumbnails the reader is allowed to download and persist.
+        var thumbnailPolicy = FeedThumbnailPolicy.automatic
+        /// Whether site favicons may be downloaded and persisted.
+        var downloadFavicons = true
+        /// Whether opening an article marks it read.
+        var markArticlesReadOnOpen = true
+        /// Whether malformed feeds are rejected instead of being recovered
+        /// with a lenient projection.
+        var strictParsing = false
+    }
+
+    /// Which article images the reader may download and store.
+    enum FeedThumbnailPolicy: String, Codable, Equatable, CaseIterable, Identifiable {
+        var id: String { rawValue }
+
+        /// Download publisher-declared and content-derived thumbnails.
+        case automatic
+        /// Download only publisher-declared media and enclosures. Content
+        /// images discovered by parsing article HTML are left as remote URLs.
+        case publisherOnly = "publisher"
+        /// Never download thumbnails. Cards show favicons, monograms, or
+        /// remote-image placeholders, according to availability.
+        case off
+
+        var title: String {
+            switch self {
+            case .automatic: "Automatic"
+            case .publisherOnly: "Publisher images only"
+            case .off: "Off"
+            }
+        }
+    }
+
     /// Identifiers of the `WebSettings` properties WebKit only reads when a
     /// `WKWebView` is built.
     ///
@@ -339,6 +394,7 @@ final class SettingsStore: ObservableObject {
         if old.web != new.web { keys.insert("web") }
         if old.search != new.search { keys.insert("search") }
         if old.adblock != new.adblock { keys.insert("adblock") }
+        if old.feeds != new.feeds { keys.insert("feeds") }
         return keys
     }
 

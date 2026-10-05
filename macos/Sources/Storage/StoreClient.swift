@@ -283,6 +283,134 @@ final class StoreClient {
         }
     }
 
+    // MARK: Feeds
+
+    func subscribeToFeed(
+        feedURL: String,
+        pageURL: String,
+        siteName: String? = nil,
+        declaredTitle: String? = nil,
+        declaredType: String? = nil,
+        subscribedAt: Date = Date()
+    ) async throws {
+        let stamp = Int64(subscribedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.feedSubscribe(feedURL, pageURL, siteName, declaredTitle, declaredType, stamp, reply: done)
+        }
+    }
+
+    func unsubscribeFromFeed(feedURL: String) async throws {
+        try await perform { proxy, done in
+            proxy.feedUnsubscribe(feedURL, reply: done)
+        }
+    }
+
+    func feedSubscriptions() async throws -> Data {
+        try await document { proxy, done in
+            proxy.feedSubscriptions(reply: done)
+        }
+    }
+
+    func ingestFeed(feedURL: String, fetchedAt: Date = Date(), payload: Data) async throws -> Data {
+        let stamp = Int64(fetchedAt.timeIntervalSince1970)
+        return try await document { proxy, done in
+            proxy.feedIngest(feedURL, stamp, payload, reply: done)
+        }
+    }
+
+    func ingestFeedStrictly(feedURL: String, fetchedAt: Date = Date(), payload: Data) async throws -> Data {
+        let stamp = Int64(fetchedAt.timeIntervalSince1970)
+        return try await document { proxy, done in
+            proxy.feedIngestStrict(feedURL, stamp, payload, reply: done)
+        }
+    }
+
+    func pruneFeed(feedURL: String, maximumArticles: Int) async throws {
+        try await perform { proxy, done in
+            proxy.feedPrune(feedURL, Int32(maximumArticles), reply: done)
+        }
+    }
+
+    func noteFeedFetch(
+        feedURL: String,
+        checkedAt: Date = Date(),
+        status: String,
+        error: String? = nil,
+        etag: String? = nil,
+        lastModified: String? = nil
+    ) async throws {
+        let stamp = Int64(checkedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.feedNoteFetch(feedURL, stamp, status, error, etag, lastModified, reply: done)
+        }
+    }
+
+    func feedArticles(
+        feedURL: String = "",
+        onlyUnread: Bool = false,
+        limit: Int = 100,
+        beforePublishedAt: Date? = nil,
+        beforeID: Int64 = 0
+    ) async throws -> Data {
+        let stamp = Int64(beforePublishedAt?.timeIntervalSince1970 ?? 0)
+        return try await document { proxy, done in
+            proxy.feedArticles(feedURL, onlyUnread ? 1 : 0, Int32(limit), stamp, beforeID, reply: done)
+        }
+    }
+
+    func feedArticle(id: Int64) async throws -> Data {
+        try await document { proxy, done in
+            proxy.feedArticle(id, reply: done)
+        }
+    }
+
+    func setFeedArticleState(id: Int64, isRead: Bool, isSaved: Bool) async throws {
+        try await perform { proxy, done in
+            proxy.feedSetArticleState(id, isRead ? 1 : 0, isSaved ? 1 : 0, reply: done)
+        }
+    }
+
+    func attachFeedThumbnail(
+        articleID: Int64,
+        mime: String,
+        width: Int64,
+        height: Int64,
+        imageBase64: String
+    ) async throws {
+        try await perform { proxy, done in
+            proxy.feedAttachThumbnail(articleID, mime, width, height, imageBase64, reply: done)
+        }
+    }
+
+    func feedThumbnail(articleID: Int64) async throws -> Data {
+        try await document { proxy, done in
+            proxy.feedThumbnail(articleID, reply: done)
+        }
+    }
+
+    func attachFeedFavicon(
+        feedURL: String,
+        remoteURL: String? = nil,
+        mime: String,
+        imageBase64: String
+    ) async throws {
+        try await perform { proxy, done in
+            proxy.feedAttachFavicon(feedURL, remoteURL, mime, imageBase64, reply: done)
+        }
+    }
+
+    func feedFavicon(feedURL: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.feedFavicon(feedURL, reply: done)
+        }
+    }
+
+    func discoverFeedsFromHTML(pageURL: String, html: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.feedDiscoverFromHTML(pageURL, html, reply: done)
+        }
+    }
+
     // MARK: QR
 
     /// Renders `text` as a QR symbol's SVG document.

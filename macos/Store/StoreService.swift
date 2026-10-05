@@ -390,6 +390,329 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
+    // MARK: Feeds
+
+    func feedSubscribe(
+        _ feedURL: String,
+        _ pageURL: String,
+        _ siteName: String?,
+        _ declaredTitle: String?,
+        _ declaredType: String?,
+        _ subscribedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = feedURL.withCString { feed in
+                pageURL.withCString { page in
+                    withOptionalCString(siteName) { site in
+                        withOptionalCString(declaredTitle) { title in
+                            withOptionalCString(declaredType) { type in
+                                bc_feed_subscribe(feed, page, site, title, type, subscribedAt)
+                            }
+                        }
+                    }
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedUnsubscribe(_ feedURL: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = feedURL.withCString { bc_feed_unsubscribe($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedSubscriptions(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_feed_subscriptions(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func feedIngest(
+        _ feedURL: String,
+        _ fetchedAt: Int64,
+        _ payload: Data,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            // The core receives feed text as a C string, so an interior NUL
+            // would truncate the document silently. Reject it here instead.
+            guard !payload.contains(0), let text = String(data: payload, encoding: .utf8) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.badInput.rawValue, message: "The feed payload is not valid UTF-8 text."))
+                return
+            }
+            let result: CorePayload?
+            do {
+                result = try feedURL.withCString { feed in
+                    try text.withCString { document in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_feed_ingest(feed, fetchedAt, document, buffer, capacity, needed)
+                        }, rejecting: [.badInput, .notFound])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let result else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(result.data, nil)
+        }
+    }
+
+    func feedIngestStrict(
+        _ feedURL: String,
+        _ fetchedAt: Int64,
+        _ payload: Data,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            // The core receives feed text as a C string, so an interior NUL
+            // would truncate the document silently. Reject it here instead.
+            guard !payload.contains(0), let text = String(data: payload, encoding: .utf8) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.badInput.rawValue, message: "The feed payload is not valid UTF-8 text."))
+                return
+            }
+            let result: CorePayload?
+            do {
+                result = try feedURL.withCString { feed in
+                    try text.withCString { document in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_feed_ingest_strict(feed, fetchedAt, document, buffer, capacity, needed)
+                        }, rejecting: [.badInput, .notFound])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let result else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(result.data, nil)
+        }
+    }
+
+    func feedPrune(
+        _ feedURL: String,
+        _ maximumArticles: Int32,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = feedURL.withCString { bc_feed_prune($0, maximumArticles) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedNoteFetch(
+        _ feedURL: String,
+        _ checkedAt: Int64,
+        _ status: String,
+        _ error: String?,
+        _ etag: String?,
+        _ lastModified: String?,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let result = feedURL.withCString { feed in
+                status.withCString { outcome in
+                    withOptionalCString(error) { failure in
+                        withOptionalCString(etag) { tag in
+                            withOptionalCString(lastModified) { modified in
+                                bc_feed_note_fetch(feed, checkedAt, outcome, failure, tag, modified)
+                            }
+                        }
+                    }
+                }
+            }
+            reply(StoreErrors.check(result, message: coreLastError()))
+        }
+    }
+
+    func feedArticles(
+        _ feedURL: String,
+        _ onlyUnread: Int32,
+        _ limit: Int32,
+        _ beforePublishedAt: Int64,
+        _ beforeID: Int64,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try feedURL.withCString { feed in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_feed_articles(feed, onlyUnread, limit, beforePublishedAt, beforeID, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func feedArticle(_ articleID: Int64, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try CoreBuffer.read({ buffer, capacity, needed in
+                    bc_feed_article(articleID, buffer, capacity, needed)
+                }, rejecting: [.badInput, .notFound])
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func feedSetArticleState(
+        _ articleID: Int64,
+        _ isRead: Int32,
+        _ isSaved: Int32,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = bc_feed_set_article_state(articleID, isRead, isSaved)
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedAttachThumbnail(
+        _ articleID: Int64,
+        _ mime: String,
+        _ width: Int64,
+        _ height: Int64,
+        _ imageBase64: String,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            guard !imageBase64.contains("\0") else {
+                reply(StoreErrors.make(from: StoreStatus.badInput.rawValue, message: "The thumbnail payload is malformed."))
+                return
+            }
+            let status = mime.withCString { type in
+                imageBase64.withCString { bytes in
+                    bc_feed_attach_thumbnail(articleID, type, width, height, bytes)
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedThumbnail(_ articleID: Int64, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try CoreBuffer.read({ buffer, capacity, needed in
+                    bc_feed_thumbnail(articleID, buffer, capacity, needed)
+                }, rejecting: [.badInput, .notFound])
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func feedAttachFavicon(
+        _ feedURL: String,
+        _ remoteURL: String?,
+        _ mime: String,
+        _ imageBase64: String,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            guard !imageBase64.contains("\0") else {
+                reply(StoreErrors.make(from: StoreStatus.badInput.rawValue, message: "The favicon payload is malformed."))
+                return
+            }
+            let status = feedURL.withCString { feed in
+                withOptionalCString(remoteURL) { remote in
+                    mime.withCString { type in
+                        imageBase64.withCString { bytes in
+                            bc_feed_attach_favicon(feed, remote, type, bytes)
+                        }
+                    }
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func feedFavicon(_ feedURL: String, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try feedURL.withCString { feed in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_feed_favicon(feed, buffer, capacity, needed)
+                    }, rejecting: [.badInput, .notFound])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func feedDiscoverFromHTML(
+        _ pageURL: String,
+        _ html: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try pageURL.withCString { page in
+                    try html.withCString { source in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_feed_discover_from_html(page, source, buffer, capacity, needed)
+                        }, rejecting: [.badInput])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
     // MARK: QR
 
     func qrSVG(

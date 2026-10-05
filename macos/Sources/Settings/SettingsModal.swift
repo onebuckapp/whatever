@@ -190,8 +190,16 @@ private struct SettingsModalCard: View {
             selected = entry
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: entry.symbol)
-                    .frame(width: 16)
+                Group {
+                    if entry == .rssFeeds, let rss = NSImage(named: "RSS") {
+                        Image(nsImage: rss)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        Image(systemName: entry.symbol)
+                    }
+                }
+                .frame(width: 16)
                 Text(entry.title)
                     .font(.system(size: 12))
                 Spacer(minLength: 0)

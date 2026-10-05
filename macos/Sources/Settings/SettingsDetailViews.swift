@@ -15,6 +15,7 @@ enum SettingsDetailView {
         case .web: AnyView(WebSettingsView())
         case .contentBlocker: AnyView(ContentBlockerSettingsView())
         case .bookmarks: AnyView(BookmarksSettingsView())
+        case .rssFeeds: AnyView(RSSFeedsSettingsView())
         case .history: AnyView(HistorySettingsView())
         case .search: AnyView(SearchSettingsView())
         case .downloads: AnyView(DownloadsSettingsView())
