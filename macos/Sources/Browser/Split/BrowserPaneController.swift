@@ -51,6 +51,13 @@ final class BrowserPaneController: NSViewController {
         // tab to realize itself here is what builds the page. A restored tab
         // arrives without one.
         let webView = tab.ensureWebView()
+        // This pane is also the `WKUIDelegate`. WebKit holds it weakly, and a
+        // cross-site navigation replaces the view while this pane stays, so the
+        // assignment belongs here rather than at construction: it is the moment a
+        // view is known to have an owner willing to host a popup. Without it
+        // WebKit has nobody to ask for a `target="_blank"` target and drops the
+        // navigation without a word.
+        webView.uiDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
         pageContainer.addSubview(webView)
 
@@ -159,28 +166,154 @@ final class BrowserPaneController: NSViewController {
 }
 
 extension BrowserPaneController: WKUIDelegate {
-    @MainActor
-    /// Returning the new tab's web view lets WebKit perform the
-    /// navigation into it, so popups land in a real tab.
+    /// Popups are handled in `NavigationController`, not here.
+    ///
+    /// WebKit offers a new-window navigation two ways: as this delegate call, and
+    /// as a `decidePolicyFor` whose `targetFrame` is nil. Both describe the same
+    /// click, and taking only this one loses the other: a page that calls
+    /// `window.open` never reaches here, so it silently does nothing.
+    ///
+    /// Returning a view also hands WebKit the navigation, and it performs that
+    /// navigation after this method returns — by which point the new tab is
+    /// already selected, hosted, and loading whatever address it was born with.
+    /// Measured: the popup tab arrived on the homepage instead of the page that
+    /// opened it. Opening the tab from the policy callback instead means the
+    /// address is known before anything is built, and there is no race.
     func webView(
         _ webView: WKWebView,
         createWebViewWith configuration: WKWebViewConfiguration,
         for navigationAction: WKNavigationAction,
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
+        nil
+    }
+
+    /// A page closing itself with `window.close()`.
+    ///
+    /// Only a popup ever reaches this: a page WebKit did not open has nothing to
+    /// close, and WebKit does not ask.
+    func webViewDidClose(_ webView: WKWebView) {
         let controller = BrowserCoordinator.shared.controller(for: view.window)
             ?? BrowserCoordinator.shared.keyController
-        guard let newTab = BrowserCoordinator.shared.newTab(
-            url: nil,
-            privacyMode: tab.privacyMode,
-            in: controller,
-            // Not a person asking for a tab, so no address bar: WebKit is about to
-            // drive this view into the popup and the page that opened it still
-            // owns focus.
-            focusesAddressBar: false
-        ) else {
-            return nil
+        controller?.closePopupTab(webView)
+    }
+
+    /// The site a dialog should name as its speaker.
+    ///
+    /// Falls back to the page's title and then to a constant, because an
+    /// `NSAlert` with an empty heading is worse than an unhelpful one. Hostless
+    /// pages (`whtvr://about`, `about:blank`) have no site to name, so the title
+    /// is the best available answer and the constant is the floor.
+    ///
+    /// Takes a plain `WKWebView` rather than the subclass because the delegate
+    /// methods hand over whatever WebKit is holding.
+    private func hostLabel(of webView: WKWebView) -> String {
+        if let host = webView.url?.host, !host.isEmpty { return host }
+        if let title = webView.title, !title.isEmpty { return title }
+        return "This page"
+    }
+
+    // MARK: - JavaScript dialogs and file input
+
+    // WebKit has no default presentation for these on macOS, so a page that calls
+    // `alert()` without one of these implemented hangs the run loop with nothing
+    // on screen. Each hands off to a real sheet and answers on the page's thread.
+
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptAlertPanelWithMessage message: String,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping () -> Void
+    ) {
+        let alert = NSAlert()
+        alert.messageText = hostLabel(of: webView)
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        sheet(alert, on: webView) { _ in completionHandler() }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptConfirmPanelWithMessage message: String,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        let alert = NSAlert()
+        alert.messageText = hostLabel(of: webView)
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        sheet(alert, on: webView) { response in
+            completionHandler(response == .alertFirstButtonReturn)
         }
-        return newTab.ensureWebView()
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        runJavaScriptTextInputPanelWithPrompt prompt: String,
+        defaultText: String?,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping (String?) -> Void
+    ) {
+        let alert = NSAlert()
+        alert.messageText = hostLabel(of: webView)
+        alert.informativeText = prompt
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        field.stringValue = defaultText ?? ""
+        alert.accessoryView = field
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        sheet(alert, on: webView) { response in
+            // A cancelled prompt is a nil answer, which is what the page reads as
+            // its `prompt()` returning null. Submitting an empty string would be a
+            // different thing entirely.
+            completionHandler(response == .alertFirstButtonReturn ? field.stringValue : nil)
+        }
+    }
+
+    /// `<input type="file">`. Without this the page's file chooser never appears
+    /// and the input reports an empty selection.
+    func webView(
+        _ webView: WKWebView,
+        runOpenPanelWith parameters: WKOpenPanelParameters,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping ([URL]?) -> Void
+    ) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.canCreateDirectories = false
+        // `WKOpenPanelParameters` carries only those two flags on macOS — no title
+        // and no accept label — so the panel keeps its own.
+        panel.prompt = "Open"
+
+        guard let window = webView.window else {
+            completionHandler(nil)
+            return
+        }
+        panel.beginSheetModal(for: window) { response in
+            completionHandler(response == .OK ? panel.urls : nil)
+        }
+    }
+
+    /// Shows `alert` as a sheet on the window showing `webView` and calls `finish`
+    /// with the answer.
+    ///
+    /// A view with no window is answered rather than shown: `runModal` would block
+    /// the very run loop that is supposed to be delivering the answer, and
+    /// `beginSheetModal` needs a window to hang the sheet on. Both callers supply
+    /// the answer a dismissed dialog would have given, which is the honest result
+    /// for a page nobody can see.
+    private func sheet(
+        _ alert: NSAlert,
+        on webView: WKWebView,
+        _ finish: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
+        guard let window = webView.window else {
+            finish(.alertSecondButtonReturn)
+            return
+        }
+        alert.beginSheetModal(for: window, completionHandler: finish)
     }
 }
