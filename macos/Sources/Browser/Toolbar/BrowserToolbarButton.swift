@@ -16,7 +16,7 @@ final class BrowserToolbarButton: NSButton {
     /// tighter than either: close to the 22pt a regular `NSControlSize` bezel
     /// button would have wanted.
     private static let side: CGFloat = 24
-    private static let fillRadius: CGFloat = 6
+    private static let fillRadius: CGFloat = 8
 
     /// Faint enough to be a hint rather than a highlight. Neutral rather than
     /// accent-tinted, so it does not imply the button is the default action.
@@ -49,7 +49,7 @@ final class BrowserToolbarButton: NSButton {
         // height — buttons came out at their glyph's height plus bezel margins and
         // overflowed the cluster.
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: Self.side + 2),
+            widthAnchor.constraint(equalToConstant: Self.side + 6),
             heightAnchor.constraint(equalToConstant: Self.side - 2),
         ])
     }
