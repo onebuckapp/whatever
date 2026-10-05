@@ -38,14 +38,15 @@ final class BrowserWindowContentViewController: NSViewController {
     var onOpenFeedArticle: ((URL, Bool) -> Void)?
 
     let tabBar = TabBarContainerView(newTabAction: {})
-    /// Constraints pinning the current child. They must be deactivated
-    /// when the child is replaced: constraints retain the views they
-    /// pin, so abandoned ones keep discarded pages (and their
-    /// processes) alive.
     /// Constraints pinning each child to the page area, one set per child.
     ///
     /// Per child rather than one set for whichever is current, because children are
-    /// kept in the hierarchy and hidden instead of removed. See `showChild`.
+    /// kept in the hierarchy and parked off-screen instead of removed. See
+    /// `showChild`.
+    ///
+    /// They must be deactivated when the child is replaced: constraints retain the
+    /// views they pin, so abandoned ones keep discarded pages (and their processes)
+    /// alive.
     private var childConstraints: [ObjectIdentifier: [NSLayoutConstraint]] = [:]
 
     init() {
@@ -212,10 +213,12 @@ final class BrowserWindowContentViewController: NSViewController {
             dismissAdBlockPopup()
             return
         }
-        let url = tab.displayURL ?? tab.webView?.url
         let host: String? = {
-            guard let url,
-                  let scheme = url.scheme?.lowercased(),
+            // `displayURL` already answers with the live page when there is a
+            // view and the tab's own address when there is not, so there is no
+            // second fallback to chain on here.
+            let url = tab.displayURL
+            guard let scheme = url.scheme?.lowercased(),
                   ["http", "https"].contains(scheme)
             else {
                 return nil
@@ -302,6 +305,10 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Overlay shown above the page area while a tab is dragged over
     /// the window. It never takes part in layout constraints of the
     /// child controller and always stays on top of it.
+    ///
+    /// The flag is set here because the preview has to sit above the pane, and the
+    /// only place the pane's position in the subview order is settled is
+    /// `showChild`.
     func installDropPreview(_ preview: NSView) {
         guard dropPreview == nil else { return }
         dropPreview = preview
@@ -405,15 +412,45 @@ final class BrowserWindowContentViewController: NSViewController {
         background.configuration = SettingsStore.shared.settings.appearance.background
     }
 
-    /// Shows one child and hides the rest, without taking anything out of the
+    /// Where a parked child's view is moved to, horizontally.
+    ///
+    /// Far enough that it cannot be seen through the window even if the window is
+    /// partly transparent, and to the *left* rather than the right so a parked
+    /// page cannot be reached by scrolling the content view either.
+    private static let parkingOrigin = NSPoint(x: -10_000, y: 0)
+
+    /// Shows one child and parks the rest, without taking anything out of the
     /// window.
     ///
-    /// This used to remove every child and add the new one, which is what made a
-    /// tab switch feel slow. `WKWebView` tears down its layer tree when its view
-    /// leaves the window and has to build and render it again on the way back in,
-    /// so the page you just asked for arrived as a blank frame first. A child that
-    /// is already parented here is now only unhidden, and WebKit never loses the
-    /// window.
+    /// ## Why parking rather than hiding
+    ///
+    /// This used to remove every child and add the new one, then later to set
+    /// `isHidden` on the ones that were not current. Both cost real time on the way
+    /// back, and hiding costs it twice.
+    ///
+    /// Removing a child takes its `WKWebView` out of the window, which makes WebKit
+    /// tear down the layer tree and rebuild it on the way in, so the page arrives as
+    /// a blank frame first.
+    ///
+    /// Hiding is worse than that, and the difference is what made switching between
+    /// a video tab and anything else feel broken. A hidden view is not merely
+    /// unpainted: WebKit reports the page as hidden, so the page sees
+    /// `document.hidden = true` and reacts the way every site reacts to a
+    /// background tab. A YouTube player pauses. Returning to the tab then costs a
+    /// full re-raster *and* a resume of the stream, which is where a one-to-two
+    /// second wait on a player page came from.
+    ///
+    /// Parking avoids both. The view stays in the window, so its layers are kept,
+    /// and it stays visible to the page, so media keeps playing behind the current
+    /// tab and no resume is needed. Off-screen is also the honest fallback for
+    /// anything the page has not accounted for: a page that still thinks it is
+    /// foreground behaves the same whether it is behind another tab or beside it,
+    /// which is exactly what a browser tab switch already does.
+    ///
+    /// The tradeoff, stated because it is a real one: media in a parked tab keeps
+    /// playing with audio. That is what the switch is being optimised for, and
+    /// pausing instead would put the resume cost straight back. A tab that wants to
+    /// go quiet has its own mute control.
     ///
     /// The model's part of a switch was never the problem: measured in the running
     /// app, `selectTab` costs 1 to 3ms for pages that already exist and under 6ms
@@ -421,6 +458,7 @@ final class BrowserWindowContentViewController: NSViewController {
     func showChild(_ controller: NSViewController) {
         releaseOrphanedChildren()
         let key = ObjectIdentifier(controller)
+        var hierarchyChanged = false
 
         if controller.view.superview !== view {
             // Arriving from somewhere else, which in practice means a pane coming
@@ -438,31 +476,61 @@ final class BrowserWindowContentViewController: NSViewController {
                 controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             ]
+            hierarchyChanged = true
         }
 
         for child in children {
             let isCurrent = child === controller
-            child.view.isHidden = !isCurrent
             let constraints = childConstraints[ObjectIdentifier(child)] ?? []
             if isCurrent {
+                unpin(constraints, of: child.view)
                 NSLayoutConstraint.activate(constraints)
             } else {
                 NSLayoutConstraint.deactivate(constraints)
+                pin(constraints, to: child.view)
             }
         }
 
-        // No reordering of the children themselves: only one is visible at a time, so
-        // their order against each other cannot show. Bringing one to the front
-        // would mean taking it out of the window and adding it back, which is the
-        // very thing this is here to avoid.
-        view.addSubview(progressBar)
-
-        // The child was just added, so it sits above the preview unless
-        // it is pushed back. The grain stays above everything.
-        if let dropPreview {
-            view.subviews = view.subviews.filter { $0 !== dropPreview } + [dropPreview]
+        // These three only matter when a pane has just been added above them,
+        // which is the add above and nothing else: the drop preview is installed
+        // once for the window's life and every later switch reuses panes that are
+        // already parented. Running them on every switch reordered siblings above
+        // the web view each time, which dirties layout for the whole content
+        // hierarchy for no visible gain.
+        if hierarchyChanged {
+            view.addSubview(progressBar)
+            if let dropPreview {
+                view.subviews = view.subviews.filter { $0 !== dropPreview } + [dropPreview]
+            }
+            noiseOverlay?.moveToFront()
         }
-        noiseOverlay?.moveToFront()
+    }
+
+    /// Takes a parked view out of Auto Layout's hands and moves it out of sight.
+    ///
+    /// Both halves matter. Auto Layout has to let go, or it will put the view back
+    /// at its pinned position on the next pass; and the frame has to be captured
+    /// at park time, because a parked view takes no part in layout and so never
+    /// hears about a resize.
+    private func pin(_ constraints: [NSLayoutConstraint], to view: NSView) {
+        guard !constraints.isEmpty else { return }
+        let size = view.bounds.size
+        view.translatesAutoresizingMaskIntoConstraints = true
+        view.frame = NSRect(
+            origin: Self.parkingOrigin,
+            size: size.width > 0 && size.height > 0 ? size : view.frame.size
+        )
+    }
+
+    /// Hands a view back to Auto Layout, discarding the parked frame.
+    ///
+    /// The frame is cleared rather than kept: leaving a stale one behind is how a
+    /// view ends up at its old position for one layout pass before its constraints
+    /// win, which shows as a flash at the wrong size.
+    private func unpin(_ constraints: [NSLayoutConstraint], of view: NSView) {
+        guard !constraints.isEmpty else { return }
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.frame = .zero
     }
 
     /// Drops a child for good, for a pane whose tab is gone.
