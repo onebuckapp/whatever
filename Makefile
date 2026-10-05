@@ -1,4 +1,4 @@
-.PHONY: all core macos run test check-abi clean
+.PHONY: all core macos macos_release run test check-abi clean
 
 all: macos
 
@@ -13,6 +13,9 @@ check-abi:
 
 macos: core
 	$(MAKE) -C macos build
+
+macos_release: core
+	$(MAKE) -C macos release
 
 run:
 	$(MAKE) -C macos run
