@@ -49,8 +49,9 @@ final class SpotlightController {
         field.onTextChanged = { [weak self] text in self?.queryChanged(text) }
         field.onSubmit = { [weak self] _ in
             guard let self else { return }
-            // A highlighted row wins over the text, so the top hit opens with one
-            // Enter without an arrow press.
+            // Only an explicitly highlighted row wins over the text. A merely
+            // visible top hit must not: Enter on typed text searches for that
+            // text rather than opening whatever happened to rank first.
             if self.chooseSelected() { return }
             self.submitTyped(field.textField.stringValue)
         }
@@ -111,7 +112,7 @@ final class SpotlightController {
                 return
             }
             guard !Task.isCancelled, generation == self.generation else { return }
-            self.present(HistoryFuzzyEntry.decodeList(payload))
+            self.present(HistoryFuzzyEntry.decodeList(payload), preselectFirst: false)
         }
     }
 
@@ -130,10 +131,12 @@ final class SpotlightController {
         }
     }
 
-    private func present(_ entries: [HistoryFuzzyEntry]) {
+    private func present(_ entries: [HistoryFuzzyEntry], preselectFirst: Bool = true) {
         results = entries
-        // Top hit selected as it arrives, so Enter opens it with no arrow press.
-        selectedIndex = entries.isEmpty ? nil : 0
+        // Typed-query results never preselect: arrow-down reaches the first
+        // row, and Enter on unhighlighted text submits that text. Recent
+        // history keeps its longstanding top-row selection.
+        selectedIndex = entries.isEmpty || !preselectFirst ? nil : 0
         guard !entries.isEmpty else {
             close()
             return
@@ -160,9 +163,14 @@ final class SpotlightController {
         dropdown.isHidden = true
         container.addSubview(dropdown)
         NSLayoutConstraint.activate([
-            // Directly under the bar, same left and right edges. These three are
-            // what hold the two shapes together, and they are set exactly once.
-            dropdown.topAnchor.constraint(equalTo: fieldView.bottomAnchor),
+            // Same left and right edges, and hung one point *over* the bar's
+            // bottom edge rather than flush under it. Butt-joining two views on
+            // a non-integer boundary leaves a hairline of page showing between
+            // them, which is enough to read as the dropdown floating loose
+            // instead of hanging off the field. Overlapping by a point closes
+            // the seam without moving the dropdown visibly, and costs nothing
+            // because the point it covers is the field's own bottom edge.
+            dropdown.topAnchor.constraint(equalTo: fieldView.bottomAnchor, constant: -1),
             dropdown.leadingAnchor.constraint(equalTo: fieldView.leadingAnchor),
             dropdown.trailingAnchor.constraint(equalTo: fieldView.trailingAnchor),
         ])
