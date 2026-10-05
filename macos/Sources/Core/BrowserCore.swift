@@ -51,6 +51,45 @@ enum BrowserCore {
         let data = try await StoreClient.shared.filterMeta(lists, version: version)
         return try JSONDecoder().decode(FilterMeta.self, from: data)
     }
+
+    /// Every occurrence of `query` in `text`, decoded from the core's find
+    /// document. `text` must be exactly what was sent: the ranges are byte
+    /// offsets into it.
+    static func findMatches(
+        text: String,
+        query: String,
+        matchCase: Bool,
+        wholeWords: Bool,
+        limit: Int
+    ) async throws -> FindMatches {
+        let data = try await StoreClient.shared.findMatches(
+            text: text,
+            query: query,
+            matchCase: matchCase,
+            wholeWords: wholeWords,
+            limit: limit
+        )
+        return try JSONDecoder().decode(FindMatches.self, from: data)
+    }
+}
+
+/// One find-in-page result set, mirrored from the core's `bc_find_matches`
+/// document.
+///
+/// `matches` are half-open byte ranges into the exact text that was sent,
+/// front to back. `total` counts every match while `matches` may be capped
+/// at the requested limit; `hasMore` says the list was cut. `truncated`
+/// says the text itself was cut at the core's cap, so `total` covers only
+/// the scanned prefix.
+struct FindMatches: Decodable {
+    struct Span: Decodable {
+        let start: Int
+        let stop: Int
+    }
+    let matches: [Span]
+    let total: Int
+    let hasMore: Bool
+    let truncated: Bool
 }
 
 /// Counts and fingerprint describing one filter input, mirrored from the

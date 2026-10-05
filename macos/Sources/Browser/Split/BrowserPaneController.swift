@@ -13,7 +13,9 @@ final class BrowserPaneController: NSViewController {
     private let activeModel: ActivePaneModel
     private var activeCancellable: AnyCancellable?
     private var pageContainer: NSView?
+    private var pageBottomConstraint: NSLayoutConstraint?
     private var qrPopupPresenter: QRPopupPresenter?
+    private var findController: FindController?
 
     init(tab: BrowserTab, activeModel: ActivePaneModel) {
         self.tab = tab
@@ -56,13 +58,18 @@ final class BrowserPaneController: NSViewController {
             pageContainer.topAnchor.constraint(equalTo: view.topAnchor),
             pageContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
             pageContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-            pageContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6),
 
             webView.topAnchor.constraint(equalTo: pageContainer.topAnchor),
             webView.leadingAnchor.constraint(equalTo: pageContainer.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: pageContainer.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: pageContainer.bottomAnchor),
         ])
+        // Held rather than anonymous: the find bar deactivates this while it
+        // is open and reactivates it on close, so the page holder yields its
+        // bottom edge to the bar instead of overlapping it.
+        let pageBottom = pageContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6)
+        pageBottom.isActive = true
+        pageBottomConstraint = pageBottom
 
         activeCancellable = activeModel.$activeTabID
             .combineLatest(activeModel.$showsIndicator)
@@ -106,6 +113,31 @@ final class BrowserPaneController: NSViewController {
     func dismissQRCode() {
         qrPopupPresenter?.dismiss()
         qrPopupPresenter = nil
+    }
+
+    // MARK: - Find in page
+
+    /// Opens this pane's find bar, creating it on first use. The controller
+    /// persists with the pane, so each tab keeps its own query while its pane
+    /// sits in the window's cache.
+    func showFindBar() {
+        guard let pageContainer, let pageBottomConstraint else { return }
+        if findController == nil {
+            findController = FindController(
+                tab: tab,
+                container: view,
+                pageContainer: pageContainer,
+                pageBottomConstraint: pageBottomConstraint
+            )
+        }
+        findController?.show()
+    }
+
+    /// Steps the current match, opening the bar first when it is closed so
+    /// ⌘G never silently does nothing.
+    func findStep(_ delta: Int) {
+        showFindBar()
+        findController?.step(delta)
     }
 
     // MARK: - Page context menu

@@ -325,6 +325,29 @@ final class StoreClient {
             proxy.filterMeta(lists, version, reply: done)
         }
     }
+
+    // MARK: Find
+
+    /// Every occurrence of `query` in `text` as byte ranges, as UTF-8 data.
+    /// Stateless: nothing is stored, the core only computes over the arguments.
+    func findMatches(
+        text: String,
+        query: String,
+        matchCase: Bool,
+        wholeWords: Bool,
+        limit: Int
+    ) async throws -> Data {
+        try await document { proxy, done in
+            proxy.findMatches(
+                text,
+                query,
+                matchCase ? 1 : 0,
+                wholeWords ? 1 : 0,
+                Int32(limit),
+                reply: done
+            )
+        }
+    }
 }
 
 /// What the service reported about itself.

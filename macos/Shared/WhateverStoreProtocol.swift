@@ -89,6 +89,27 @@ import Foundation
         _ version: String,
         reply: @escaping (Data?, NSError?) -> Void
     )
+
+    // MARK: Find
+
+    /// Finds every occurrence of `query` in `text`, front to back.
+    ///
+    /// `text` is a page's visible text as extracted from the live DOM; the
+    /// returned ranges are byte offsets into exactly that string. `matchCase`
+    /// and `wholeWords` are zero for off, nonzero for on. `limit`
+    /// (non-positive means the core's maximum) caps the returned ranges while
+    /// `total` in the document still reports the full count. The document is
+    /// `{"matches":[{"start":s,"stop":e}], "total":n, "hasMore":b,
+    /// "truncated":b}`. Nothing is stored: this is a stateless computation
+    /// over the arguments, like the filter surface.
+    func findMatches(
+        _ text: String,
+        _ query: String,
+        _ matchCase: Int32,
+        _ wholeWords: Int32,
+        _ limit: Int32,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
 }
 
 /// Status ordinals shared with the core, mirroring `core/include/browsercore.h`.

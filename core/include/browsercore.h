@@ -201,6 +201,36 @@ int32_t bc_history_delete_before(int64_t cutoff, int32_t *removed);
  * work. */
 int32_t bc_history_clear(void);
 
+/* --------------------------------------------------------------------- find */
+
+/* Find-in-page matching: every occurrence of `query` in `text`, front to
+ * back, as half-open BYTE ranges.
+ *
+ * `text` is the page's visible text exactly as the app extracted it from the
+ * live DOM, and matching is exact-substring search compiled to an
+ * openparser/regex pattern — the query's metacharacters are escaped, so what
+ * was typed is what the page must contain. Deliberately not fuzzy matching:
+ * subsequence hits would highlight scattered fragments instead of the
+ * contiguous occurrences next/previous stepping needs.
+ *
+ * `match_case` and `whole_words` are zero for off, nonzero for on. Without
+ * match case, ASCII letters fold (`H` matches `h`); Latin diacritics fold to
+ * ASCII on both sides first (`șase` meets `sase` whichever side was typed
+ * with the diacritic). Anything else matches exactly. Whole words wrap the
+ * literal in `\b(?:...)\b`.
+ *
+ * Returns `{"matches":[{"start":s,"stop":e}], "total":n, "hasMore":b,
+ * "truncated":b}`. `total` counts every match; `limit` (non-positive means
+ * the 2000 maximum) caps the returned list and `hasMore` says it was cut.
+ * Text over 1 MiB is scanned only up to the cap and `truncated` comes back
+ * true; the kept offsets stay valid because the cut is a prefix. `start` and
+ * `stop` are BYTE offsets into `text`, not character indices: non-ASCII
+ * needs converting to UTF-16 before touching the DOM. An empty query
+ * returns an empty list, not an error. */
+int32_t bc_find_matches(const char *text, const char *query, int32_t match_case,
+                        int32_t whole_words, int32_t limit, char *buffer,
+                        int32_t capacity, int32_t *needed);
+
 /* ---------------------------------------------------------------- sessions */
 
 /* The session snapshot: every window with its frame, ordered tabs, per-tab URL

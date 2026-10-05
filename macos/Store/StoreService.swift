@@ -470,4 +470,45 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
             reply(payload.data, nil)
         }
     }
+
+    // MARK: Find
+
+    func findMatches(
+        _ text: String,
+        _ query: String,
+        _ matchCase: Int32,
+        _ wholeWords: Int32,
+        _ limit: Int32,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try text.withCString { textPointer in
+                    try query.withCString { queryPointer in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_find_matches(
+                                textPointer,
+                                queryPointer,
+                                matchCase,
+                                wholeWords,
+                                limit,
+                                buffer,
+                                capacity,
+                                needed
+                            )
+                        }, rejecting: [.badInput])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
 }

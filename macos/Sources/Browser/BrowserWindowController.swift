@@ -961,6 +961,36 @@ final class BrowserWindowController: NSWindowController {
         pane(for: tab).presentQRCode(text: url.absoluteString)
     }
 
+    // MARK: - Find in page
+
+    /// Opens the selected tab's find bar. The selected tab is always
+    /// displayed, so unlike the QR card this needs no select-first step.
+    func showFindBar() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        pane(for: tab).showFindBar()
+    }
+
+    /// Steps the selected tab's match forward, opening its bar first.
+    func findNext() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        pane(for: tab).findStep(1)
+    }
+
+    /// Steps the selected tab's match backward, opening its bar first.
+    func findPrevious() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        pane(for: tab).findStep(-1)
+    }
+
     /// Opens the settings modal on this window.
     ///
     /// The single entry point behind all three of them — the toolbar gear, the

@@ -19,6 +19,20 @@ struct WhateverApp: App {
         }
         .commands {
             TabCommands()
+            CommandMenu("Find") {
+                Button("Find in Page…") {
+                    BrowserCoordinator.shared.keyController?.showFindBar()
+                }
+                .keyboardShortcut("f", modifiers: .command)
+                Button("Find Next") {
+                    BrowserCoordinator.shared.keyController?.findNext()
+                }
+                .keyboardShortcut("g", modifiers: .command)
+                Button("Find Previous") {
+                    BrowserCoordinator.shared.keyController?.findPrevious()
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+            }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings\u{2026}") {
                     AppDelegate.presentSettingsOnFrontWindow()

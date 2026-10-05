@@ -26,9 +26,11 @@ import WebKit
 /// page.
 ///
 /// Removals go through `removeAllUserScripts()` because `WKUserContentController`
-/// has no `removeUserScript(_:)`. That is only safe because nothing else in the
-/// app adds scripts; adding one later means this needs to become an
-/// `add`/`remove` pair with the script held.
+/// has no `removeUserScript(_:)`. That call also takes the find-in-page bridge
+/// `WebViewFactory` installs, so every toggle re-adds the bridge first and the
+/// transparency script second: toggling never strips find from future loads.
+/// (A live document keeps its already-evaluated scripts; the list only gates
+/// what future pages start with.)
 @MainActor
 enum PageTransparency {
     /// Marks the style element this installs, so it can find and remove it again
@@ -75,10 +77,10 @@ enum PageTransparency {
         webView.underPageBackgroundColor = enabled ? .clear : .windowBackgroundColor
 
         let controller = webView.configuration.userContentController
+        controller.removeAllUserScripts()
+        controller.addUserScript(FindBridge.script)
         if enabled {
             controller.addUserScript(script)
-        } else {
-            controller.removeAllUserScripts()
         }
         // Step 3. The script only runs on the next load, so the document on
         // screen is fixed separately or the toggle would appear to do nothing

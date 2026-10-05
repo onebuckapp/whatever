@@ -32,6 +32,11 @@ enum WebViewFactory {
                 configuration.userContentController.add(list)
             }
         }
+        // Find-in-page bridge: every page starts with the namespace, whether
+        // or not the bar is open. `PageTransparency` re-adds this whenever it
+        // touches the script list, so toggling transparency never strips it
+        // from future loads.
+        configuration.userContentController.addUserScript(FindBridge.script)
         let webView = BrowserWebView(frame: .zero, configuration: configuration)
         // Read here rather than pushed later, so a page built after the setting
         // changed is already see-through instead of opaque until something else
