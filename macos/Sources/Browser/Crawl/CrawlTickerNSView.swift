@@ -9,6 +9,8 @@ struct CrawlTickerInputs {
     var fontSize: Double
     var backgroundOpacity: Double
     var favicons: [String: NSImage]
+    /// Item separator mark, normalized at the render site.
+    var separator: String
 }
 
 /// The scrolling headline strip, layer-hosted.
@@ -22,8 +24,8 @@ struct CrawlTickerInputs {
 /// Structure: root → background pill + content container (gradient-masked,
 /// inset 12pt like the old padded row) → one strip layer holding the bitmap.
 /// The bitmap always covers the visible width plus one full pass, and the
-/// animation spans exactly one pass width, so the wrap is seamless in both
-/// directions.
+/// loop sweeps the bitmap's full span, reversing at each end instead of
+/// wrapping, so the bar never shows a half-empty strip.
 final class CrawlTickerNSView: NSView {
     /// Horizontal inset of the scrolling content, matching the old row's
     /// `.padding(.horizontal, 12)`.
@@ -38,8 +40,8 @@ final class CrawlTickerNSView: NSView {
     private static let loopKey = "crawlLoop"
 
     var onOpen: ((URL) -> Void)?
-    /// Test hook fired when a loop actually launches, with the pass width and
-    /// the full-pass duration. Nil in production.
+    /// Test hook fired when a loop actually launches, with the sweep span
+    /// and the one-way duration. Nil in production.
     var onLoopStart: ((CGFloat, TimeInterval) -> Void)?
     /// When false the strip stays parked at the loop start for deterministic
     /// snapshots. Tests use this; production always animates.
@@ -47,7 +49,8 @@ final class CrawlTickerNSView: NSView {
 
     private var inputs = CrawlTickerInputs(
         headlines: [], speed: 60, direction: .rightToLeft,
-        fontSize: 12, backgroundOpacity: 0.85, favicons: [:]
+        fontSize: 12, backgroundOpacity: 0.85, favicons: [:],
+        separator: CrawlContent.defaultSeparator
     )
     private var strip: CrawlStrip?
     /// Model offset: the strip layer's left edge in container coordinates.
@@ -56,6 +59,11 @@ final class CrawlTickerNSView: NSView {
     /// Last halt state applied through `setHalted`, so the wrapper only
     /// drives transitions instead of re-pausing every update.
     private(set) var isHalted = false
+    /// Sweep span the in-flight animation covers, for resize healing.
+    private var loopTravel: CGFloat = 0
+    /// Guards resume-leg completions: any pause or restart retires the
+    /// pending one, so a stale completion can never resurrect the loop.
+    private var resumeToken = 0
     /// Appearance the current bitmap was baked in; label colors resolve at
     /// draw time, so an appearance change must re-render.
     private var lastAppearanceName: String = ""
@@ -117,12 +125,18 @@ final class CrawlTickerNSView: NSView {
         let contentChanged = newInputs.headlines != old.headlines
             || newInputs.fontSize != old.fontSize
             || !faviconsEqual(newInputs.favicons, old.favicons)
+            || CrawlContent.normalizedSeparator(newInputs.separator)
+                != CrawlContent.normalizedSeparator(old.separator)
             || appearanceName != lastAppearanceName
         if contentChanged || !coversVisibleWidth {
             renderStrip()
         } else if newInputs.speed != old.speed || newInputs.direction != old.direction {
             startLoop(fromStart: true)
         }
+        // Backstop: if the loop should run but doesn't (a coalesced push, a
+        // start that landed while detached), heal it here rather than
+        // parking silently until the next settings nudge.
+        ensureLoopState()
     }
 
     /// Freezes (`true`) or resumes from the leading edge (`false`) the loop,
@@ -155,7 +169,8 @@ final class CrawlTickerNSView: NSView {
                 fontSize: inputs.fontSize,
                 favicons: inputs.favicons,
                 scale: Self.stripScale,
-                coverWidth: max(1, containerLayer.bounds.width)
+                coverWidth: max(1, containerLayer.bounds.width),
+                separator: inputs.separator
             )
         }
         strip = rendered
@@ -168,10 +183,7 @@ final class CrawlTickerNSView: NSView {
         stripLayer.contents = strip.cgImage
         stripLayer.contentsScale = strip.scale
         stripLayer.bounds = CGRect(origin: .zero, size: strip.size)
-        // The segment runs 0 → -W right-to-left and -W → 0 left-to-right,
-        // so progress subtracts for RTL and adds for LTR.
-        let sign: CGFloat = inputs.direction == .rightToLeft ? -1 : 1
-        offsetX = segmentStart(for: strip.passWidth) + sign * fraction * strip.passWidth
+        offsetX = endPreservingFraction(fraction, travel: currentTravel())
         layoutStrip()
         window?.invalidateCursorRects(for: self)
         if wasAnimating && animateLoop && !isHalted {
@@ -197,9 +209,7 @@ final class CrawlTickerNSView: NSView {
     var loopAnimationForTesting: CABasicAnimation? {
         stripLayer.animation(forKey: Self.loopKey) as? CABasicAnimation
     }
-    var presentationOffsetForTesting: CGFloat? {
-        stripLayer.presentation()?.position.x
-    }    /// Strip layer center in container coordinates. The y half must sit at
+    /// Strip layer center in container coordinates. The y half must sit at
     /// the container mid-height: vertical centering by construction.
     var stripCenterForTesting: CGPoint { stripLayer.position }
 
@@ -217,62 +227,154 @@ final class CrawlTickerNSView: NSView {
         return stripLayer.presentation()?.position.x
     }
 
-    /// Starts (or restarts) the loop. From the leading edge by default;
-    /// resuming from the preserved offset after a re-render keeps the motion
-    /// continuous.
+    /// Starts (or restarts) the loop. From the leading edge by default; from
+    /// the preserved offset after a re-render, gliding through icon pop-ins
+    /// and feed refreshes instead of jumping back to the start.
     func startLoop(fromStart: Bool) {
-        guard animateLoop, !isHalted, let strip, strip.passWidth > 0 else { return }
+        guard animateLoop, !isHalted, strip != nil else { return }
+        let travel = currentTravel()
+        guard travel > 0 else {
+            // The whole strip fits on screen: park at the leading edge with
+            // no animation. Coverage is total by construction, never gappy.
+            stripLayer.removeAnimation(forKey: Self.loopKey)
+            offsetX = travelStart(travel)
+            snapModel()
+            return
+        }
+        resumeToken += 1
+        let token = resumeToken
+        loopTravel = travel
         let speed = max(1, inputs.speed)
         if fromStart {
-            offsetX = segmentStart(for: strip.passWidth)
+            offsetX = travelStart(travel)
         }
-        let end = segmentEnd(for: strip.passWidth, from: offsetX)
+        let end = travelEnd(travel)
+        if offsetX == travelStart(travel) {
+            installPingPong(from: offsetX, to: end, speed: speed)
+        } else {
+            // Resume mid-sweep with a single leg to the turn, then bounce:
+            // autoreverse repeats its own from/to, so a bounce can only
+            // ever start from an endpoint.
+            installLeg(from: offsetX, to: end, speed: speed) { [weak self] in
+                guard let self, token == self.resumeToken,
+                      self.animateLoop, !self.isHalted, self.strip != nil
+                else { return }
+                let turnTravel = self.currentTravel()
+                self.offsetX = self.travelEnd(turnTravel)
+                self.loopTravel = turnTravel
+                self.installPingPong(
+                    from: self.offsetX, to: self.travelStart(turnTravel),
+                    speed: max(1, self.inputs.speed)
+                )
+            }
+        }
+        onLoopStart?(travel, TimeInterval(travel / speed))
+    }
+
+    /// The infinite bounce: sweeps the full span, then reverses at each end
+    /// instead of wrapping, so the bar is never half-empty.
+    private func installPingPong(from: CGFloat, to: CGFloat, speed: Double) {
+        guard strip != nil else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        stripLayer.position.x = offsetX
+        stripLayer.position.x = from
         CATransaction.commit()
         let animation = CABasicAnimation(keyPath: "position.x")
-        animation.fromValue = offsetX
-        animation.toValue = end
-        animation.duration = TimeInterval(abs(end - offsetX) / speed)
+        animation.fromValue = from
+        animation.toValue = to
+        animation.duration = TimeInterval(abs(to - from) / speed)
         animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        animation.autoreverses = true
         animation.repeatCount = .infinity
         stripLayer.add(animation, forKey: Self.loopKey)
-        onLoopStart?(strip.passWidth, TimeInterval(strip.passWidth / speed))
+    }
+
+    /// One sweep, then `completion`. The end state holds instead of snapping
+    /// back, so handing off to the bounce is seamless.
+    private func installLeg(
+        from: CGFloat, to: CGFloat, speed: Double,
+        completion: @escaping () -> Void
+    ) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        stripLayer.position.x = from
+        CATransaction.commit()
+        let animation = CABasicAnimation(keyPath: "position.x")
+        animation.fromValue = from
+        animation.toValue = to
+        animation.duration = TimeInterval(abs(to - from) / speed)
+        animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        animation.isRemovedOnCompletion = false
+        animation.fillMode = .forwards
+        CATransaction.begin()
+        CATransaction.setCompletionBlock(completion)
+        stripLayer.add(animation, forKey: Self.loopKey)
+        CATransaction.commit()
     }
 
     /// Freezes the loop, keeping the current spot in the model so a later
     /// resume continues instead of jumping.
     func pauseLoop() {
+        resumeToken += 1
         if let presentation = stripLayer.presentation() {
             offsetX = presentation.position.x
         }
         stripLayer.removeAnimation(forKey: Self.loopKey)
+        snapModel()
+    }
+
+    private func snapModel() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         stripLayer.position.x = offsetX
         CATransaction.commit()
     }
 
-    /// Completed fraction of the current wrap segment, 0 when parked. Used to
-    /// carry loop progress across re-renders.
+    /// Starts the loop when it should run but doesn't. The backstop behind
+    /// every entry point: enabling the bar, re-attaching it, or any update
+    /// heals a missed start instead of parking silently.
+    private func ensureLoopState() {
+        guard animateLoop, !isHalted, strip != nil, !isLooping else { return }
+        startLoop(fromStart: false)
+    }
+
+    /// Completed fraction of the current sweep, 0 when parked. Used to carry
+    /// loop progress across re-renders and resizes.
     private var loopFraction: Double {
-        guard let strip, strip.passWidth > 0 else { return 0 }
+        guard loopTravel > 0 else { return 0 }
         let current = isLooping ? (stripLayer.presentation()?.position.x ?? offsetX) : offsetX
-        let start = segmentStart(for: strip.passWidth)
+        let start = travelStart(loopTravel)
+        let done: CGFloat
         if inputs.direction == .rightToLeft {
-            return Double(min(1, max(0, (start - current) / strip.passWidth)))
+            done = start - current
         } else {
-            return Double(min(1, max(0, (current - start) / strip.passWidth)))
+            done = current - start
         }
+        return Double(min(1, max(0, done / loopTravel)))
     }
 
-    private func segmentStart(for passWidth: CGFloat) -> CGFloat {
-        inputs.direction == .rightToLeft ? 0 : -passWidth
+    private func containerWidth() -> CGFloat { containerLayer.bounds.width }
+
+    /// Sweep span: bitmap width minus visible width. Zero means the whole
+    /// strip fits on screen and nothing moves.
+    private func currentTravel() -> CGFloat {
+        guard let strip else { return 0 }
+        return max(0, strip.size.width - containerWidth())
     }
 
-    private func segmentEnd(for passWidth: CGFloat, from: CGFloat) -> CGFloat {
-        inputs.direction == .rightToLeft ? from - passWidth : from + passWidth
+    private func travelStart(_ travel: CGFloat) -> CGFloat {
+        inputs.direction == .rightToLeft ? 0 : -travel
+    }
+
+    private func travelEnd(_ travel: CGFloat) -> CGFloat {
+        inputs.direction == .rightToLeft ? -travel : 0
+    }
+
+    /// Maps a completed fraction onto a fresh span, direction-aware: the
+    /// sweep runs 0 → −travel right-to-left and −travel → 0 left-to-right.
+    private func endPreservingFraction(_ fraction: Double, travel: CGFloat) -> CGFloat {
+        let sign: CGFloat = inputs.direction == .rightToLeft ? -1 : 1
+        return travelStart(travel) + sign * CGFloat(fraction) * travel
     }
 
     // MARK: - Layout
@@ -293,8 +395,21 @@ final class CrawlTickerNSView: NSView {
         if !coversVisibleWidth, strip != nil {
             renderStrip()
         } else {
+            // A resized bar changes the sweep span: carry progress onto the
+            // fresh span instead of turning around at a stale edge (or past
+            // the bitmap, which would flash empty). Height-only changes keep
+            // their span and skip this entirely.
+            if strip != nil, isLooping {
+                let newTravel = currentTravel()
+                if abs(newTravel - loopTravel) > 0.5 {
+                    let fraction = loopFraction
+                    offsetX = endPreservingFraction(fraction, travel: newTravel)
+                    startLoop(fromStart: false)
+                }
+            }
             layoutStrip()
         }
+        ensureLoopState()
     }
 
     /// The bitmap covers the visible width plus one wrap pass; only growing
@@ -346,6 +461,16 @@ final class CrawlTickerNSView: NSView {
         updateBackground()
         // Label/secondary colors bake into the bitmap: re-render frozen.
         renderStrip()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // Every show path ends here: (re-)attaching is where a loop added
+        // while detached starts ticking, so enabling the bar scrolls
+        // automatically with no settings nudge.
+        if window != nil {
+            ensureLoopState()
+        }
     }
 
     private func faviconsEqual(_ a: [String: NSImage], _ b: [String: NSImage]) -> Bool {

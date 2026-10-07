@@ -269,6 +269,47 @@ struct SettingsButtonRow<Accessory: View>: View {
     }
 }
 
+/// A labelled short-text field, for marks and names that fit a few glyphs.
+///
+/// Clamps live to `maxCharacters` grapheme clusters, so an emoji or composed
+/// character counts as one and pasting a sentence cannot overflow the bound.
+/// Empty input stays empty while typing; readers normalize it back to their
+/// default, so clearing the field previews as the default mark.
+struct SettingsTextRow: View {
+    let title: String
+    var subtitle: String?
+    @Binding var text: String
+    var maxCharacters: Int = 2
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12))
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 12)
+            TextField("", text: $text)
+                .multilineTextAlignment(.trailing)
+                .font(.system(size: 12))
+                .frame(width: 64)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+                .onChange(of: text) { _, new in
+                    if new.count > maxCharacters {
+                        text = String(new.prefix(maxCharacters))
+                    }
+                }
+        }
+        .padding(.vertical, 3)
+    }
+}
+
 /// Filler for a section that has nothing to show yet.
 ///
 /// Says what is missing rather than rendering an empty pane, so an unimplemented

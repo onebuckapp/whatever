@@ -21,25 +21,49 @@ struct CrawlHeadline: Hashable, Sendable, Identifiable {
 /// The ticker renders `site: title` items separated by a visible delimiter:
 /// `website.com: Lorem ipsum   |   website.org: Something is happening`.
 enum CrawlContent {
+    /// Fallback mark when the stored separator is empty or whitespace-only.
+    static let defaultSeparator = "|"
+    /// Maximum separator length in user-perceived characters, so `•`, `››`,
+    /// and emoji alike fit the 1–2 mark the settings input promises.
+    static let maxSeparatorLength = 2
     /// Visible separator between items in the joined ticker string.
-    static let delimiter = "   |   "
+    static let delimiter = delimiter(separator: defaultSeparator)
     /// Maximum headlines carried in one ticker pass.
     static let maxItems = 50
     /// Titles longer than this are cut with an ellipsis so one verbose feed
     /// cannot dominate the loop.
     static let maxTitleLength = 140
 
-    /// Builds ticker-ready headlines from feed rows: newest first, empties
-    /// dropped, duplicates collapsed to their newest occurrence.
+    /// Normalizes a stored separator: the first two grapheme clusters, or
+    /// the default mark when nothing visible remains. Grapheme-based so a
+    /// composed `é` or an emoji counts as one character, not several scalars.
+    static func normalizedSeparator(_ raw: String) -> String {
+        let mark = String(raw.prefix(maxSeparatorLength))
+        return mark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? defaultSeparator : mark
+    }
+
+    /// Builds the padded item delimiter (`"   |   "`) around the mark, so a
+    /// custom separator keeps the same breathing room as the default.
+    static func delimiter(separator: String) -> String {
+        "   \(normalizedSeparator(separator))   "
+    }
+
+    /// Builds ticker-ready headlines from feed rows.
+    ///
+    /// Newest first within each feed, duplicates collapsed to their newest
+    /// occurrence, then feeds interleaved round-robin so one prolific source
+    /// cannot crowd the rest past `maxItems`. Several feeds scramble into a
+    /// fresh random order on every build; a lone feed keeps chronological
+    /// order, which is the only order it has.
     static func headlines(
         from articles: [FeedArticleSummary],
         maxItems: Int = maxItems
     ) -> [CrawlHeadline] {
         var seen = Set<String>()
-        var out: [CrawlHeadline] = []
-        out.reserveCapacity(min(articles.count, maxItems))
+        var ranked: [CrawlHeadline] = []
+        ranked.reserveCapacity(min(articles.count, maxItems))
         for article in articles.sorted(by: { $0.publishedAt > $1.publishedAt }) {
-            guard out.count < maxItems else { break }
             let site = cleanFragment(article.displaySite)
             var title = cleanFragment(article.displayTitle)
             guard !title.isEmpty else { continue }
@@ -47,7 +71,7 @@ enum CrawlContent {
             // Duplicates compare case-insensitively on the cleaned title, so
             // "Foo" re-published by an aggregator does not appear twice.
             guard seen.insert(title.lowercased()).inserted else { continue }
-            out.append(CrawlHeadline(
+            ranked.append(CrawlHeadline(
                 articleID: article.articleID,
                 site: site,
                 title: title,
@@ -56,7 +80,33 @@ enum CrawlContent {
                 publishedAt: article.publishedAt
             ))
         }
-        return out
+        // Group by owning feed in first-seen (newest-item) order.
+        var groups: [[CrawlHeadline]] = []
+        var indexByFeed: [String: Int] = [:]
+        for headline in ranked {
+            if let index = indexByFeed[headline.feedURL] {
+                groups[index].append(headline)
+            } else {
+                indexByFeed[headline.feedURL] = groups.count
+                groups.append([headline])
+            }
+        }
+        // Round-robin across feeds up to the cap: every subscription stays
+        // represented no matter how uneven the publishing rates are.
+        var out: [CrawlHeadline] = []
+        out.reserveCapacity(min(ranked.count, maxItems))
+        var round = 0
+        var progressed = true
+        while out.count < maxItems, progressed {
+            progressed = false
+            for group in groups where round < group.count {
+                out.append(group[round])
+                progressed = true
+                if out.count >= maxItems { break }
+            }
+            round += 1
+        }
+        return groups.count > 1 ? out.shuffled() : out
     }
 
     /// Renders one item as `site: title`, or bare `title` when the feed
@@ -67,8 +117,12 @@ enum CrawlContent {
 
     /// Joins headlines into the single scrolling string. Empty input yields
     /// `""`, which is the store's signal to hide the bar.
-    static func tickerText(for headlines: [CrawlHeadline]) -> String {
-        headlines.map { itemText(site: $0.site, title: $0.title) }.joined(separator: delimiter)
+    static func tickerText(
+        for headlines: [CrawlHeadline],
+        separator: String = defaultSeparator
+    ) -> String {
+        headlines.map { itemText(site: $0.site, title: $0.title) }
+            .joined(separator: delimiter(separator: separator))
     }
 
     /// Collapses all whitespace and control characters (newlines, tabs,

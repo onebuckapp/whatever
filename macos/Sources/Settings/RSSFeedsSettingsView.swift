@@ -127,6 +127,12 @@ struct RSSFeedsSettingsView: View {
                     step: 0.05,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
+                SettingsTextRow(
+                    title: "Separator",
+                    subtitle: "1–2 characters shown between headlines.",
+                    text: settings.binding(\.feeds.crawlSeparator),
+                    maxCharacters: CrawlContent.maxSeparatorLength
+                )
             }
 
             SettingsGroup(

@@ -43,6 +43,19 @@ final class CrawlStore: ObservableObject {
                 self?.faviconImages = images
             }
             .store(in: &refreshCancellables)
+        // The subscription set is the crawl's content: adding the first feed
+        // or removing the last one (including Remove everything) must update
+        // the bar even when no refresh runs. The `dropFirst` skips the
+        // publisher's initial value, which predates any change.
+        readerStore.$subscriptions
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.load()
+                }
+            }
+            .store(in: &refreshCancellables)
         // A finished reader refresh may have changed what is persisted, so the
         // next completed pass reloads the crawl. The `dropFirst` skips the
         // publisher's initial value, which predates any refresh.

@@ -313,6 +313,10 @@ struct AppSettings: Codable, Equatable {
         /// Text itself always uses the system label color, so Light and Dark
         /// Mode keep working without stored colors.
         var crawlBackgroundOpacity: Double = 0.85
+        /// Mark shown between headlines in the crawl bar, 1–2 characters.
+        /// Normalized on read (see `CrawlContent`), so older or hand-edited
+        /// documents can never wedge the strip on an empty separator.
+        var crawlSeparator: String = "|"
     }
 
     /// Scroll direction of the headline crawl bar.

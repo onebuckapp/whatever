@@ -33,7 +33,8 @@ struct CrawlTickerRenderTests {
             direction: .rightToLeft,
             fontSize: 12,
             backgroundOpacity: 0.85,
-            favicons: [:]
+            favicons: [:],
+            separator: "|"
         )
     }
 
@@ -41,11 +42,13 @@ struct CrawlTickerRenderTests {
         _ headlines: [CrawlHeadline],
         fontSize: CGFloat = 12,
         favicons: [String: NSImage] = [:],
-        coverWidth: CGFloat = 800
+        coverWidth: CGFloat = 800,
+        separator: String = "|"
     ) -> CrawlStrip? {
         CrawlStripRenderer.render(
             headlines: headlines, fontSize: fontSize,
-            favicons: favicons, scale: 2, coverWidth: coverWidth
+            favicons: favicons, scale: 2, coverWidth: coverWidth,
+            separator: separator
         )
     }
 
@@ -151,6 +154,19 @@ struct CrawlTickerRenderTests {
         #expect(hit?.articleID == 1, "icon item no longer maps to its headline")
     }
 
+    @Test("a custom separator changes the rendered strip")
+    func separatorChangesPixels() {
+        func bytes(separator: String) -> [UInt8] {
+            guard let strip = render(sampleHeadlines(), separator: separator),
+                  let data = strip.bitmap.bitmapData
+            else { return [] }
+            let count = strip.bitmap.pixelsWide * strip.bitmap.pixelsHigh
+                * strip.bitmap.bitsPerPixel / 8
+            return (0..<count).map { data[$0] }
+        }
+        #expect(bytes(separator: "|") != bytes(separator: "•"), "separator did not change the strip")
+    }
+
     @Test("click mapping finds headlines, including across the wrap")
     func clickMapping() {
         guard let strip = render(sampleHeadlines()) else {
@@ -211,6 +227,7 @@ struct CrawlTickerRenderTests {
             return
         }
         #expect(animation.repeatCount == .infinity, "loop does not repeat forever")
+        #expect(animation.autoreverses, "loop wraps instead of bouncing at the ends")
         #expect(
             animation.timingFunction == CAMediaTimingFunction(name: .linear),
             "loop is not linear: speed would breathe"
@@ -219,17 +236,42 @@ struct CrawlTickerRenderTests {
             Issue.record("view rendered no strip")
             return
         }
-        let expected = TimeInterval(strip.passWidth / 60)
+        // One-way sweep duration: full bitmap span minus the visible width,
+        // at the configured speed.
+        let travel = strip.size.width - (800 - 2 * CrawlTickerNSView.horizontalInset)
+        #expect(travel > 100, "sweep span implausibly short")
+        let expected = TimeInterval(travel / 60)
         #expect(
             abs(animation.duration - expected) < 0.05,
-            "loop duration \(animation.duration)s != passWidth/speed \(expected)s"
+            "loop duration \(animation.duration)s != sweep/speed \(expected)s"
         )
         // Scrub the layer timeline 0.4s: at 60pt/s right-to-left the strip
-        // must sit 24pt into the loop. No view code runs per frame — the
+        // must sit 24pt into the sweep. No view code runs per frame — the
         // offset is pure interpolation, which is the whole performance bet.
         let moved = view.stepLoopForTesting(seconds: 0.4)
         #expect(moved != nil, "loop did not install an animatable presentation")
         #expect(abs((moved ?? 0) - (-24)) < 1, "loop offset after 0.4s is \(String(describing: moved)), want -24")
+    }
+
+    @Test("loop reverses at the end instead of wrapping")
+    @MainActor
+    func loopReversesAtEnd() {
+        let (view, _) = makeWindowedView()
+        guard let strip = view.stripForTesting else {
+            Issue.record("view rendered no strip")
+            return
+        }
+        let travel = strip.size.width - (800 - 2 * CrawlTickerNSView.horizontalInset)
+        let leg = travel / 60
+        view.startLoop(fromStart: true)
+        // Scrub to the very end of the first sweep: the far edge must sit
+        // exactly on screen, never past the bitmap (no half-empty bar).
+        let atEnd = view.stepLoopForTesting(seconds: leg)
+        #expect(atEnd != nil, "loop did not install an animatable presentation")
+        #expect(abs((atEnd ?? 0) - (-travel)) < 2, "sweep end at \(String(describing: atEnd)), want \(-travel)")
+        // 2.5 sweeps in: past the turn and halfway back — the bounce.
+        let back = view.stepLoopForTesting(seconds: 2.5 * leg)
+        #expect(abs((back ?? 0) - (-travel / 2)) < 2, "after the turn at \(String(describing: back)), want \(-travel / 2)")
     }
 
     @Test("halt freezes the offset in place")

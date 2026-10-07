@@ -15,11 +15,12 @@ struct CrawlContentTests {
         title: String,
         site: String = "website.com",
         publishedAt: Int64 = 1_700_000_000,
-        url: String = "https://website.com/a"
+        url: String = "https://website.com/a",
+        feedURL: String = "https://website.com/feed"
     ) -> [String: Any] {
         [
             "id": id,
-            "feedURL": "https://website.com/feed",
+            "feedURL": feedURL,
             "guid": "g\(id)",
             "url": url,
             "title": title,
@@ -46,6 +47,27 @@ struct CrawlContentTests {
         ]))
         #expect(CrawlContent.tickerText(for: headlines)
             == "website.com: Lorem ipsum dolor sit amet   |   website.org: Something is happening")
+    }
+
+    @Test("separator normalizes to at most two visible characters")
+    func separatorNormalization() {
+        #expect(CrawlContent.normalizedSeparator("|") == "|")
+        #expect(CrawlContent.normalizedSeparator("››") == "››")
+        #expect(CrawlContent.normalizedSeparator("•••") == "••")
+        #expect(CrawlContent.normalizedSeparator("📰") == "📰")
+        #expect(CrawlContent.normalizedSeparator("") == "|")
+        #expect(CrawlContent.normalizedSeparator("   ") == "|")
+    }
+
+    @Test("custom separator pads like the default and joins items")
+    func customSeparatorJoin() {
+        #expect(CrawlContent.delimiter(separator: "•") == "   •   ")
+        let headlines = CrawlContent.headlines(from: articles([
+            row(id: 1, title: "Lorem ipsum", publishedAt: 2),
+            row(id: 2, title: "Dolor sit", publishedAt: 1),
+        ]))
+        #expect(CrawlContent.tickerText(for: headlines, separator: "•")
+            == "website.com: Lorem ipsum   •   website.com: Dolor sit")
     }
 
     @Test("empty feed list yields no text, the bar's hide signal")
@@ -111,6 +133,43 @@ struct CrawlContentTests {
     func maxItems() {
         let rows = (1...120).map { row(id: Int64($0), title: "Story \($0)", publishedAt: Int64($0)) }
         #expect(CrawlContent.headlines(from: articles(rows)).count == CrawlContent.maxItems)
+    }
+
+    @Test("a prolific feed cannot crowd other feeds past the cap")
+    func interleavesFeeds() {
+        let rows = [
+            row(id: 1, title: "Fast one", publishedAt: 300, feedURL: "https://fast.com/feed"),
+            row(id: 2, title: "Fast two", publishedAt: 200, feedURL: "https://fast.com/feed"),
+            row(id: 3, title: "Slow one", publishedAt: 100, feedURL: "https://slow.org/feed"),
+        ]
+        // Cap of 2 with pure newest-first would keep both fast items and
+        // drop the slow feed entirely.
+        let headlines = CrawlContent.headlines(from: articles(rows), maxItems: 2)
+        #expect(headlines.count == 2)
+        let feeds: Set<String> = Set(headlines.map { $0.feedURL })
+        #expect(feeds == ["https://fast.com/feed", "https://slow.org/feed"])
+    }
+
+    @Test("several feeds scramble into a mixed order")
+    func scramblesMultipleFeeds() {
+        var rows: [[String: Any]] = []
+        for i in 1...6 {
+            let feed = i % 2 == 0 ? "https://even.com/feed" : "https://odd.org/feed"
+            rows.append(row(id: Int64(i), title: "Story \(i)", publishedAt: Int64(100 + i), feedURL: feed))
+        }
+        // Set preserved: the same six stories, both feeds represented.
+        let headlines = CrawlContent.headlines(from: articles(rows))
+        #expect(headlines.count == 6)
+        let titles: Set<String> = Set(headlines.map { $0.title })
+        #expect(titles == ["Story 1", "Story 2", "Story 3", "Story 4", "Story 5", "Story 6"])
+        let feeds: Set<String> = Set(headlines.map { $0.feedURL })
+        #expect(feeds.count == 2)
+        // A lone feed keeps chronological order: nothing to scramble with.
+        let solo = CrawlContent.headlines(from: articles([
+            row(id: 1, title: "Old", publishedAt: 100),
+            row(id: 2, title: "New", publishedAt: 300),
+        ]))
+        #expect(solo.map(\.title) == ["New", "Old"])
     }
 
     @Test("scroll direction round-trips through settings storage")

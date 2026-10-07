@@ -59,7 +59,8 @@ enum CrawlStripRenderer {
         fontSize: CGFloat,
         favicons: [String: NSImage],
         scale: CGFloat,
-        coverWidth: CGFloat
+        coverWidth: CGFloat,
+        separator: String = CrawlContent.defaultSeparator
     ) -> CrawlStrip? {
         guard !headlines.isEmpty, fontSize > 0, scale > 0 else { return nil }
         let renderScale = scale
@@ -76,7 +77,7 @@ enum CrawlStripRenderer {
         let lineHeight = ceil((("Ag" as NSString).size(withAttributes: titleAttrs)).height)
         let iconPx = iconSize * renderScale
         let stripPxH = max(lineHeight, ceil(iconPx))
-        let delimiter = CrawlContent.delimiter as NSString
+        let delimiter = CrawlContent.delimiter(separator: separator) as NSString
         let delimiterWidth = delimiter.size(withAttributes: secondaryAttrs).width
 
         struct MeasuredItem {
@@ -119,7 +120,8 @@ enum CrawlStripRenderer {
                 // affects strips far wider than any window.
                 return render(
                     headlines: headlines, fontSize: fontSize,
-                    favicons: favicons, scale: 1, coverWidth: coverWidth
+                    favicons: favicons, scale: 1, coverWidth: coverWidth,
+                    separator: separator
                 )
             }
             passes = max(1, Int(maxPxW / passWidthPx))

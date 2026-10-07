@@ -14,6 +14,8 @@ struct CrawlTickerView: NSViewRepresentable {
     var direction: AppSettings.CrawlDirection
     var fontSize: Double
     var backgroundOpacity: Double
+    /// Mark shown between headlines, 1–2 characters. Normalized at render.
+    var separator: String = CrawlContent.defaultSeparator
     /// Favicons keyed by feed URL. Items with a cached icon show it instead
     /// of the site name; items without one fall back to `site: title` text
     /// so no headline ever renders as a bare gap.
@@ -26,8 +28,8 @@ struct CrawlTickerView: NSViewRepresentable {
     /// this before detaching the bar so no repeat-forever animation is live
     /// while the hosting view leaves the hierarchy.
     var haltLoop = false
-    /// Test hook fired when a loop actually launches, with the measured pass
-    /// width and the computed duration. Nil in production.
+    /// Test hook fired when a loop actually launches, with the sweep span
+    /// and the one-way duration. Nil in production.
     var onLoopStart: ((CGFloat, TimeInterval) -> Void)?
 
     /// Follows Dynamic Type: a base of 1 scaled by the system text size, so
@@ -58,7 +60,8 @@ struct CrawlTickerView: NSViewRepresentable {
             direction: direction,
             fontSize: fontSize * typeScale,
             backgroundOpacity: backgroundOpacity,
-            favicons: favicons
+            favicons: favicons,
+            separator: separator
         )
     }
 

@@ -55,14 +55,18 @@ final class CrawlBarController {
     /// Signature of the last pushed root view. Pushes only happen on change:
     /// every slider tick emits settings, and rebuilding the hosted hierarchy
     /// per tick would restart layout and animation work for identical input.
-    private var lastPush: (
-        headlines: [CrawlHeadline],
-        speed: Double,
-        direction: AppSettings.CrawlDirection,
-        fontSize: Double,
-        opacity: Double,
-        faviconKeys: Set<String>
-    )?
+    /// A struct rather than a tuple: tuples lose `==` past six elements.
+    private struct PushSignature: Equatable {
+        var headlines: [CrawlHeadline]
+        var speed: Double
+        var direction: AppSettings.CrawlDirection
+        var fontSize: Double
+        var opacity: Double
+        var separator: String
+        var faviconKeys: Set<String>
+    }
+
+    private var lastPush: PushSignature?
 
     private static let sideMargin: CGFloat = 6
     private static let bottomMargin: CGFloat = 6
@@ -110,12 +114,13 @@ final class CrawlBarController {
             // hosted view, but only when something actually changed. The
             // onOpen closure is fresh every time by construction and is not
             // part of the comparison.
-            let signature = (
+            let signature = PushSignature(
                 headlines: store.headlines,
                 speed: feeds.crawlSpeed,
                 direction: feeds.crawlDirection,
                 fontSize: feeds.crawlFontSize,
                 opacity: feeds.crawlBackgroundOpacity,
+                separator: feeds.crawlSeparator,
                 faviconKeys: Set(store.faviconImages.keys)
             )
             if lastPush.map({ $0 != signature }) ?? true {
@@ -184,6 +189,7 @@ final class CrawlBarController {
             direction: feeds.crawlDirection,
             fontSize: feeds.crawlFontSize,
             backgroundOpacity: feeds.crawlBackgroundOpacity,
+            separator: feeds.crawlSeparator,
             favicons: store.faviconImages,
             onOpen: { [weak self] url in self?.onOpenArticle?(url) }
         )
