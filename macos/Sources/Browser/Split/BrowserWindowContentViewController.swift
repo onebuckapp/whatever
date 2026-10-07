@@ -112,7 +112,7 @@ final class BrowserWindowContentViewController: NSViewController {
         // on top and stays interactive while everything under the shield
         // (page, tab bar, drop preview) goes inert. It also catches
         // clicks in the areas Mijick's own backdrop does not cover.
-        installShield { [weak self] in
+        claimShield(id: "noise", dismissOnPress: true) { [weak self] in
             Task { @MainActor in
                 self?.dismissNoiseSettings()
             }
@@ -133,8 +133,8 @@ final class BrowserWindowContentViewController: NSViewController {
     ///
     /// Same shape as the grain card: shield first so everything underneath goes
     /// inert, then the popup host on top of it, and one teardown path for every
-    /// way out. The two dialogs are mutually exclusive because both claim the
-    /// shield.
+    /// way out. Cards share the shield by claim, so settings can sit over a
+    /// pane popup (or vice versa) without either losing its cover.
     func presentSettings(section: SettingsSection = .general) {
         guard isViewLoaded else { return }
         if settingsPresenter != nil {
@@ -147,7 +147,7 @@ final class BrowserWindowContentViewController: NSViewController {
         // through the host and the deafened page down to this shield. Firing
         // on that lone release would dismiss the card the user was dragging
         // inside of, so only a press and release both on the shield count.
-        installShield(dismissOnPress: false) { [weak self] in
+        claimShield(id: "settings", dismissOnPress: false) { [weak self] in
             Task { @MainActor in
                 self?.dismissSettings()
             }
@@ -167,7 +167,7 @@ final class BrowserWindowContentViewController: NSViewController {
 
     private func clearSettings() {
         settingsPresenter = nil
-        removeShield()
+        releaseShield(id: "settings")
         noiseOverlay?.moveToFront()
     }
 
@@ -209,10 +209,10 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Opens the per-site content-blocker card for `tab`, or closes it when
     /// already open.
     ///
-    /// No shield goes in for this one: the card is transient and the page
-    /// stays interactive underneath, like the QR card. The host is the
-    /// tab's http(s) host, or nil for pages without one, where the card
-    /// shows itself as having nothing to except.
+    /// Shielded like every other card: a click over the page must reach the
+    /// shield (dismissing the card), never the `WKWebView` underneath. The
+    /// host is the tab's http(s) host, or nil for pages without one, where
+    /// the card shows itself as having nothing to except.
     func presentAdBlockPopup(for tab: BrowserTab) {
         guard isViewLoaded else { return }
         if adBlockPresenter != nil {
@@ -233,11 +233,17 @@ final class BrowserWindowContentViewController: NSViewController {
         }()
         let presenter = AdBlockPopupPresenter(container: view) { [weak self] in
             self?.adBlockPresenter = nil
+            self?.releaseShield(id: "adblock")
         } onManage: { [weak self] in
             self?.presentSettings(section: .contentBlocker)
         }
         presenter.present(host: host)
         adBlockPresenter = presenter
+        if presenter.isPresented {
+            claimShield(id: "adblock", dismissOnPress: true) { [weak self] in
+                self?.dismissAdBlockPopup()
+            }
+        }
     }
 
     func dismissAdBlockPopup() {
@@ -253,7 +259,7 @@ final class BrowserWindowContentViewController: NSViewController {
 
     private func clearNoiseSettings() {
         noiseSettingsPresenter = nil
-        removeShield()
+        releaseShield(id: "noise")
         noiseOverlay?.moveToFront()
     }
 
@@ -263,32 +269,70 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Both halves matter and neither is sufficient alone: the shield is a plain
     /// view that consumes presses, but a `WKWebView` underneath keeps tracking the
     /// pointer for hover whether or not anything is intercepting clicks.
-    private func installShield(onClick: @escaping () -> Void) {
-        installShield(dismissOnPress: true, onClick: onClick)
-    }
-
-    /// Covers the page so nothing under a card can be clicked, and tells the
-    /// window that its pages have to go inert with it.
     ///
-    /// Both halves matter and neither is sufficient alone: the shield is a plain
-    /// view that consumes presses, but a `WKWebView` underneath keeps tracking the
-    /// pointer for hover whether or not anything is intercepting clicks.
-    private func installShield(dismissOnPress: Bool, onClick: @escaping () -> Void) {
-        shield?.removeFromSuperview()
-        // Below the toolbar, so navigation and the address bar keep working while
-        // a card is up. The native toolbar used to sit outside the content view
-        // entirely and was left interactive by default; now it is in here, so the
-        // ordering has to be asked for.
-        let installed = ModalEventShieldView.install(in: view, below: toolbarView, onClick: onClick)
-        installed.dismissOnPress = dismissOnPress
-        shield = installed
-        onShieldChanged?(true)
+    /// Claims stack frontmost-last: several cards can be up at once (a file
+    /// popup in one split pane, downloads in another), and the single shield
+    /// view serves them all. A click on the shield dismisses the frontmost
+    /// card; the view and the inert callback only toggle on the empty
+    /// transition, so coexisting cards never steal each other's cover.
+    private struct ShieldClaim {
+        let id: String
+        var dismissOnPress: Bool
+        var onDismiss: () -> Void
     }
 
-    /// Takes the shield back out and hands the mouse back to the pages. Guarded so
-    /// the teardown paths can all call it without having to know whether they are
-    /// the first one out.
-    private func removeShield() {
+    private var shieldClaims: [ShieldClaim] = []
+
+    /// Claims the modal shield for a card. Re-claiming moves to the front.
+    /// The `onDismiss` runs when a shield click reaches this claim while it
+    /// is frontmost — it must dismiss the card, which releases the claim.
+    /// Below the toolbar, so navigation and the address bar keep working while
+    /// a card is up.
+    func claimShield(id: String, dismissOnPress: Bool, onDismiss: @escaping () -> Void) {
+        shieldClaims.removeAll { $0.id == id }
+        shieldClaims.append(ShieldClaim(id: id, dismissOnPress: dismissOnPress, onDismiss: onDismiss))
+        if shield == nil {
+            let installed = ModalEventShieldView.install(in: view, below: toolbarView) { [weak self] in
+                self?.dismissTopShieldClaim()
+            }
+            shield = installed
+            onShieldChanged?(true)
+        }
+        refreshShieldTop()
+    }
+
+    /// Releases a card's claim. Unknown ids are no-ops, so every teardown
+    /// path can call this without knowing whether it is the first one out.
+    func releaseShield(id: String) {
+        guard shieldClaims.contains(where: { $0.id == id }) else { return }
+        shieldClaims.removeAll { $0.id == id }
+        if shieldClaims.isEmpty {
+            removeShieldView()
+        } else {
+            refreshShieldTop()
+        }
+    }
+
+    /// The frontmost claim owns the press behavior: a card that dismisses on
+    /// a bare press must not inherit another card's press-and-release rule.
+    private func refreshShieldTop() {
+        shield?.dismissOnPress = shieldClaims.last?.dismissOnPress ?? true
+    }
+
+    private func dismissTopShieldClaim() {
+        guard let top = shieldClaims.popLast() else { return }
+        if shieldClaims.isEmpty {
+            removeShieldView()
+        } else {
+            refreshShieldTop()
+        }
+        top.onDismiss()
+    }
+
+    /// Takes the shield back out and hands the mouse back to the pages.
+    /// Guarded so the teardown paths can all call it without having to know
+    /// whether they are the first one out.
+    private func removeShieldView() {
         guard shield != nil else { return }
         shield?.removeFromSuperview()
         shield = nil

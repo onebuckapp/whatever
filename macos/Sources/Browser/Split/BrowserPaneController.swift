@@ -139,10 +139,16 @@ final class BrowserPaneController: NSViewController {
         }
         let presenter = FileBrowserPresenter(container: view, area: pageContainer) { [weak self] in
             self?.fileBrowserPresenter = nil
+            self?.releasePopupShield(id: "file-browser")
         }
         fileBrowserPresenter = presenter
         presenter.present(directory: url.path) { [weak self] fileURL in
             self?.tab.navigate(to: fileURL)
+        }
+        if presenter.isPresented {
+            claimPopupShield(id: "file-browser") { [weak self] in
+                self?.dismissFileBrowser()
+            }
         }
     }
 
@@ -174,10 +180,16 @@ final class BrowserPaneController: NSViewController {
         }
         let presenter = DownloadsPresenter(container: view, area: pageContainer) { [weak self] in
             self?.downloadsPresenter = nil
+            self?.releasePopupShield(id: "downloads")
         }
         downloadsPresenter = presenter
         presenter.present { [weak self] url in
             self?.tab.navigate(to: url)
+        }
+        if presenter.isPresented {
+            claimPopupShield(id: "downloads") { [weak self] in
+                self?.dismissDownloads()
+            }
         }
     }
 
@@ -192,6 +204,20 @@ final class BrowserPaneController: NSViewController {
         guard let downloadsPresenter, downloadsPresenter.isPresented else { return false }
         downloadsPresenter.refresh()
         return true
+    }
+
+    /// Claims the window shield for a popup hosted by this pane. The window
+    /// owns the one shield view (it must sit below the toolbar), so the pane
+    /// reaches it through the window controller; a missing window means the
+    /// pane is detached and there is nothing to cover.
+    private func claimPopupShield(id: String, dismiss: @escaping () -> Void) {
+        guard let window = view.window else { return }
+        BrowserCoordinator.shared.controller(for: window)?.claimPopupShield(id: id, onDismiss: dismiss)
+    }
+
+    private func releasePopupShield(id: String) {
+        guard let window = view.window else { return }
+        BrowserCoordinator.shared.controller(for: window)?.releasePopupShield(id: id)
     }
 
     // MARK: - Find in page

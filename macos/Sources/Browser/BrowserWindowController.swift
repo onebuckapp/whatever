@@ -1050,6 +1050,19 @@ final class BrowserWindowController: NSWindowController {
         }
     }
 
+    /// Claims the window's modal shield for a pane popup (file browser,
+    /// downloads). One shield serves the whole window by claim, so coexisting
+    /// pane cards never steal each other's cover; a shield click dismisses
+    /// the frontmost card.
+    func claimPopupShield(id: String, onDismiss: @escaping () -> Void) {
+        contentController.claimShield(id: id, dismissOnPress: true, onDismiss: onDismiss)
+    }
+
+    /// Releases a pane popup's shield claim. Unknown ids are no-ops.
+    func releasePopupShield(id: String) {
+        contentController.releaseShield(id: id)
+    }
+
     // MARK: - Find in page
 
     /// Opens the selected tab's find bar. The selected tab is always
