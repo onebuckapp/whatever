@@ -411,7 +411,7 @@ final class BrowserWindowController: NSWindowController {
             self?.handleSplitDrop(of: tab, zone: zone)
         }
         toolbarController.onAddressSubmitted = { [weak self] url in
-            self?.selectedTab?.navigate(to: url)
+            self?.openAddress(url)
         }
         toolbarController.onSettings = { [weak self] in
             self?.presentSettings()
@@ -532,6 +532,7 @@ final class BrowserWindowController: NSWindowController {
         guard tabs.contains(where: { $0.id == tab.id }) else { return }
 
         dismissQRCode()
+        dismissFileBrowser()
 
         selectedTabID = tab.id
         activeModel.activeTabID = tab.id
@@ -947,6 +948,7 @@ final class BrowserWindowController: NSWindowController {
     private func webViewReplaced(for tab: BrowserTab) {
         guard tabs.contains(where: { $0.id == tab.id }) else { return }
         dismissQRCode()
+        dismissFileBrowser()
         if let pane = paneCache.removeValue(forKey: tab.id) {
             contentController.forgetChild(pane)
         }
@@ -976,6 +978,59 @@ final class BrowserWindowController: NSWindowController {
             selectTab(tab)
         }
         pane(for: tab).presentQRCode(text: url.absoluteString)
+    }
+
+    // MARK: - Local files
+
+    /// Opens an address from the address bar. `file://` directories open the
+    /// native browser popup over the current page instead of navigating:
+    /// WebKit's own directory listing is what this replaces, and a listing
+    /// is browsed, not visited, so it takes no history entry. Everything
+    /// else — including `file://` files, which WebKit renders — navigates
+    /// the selected tab as before.
+    func openAddress(_ url: URL) {
+        if Self.isFileDirectory(url) {
+            guard let tab = selectedTab else {
+                SystemBeep.play()
+                return
+            }
+            pane(for: tab).presentFileBrowser(url: url)
+            return
+        }
+        selectedTab?.navigate(to: url)
+    }
+
+    /// Whether `url` names a directory on this machine. Synchronous
+    /// `FileManager` rather than a core round trip: the app is unsandboxed,
+    /// and routing only needs the kind, not the contents.
+    static func isFileDirectory(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "file" else { return false }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+            return false
+        }
+        return isDirectory.boolValue
+    }
+
+    /// Opens a clicked `file://` link for the tab that owns the click:
+    /// directories in that tab's popup, files through the tab so they render
+    /// with history. Split from `openAddress`, where only the selection is
+    /// known rather than the tab.
+    func openFileLink(_ url: URL, for tab: BrowserTab) {
+        if Self.isFileDirectory(url) {
+            pane(for: tab).presentFileBrowser(url: url)
+            return
+        }
+        tab.navigate(to: url)
+    }
+
+    /// Closes every open file browser, used when the layout or selection
+    /// changes out from under one. Mirrors the QR dismissal: popups belong
+    /// to the pane layout showing them.
+    func dismissFileBrowser() {
+        for pane in paneCache.values {
+            pane.dismissFileBrowser()
+        }
     }
 
     // MARK: - Find in page
@@ -1064,6 +1119,7 @@ final class BrowserWindowController: NSWindowController {
     /// panes so web views are reparented instead of recreated.
     private func rebuildContent() {
         dismissQRCode()
+        dismissFileBrowser()
         let visible = displayedTabs
         if visible.count <= 1 {
             splitController = nil

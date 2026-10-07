@@ -143,6 +143,19 @@ extension NavigationController: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
+        // Same-tab file link: directories open the native browser popup over
+        // the page instead of WebKit's own listing; files navigate like any
+        // other link so they render with history.
+        if navigationAction.navigationType == .linkActivated,
+           navigationAction.targetFrame?.isMainFrame == true,
+           url.scheme?.lowercased() == "file",
+           let owner {
+            let controller = BrowserCoordinator.shared.controller(for: webView.window)
+                ?? BrowserCoordinator.shared.keyController
+            controller?.openFileLink(url, for: owner)
+            decisionHandler(.cancel)
+            return
+        }
         // Content-blocker exception for the page about to load, applied
         // before the decision so the first subresource already sees the
         // right lists. Same-site reuse keeps one view across navigations

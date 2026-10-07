@@ -15,6 +15,7 @@ final class BrowserPaneController: NSViewController {
     private var pageContainer: NSView?
     private var pageBottomConstraint: NSLayoutConstraint?
     private var qrPopupPresenter: QRPopupPresenter?
+    private var fileBrowserPresenter: FileBrowserPresenter?
     private var findController: FindController?
 
     init(tab: BrowserTab, activeModel: ActivePaneModel) {
@@ -120,6 +121,42 @@ final class BrowserPaneController: NSViewController {
     func dismissQRCode() {
         qrPopupPresenter?.dismiss()
         qrPopupPresenter = nil
+    }
+
+    // MARK: - File browser
+
+    /// Shows the native listing for `url` over this pane's page. The tab
+    /// itself does not navigate: directories are browsed in the popup and
+    /// only files chosen there become real navigations, so directory
+    /// browsing leaves no history behind.
+    func presentFileBrowser(url: URL) {
+        guard let pageContainer else { return }
+        // Reopening on an already-visible popup reloads it in place rather
+        // than stacking a second card: the path belongs to this press.
+        if let fileBrowserPresenter, fileBrowserPresenter.isPresented {
+            dismissFileBrowser()
+        }
+        let presenter = FileBrowserPresenter(container: view, area: pageContainer) { [weak self] in
+            self?.fileBrowserPresenter = nil
+        }
+        fileBrowserPresenter = presenter
+        presenter.present(directory: url.path) { [weak self] fileURL in
+            self?.tab.navigate(to: fileURL)
+        }
+    }
+
+    func dismissFileBrowser() {
+        fileBrowserPresenter?.dismiss()
+        fileBrowserPresenter = nil
+    }
+
+    /// Reloads the open listing for ⌘R, reporting whether one was open.
+    /// A listing has no cache, so origin reloads land here too.
+    @discardableResult
+    func refreshFileBrowser() -> Bool {
+        guard let fileBrowserPresenter, fileBrowserPresenter.isPresented else { return false }
+        fileBrowserPresenter.refresh()
+        return true
     }
 
     // MARK: - Find in page
