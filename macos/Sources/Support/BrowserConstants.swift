@@ -2,7 +2,7 @@ import Foundation
 
 /// Shared constants for the Whatever browser.
 enum BrowserConstants {
-    /// Homepage markup served from memory for `whtvr://about` by
+    /// Homepage markup served from memory for `w://about` by
     /// `HomepageSchemeHandler`. Read from the bundle once at startup.
     static let homePageHTML: String = {
         guard let url = Bundle.main.url(forResource: "home", withExtension: "html"),
@@ -17,15 +17,16 @@ enum BrowserConstants {
     /// Address of the homepage. It is a real navigation (served by the
     /// scheme handler), so reload and back/forward work on it — but it has
     /// no user-facing address; see `URL.isAddresslessPage`.
-    static let homePageURL = URL(string: "whtvr://about")!
+    static let homePageURL = URL(string: "w://about")!
 
 }
 
 extension URL {
     /// `true` for pages with no user-facing address: `about:blank` backing
-    /// string-loaded content, and the `whtvr://` homepage.
+    /// string-loaded content, and the `w://` homepage (`whtvr://` stays
+    /// addressless too, so stored URLs from before the rename keep working).
     var isAddresslessPage: Bool {
-        absoluteString == "about:blank" || scheme?.lowercased() == "whtvr"
+        absoluteString == "about:blank" || ["w", "whtvr"].contains(scheme?.lowercased() ?? "")
     }
 
     /// Whether two addresses name the same page for history purposes: same
