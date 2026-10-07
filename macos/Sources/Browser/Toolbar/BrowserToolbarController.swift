@@ -180,6 +180,7 @@ final class BrowserToolbarController: NSObject {
             reloadButton.isEnabled = false
             addressField.stringValue = ""
             spotlight.updateClearButton()
+            spotlight.isSecure = true
             syncFeedButton()
             syncAdBlockButton()
             return
@@ -196,12 +197,18 @@ final class BrowserToolbarController: NSObject {
         )?.withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
         reloadButton.toolTip = state.isLoading ? "Stop" : "Reload"
 
+        // The leading lock follows the live page (falling back to the tab's
+        // own address like the field text), so it answers for what is shown.
+        // While editing, the field shows the magnifier regardless.
+        let pageURL = state.url ?? tab?.displayURL
+        spotlight.isSecure = SpotlightField.isSecureScheme(pageURL?.scheme)
+
         if !isEditingAddress {
             // Falls back to the tab's own address so a tab whose view has not
             // been built yet still shows where it is going rather than a blank
             // field. Sets the same way `syncControls` does for every other control,
             // so switching tabs updates the address text.
-            addressField.stringValue = (state.url ?? tab?.displayURL)?.absoluteString ?? ""
+            addressField.stringValue = pageURL?.absoluteString ?? ""
             // The text was set directly rather than typed, so the × would still
             // reflect the previous tab without this.
             spotlight.updateClearButton()

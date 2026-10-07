@@ -6,10 +6,11 @@ import AppKit
 /// what this needs:
 ///
 /// * Its internal layout is drawn from metrics fixed when the control was created.
-///   Change the font or the height and the magnifier, the text and the clear button
-///   stop agreeing on a centre line — which is exactly the "text slides over the
-///   icon" symptom. Here the chrome is drawn by `draw(_:)` and the text field is
-///   positioned against the same padding, so they cannot drift apart.
+///   Change the font or the height and the leading glyph, the text and the clear
+///   button stop agreeing on a centre line — which is exactly the "text slides
+///   over the icon" symptom. Here the chrome is drawn by `draw(_:)` and the
+///   text field is positioned against the same padding, so they cannot drift
+///   apart.
 /// * The dropdown has to be pixel-continuous with the field: same left and right
 ///   edges, same 1pt border, bottom corners squared while it is open so the two
 ///   read as one shape split by a hairline. A stock field's rounded bezel cannot
@@ -25,7 +26,7 @@ final class SpotlightField: NSView {
     static let cornerRadius: CGFloat = 10
     /// The 1pt border, drawn at the same radius as the fill so it tracks it.
     private static let borderWidth: CGFloat = 1
-    /// Room for the magnifier plus the gap to the text, measured from the left edge.
+    /// Room for the leading glyph plus the gap to the text, measured from the left edge.
     private static let leadingInset: CGFloat = 30
     /// Same on the right, for the clear button.
     private static let trailingInset: CGFloat = 24
@@ -36,7 +37,9 @@ final class SpotlightField: NSView {
     /// The real input. Transparent and borderless: everything visible around it is
     /// painted by this view.
     let textField = NSTextField()
-    private let magnifier = NSImageView()
+    /// The glyph at the bar's leading edge: a magnifier while editing, a
+    /// lock (or broken lock) showing the page's connection state otherwise.
+    private let leadingGlyph = NSImageView()
     private let clearButton = NSButton()
 
     /// Whether the dropdown is showing. Squared-off bottom corners and the hairline
@@ -73,12 +76,29 @@ final class SpotlightField: NSView {
     /// about the dropdown.
     private(set) var isEditing = false
 
+    /// Whether the current page's connection counts as secured. The toolbar
+    /// owns this from the tab's URL; the glyph follows it whenever the field
+    /// is not being edited.
+    var isSecure = true {
+        didSet {
+            guard isSecure != oldValue else { return }
+            updateLeadingGlyph()
+        }
+    }
+
+    /// Only plain `http` reads as unsecured: `https`, local files, and
+    /// scheme-less states (empty tabs) all show the lock. The broken lock is
+    /// a warning, so it appears only for positively insecure connections.
+    static nonisolated func isSecureScheme(_ scheme: String?) -> Bool {
+        scheme?.lowercased() != "http"
+    }
+
     // MARK: Init
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         configureTextField()
-        configureMagnifier()
+        configureLeadingGlyph()
         configureClearButton()
     }
 
@@ -130,24 +150,39 @@ final class SpotlightField: NSView {
         ])
     }
 
-    private func configureMagnifier() {
-        magnifier.translatesAutoresizingMaskIntoConstraints = false
-        magnifier.image = NSImage(
-            systemSymbolName: "magnifyingglass",
-            accessibilityDescription: nil
-        )
+    private func configureLeadingGlyph() {
+        leadingGlyph.translatesAutoresizingMaskIntoConstraints = false
         // Secondary so it recedes behind the text, which is what it is for.
-        magnifier.contentTintColor = .secondaryLabelColor
-        addSubview(magnifier)
+        leadingGlyph.contentTintColor = .secondaryLabelColor
+        addSubview(leadingGlyph)
         NSLayoutConstraint.activate([
-            magnifier.centerXAnchor.constraint(
+            leadingGlyph.centerXAnchor.constraint(
                 equalTo: leadingAnchor,
                 constant: Self.leadingInset - Self.glyphSide
             ),
-            magnifier.centerYAnchor.constraint(equalTo: centerYAnchor),
-            magnifier.widthAnchor.constraint(equalToConstant: Self.glyphSide),
-            magnifier.heightAnchor.constraint(equalToConstant: Self.glyphSide),
+            leadingGlyph.centerYAnchor.constraint(equalTo: centerYAnchor),
+            leadingGlyph.widthAnchor.constraint(equalToConstant: Self.glyphSide),
+            leadingGlyph.heightAnchor.constraint(equalToConstant: Self.glyphSide),
         ])
+        updateLeadingGlyph()
+    }
+
+    /// Swaps the leading glyph for the current state: the magnifier while
+    /// the field holds focus, the connection lock otherwise.
+    func updateLeadingGlyph() {
+        if isEditing {
+            leadingGlyph.image = NSImage(
+                systemSymbolName: "magnifyingglass",
+                accessibilityDescription: "Search"
+            )
+            return
+        }
+        let image = NSImage(named: isSecure ? "Lock" : "LockOff")
+        image?.accessibilityDescription = isSecure
+            ? "Secure connection" : "Not secure connection"
+        image?.isTemplate = true
+        image?.size = NSSize(width: Self.glyphSide, height: Self.glyphSide)
+        leadingGlyph.image = image
     }
 
     private func configureClearButton() {
@@ -344,6 +379,7 @@ extension SpotlightField: NSTextFieldDelegate {
         isEditing = true
         selectAllOnFocus()
         updateClearButton()
+        updateLeadingGlyph()
         onEditingChanged?(true)
         // Focusing the bar is an intentional visit to it, the same as clicking it:
         // an empty field offers the most recent history. Fired for text clicks too,
@@ -393,6 +429,7 @@ extension SpotlightField: NSTextFieldDelegate {
     func controlTextDidEndEditing(_ obj: Notification) {
         isEditing = false
         updateClearButton()
+        updateLeadingGlyph()
         onEditingChanged?(false)
     }
 
