@@ -46,6 +46,8 @@ targets:
         buildPhase: resources
       - path: Resources/Homepage/whatever_bg.jpg
         buildPhase: resources
+      - path: Resources/Homepage/whatever_logo.svg
+        buildPhase: resources
       - path: Resources/Blocklists/adaway-hosts.txt
         buildPhase: resources
       - path: Resources/Blocklists/whatever-extra.txt

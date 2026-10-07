@@ -6,9 +6,10 @@ import WebKit
 /// `w://about` always returns the bundled homepage markup, so the
 /// homepage is a real navigation: reload re-serves it, and back/forward
 /// treats it like any other page. Its background image loads from
-/// `w://homepage/whatever_bg.jpg`, served from the bundle the same way.
-/// Anything else under the scheme fails: the handler serves exactly these
-/// two addresses, never arbitrary paths.
+/// `w://homepage/whatever_bg.jpg` and its logo from
+/// `w://homepage/whatever_logo.svg`, both served from the bundle the same
+/// way. Anything else under the scheme fails: the handler serves exactly
+/// these three addresses, never arbitrary paths.
 final class HomepageSchemeHandler: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
         guard let url = urlSchemeTask.request.url else {
@@ -22,6 +23,11 @@ final class HomepageSchemeHandler: NSObject, WKURLSchemeHandler {
                   let image = try? Data(contentsOf: imageURL)
         {
             serveData(image, mimeType: "image/jpeg", for: urlSchemeTask)
+        } else if url.host == "homepage", url.path == "/whatever_logo.svg",
+                  let imageURL = Bundle.main.url(forResource: "whatever_logo", withExtension: "svg"),
+                  let image = try? Data(contentsOf: imageURL)
+        {
+            serveData(image, mimeType: "image/svg+xml", for: urlSchemeTask)
         } else {
             urlSchemeTask.didFailWithError(URLError(.unsupportedURL))
         }
