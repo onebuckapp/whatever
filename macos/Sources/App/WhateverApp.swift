@@ -33,6 +33,16 @@ struct WhateverApp: App {
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
             }
+            CommandMenu("View") {
+                Button("Reload Page") {
+                    BrowserCoordinator.shared.keyController?.reloadPage()
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                Button("Reload From Origin") {
+                    BrowserCoordinator.shared.keyController?.reloadPageFromOrigin()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings\u{2026}") {
                     AppDelegate.presentSettingsOnFrontWindow()

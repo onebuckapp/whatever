@@ -1063,6 +1063,41 @@ final class BrowserWindowController: NSWindowController {
         pane(for: tab).findStep(-1)
     }
 
+    // MARK: - Reload
+
+    /// Reloads the selected tab, or refreshes its file listing when that is
+    /// what is open. A loading page stops instead, matching the toolbar
+    /// button's toggle.
+    func reloadPage() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        let pane = pane(for: tab)
+        if pane.refreshFileBrowser() {
+            return
+        }
+        if tab.tabController.isLoading {
+            tab.tabController.stopLoading()
+        } else {
+            tab.tabController.reload()
+        }
+    }
+
+    /// Reloads ignoring caches. A file listing has no cache to bypass, so it
+    /// refreshes like a plain reload.
+    func reloadPageFromOrigin() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        let pane = pane(for: tab)
+        if pane.refreshFileBrowser() {
+            return
+        }
+        tab.tabController.reloadFromOrigin()
+    }
+
     /// Opens the settings modal on this window.
     ///
     /// The single entry point behind all three of them — the toolbar gear, the

@@ -180,6 +180,12 @@ final class BrowserTabController: ObservableObject {
         webView?.reload()
     }
 
+    /// Reloads ignoring caches, for ⇧⌘R. Same view, same history entry:
+    /// only the bytes are fresh.
+    func reloadFromOrigin() {
+        webView?.reloadFromOrigin()
+    }
+
     func stopLoading() {
         webView?.stopLoading()
     }
