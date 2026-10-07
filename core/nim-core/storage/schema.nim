@@ -29,6 +29,7 @@ const
   TabsTable* = "tabs"
   FeedSubscriptionsTable* = "feed_subscriptions"
   FeedArticlesTable* = "feed_articles"
+  DownloadItemsTable* = "download_items"
 
 proc settingsTable*(): DbTable =
   ## App settings as one JSON document under a single key, so a schema bump
@@ -196,6 +197,34 @@ proc feedArticlesTable*(): DbTable =
     ]
   )
 
+proc downloadItemsTable*(): DbTable =
+  ## One row per finished or in-flight browser download. The primary key is a
+  ## client-generated UUID (same manual-key pattern as feed subscriptions), so
+  ## recording needs no id-return round trip and progress updates reference a
+  ## stable handle from the download's first byte.
+  ##
+  ## `bytesExpected` is -1 while the size is unknown; `finishedAt` is 0 until
+  ## the download leaves `in-progress`. Whether the file still exists is
+  ## computed by the app at render time, never persisted: the filesystem is
+  ## the authority and a stored flag would lie after external deletes.
+  newTable(
+    name = DownloadItemsTable,
+    primaryKey = "id",
+    columns = [
+      newColumn("id", dtText, false),
+      newColumn("sourceURL", dtText, false),
+      newColumn("filename", dtText, false),
+      newColumn("destinationPath", dtText, false),
+      newColumn("bytesExpected", dtInt, false),
+      newColumn("bytesReceived", dtInt, false),
+      newColumn("state", dtText, false),
+      newColumn("errorText", dtText, true),
+      newColumn("startedAt", dtInt, false),
+      newColumn("finishedAt", dtInt, false),
+    ],
+    primaryKeyMode = pkmManual
+  )
+
 proc applySchema*(db: var Database) =
   ## Creates any missing table and applies index definitions. Indexes are
   ## rebuilt from live rows by `createIndex`, so this is safe to re-run.
@@ -205,6 +234,7 @@ proc applySchema*(db: var Database) =
   db.sessions.createTableIfNotExist(tabsTable())
   db.feeds.createTableIfNotExist(feedSubscriptionsTable())
   db.feeds.createTableIfNotExist(feedArticlesTable())
+  db.downloads.createTableIfNotExist(downloadItemsTable())
 
   # History is queried by URL (to collapse repeats), by day, and by host far
   # more often than it is written.

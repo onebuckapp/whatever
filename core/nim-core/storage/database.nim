@@ -36,6 +36,7 @@ type
     history*: Store
     sessions*: Store
     feeds*: Store
+    downloads*: Store
     root*: string
 
 proc defaultRoot*(): string =
@@ -116,6 +117,14 @@ proc openDatabase*(root: string = defaultRoot()): Database =
       checkpointEveryOps = 128'u32,
       walFlushEveryOps = 1'u32,
       enableConcurrency = true
+    ),
+    downloads: newStore(
+      root / "downloads",
+      smDisk,
+      enableWal = true,
+      checkpointEveryOps = 128'u32,
+      walFlushEveryOps = 1'u32,
+      enableConcurrency = true
     )
   )
 
@@ -127,3 +136,4 @@ proc shutdown*(db: var Database) =
   db.history.close()
   db.sessions.close()
   db.feeds.close()
+  db.downloads.close()

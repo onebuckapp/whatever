@@ -27,6 +27,7 @@ import ./api/session_api
 import ./api/feed_api
 import ./api/filter_api
 import ./api/find_api
+import ./api/downloads_api
 
 export qr_api
 export settings_api
@@ -36,6 +37,7 @@ export session_api
 export feed_api
 export filter_api
 export find_api
+export downloads_api
 
 var threadRegistered {.threadvar.}: bool
 

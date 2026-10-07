@@ -6,7 +6,7 @@ NIM_SOURCES := nim-core/browsercore.nim nim-core/api/abi.nim nim-core/api/qr_api
 	nim-core/api/settings_api.nim nim-core/api/bookmark_api.nim \
 	nim-core/api/history_api.nim nim-core/api/session_api.nim \
 	nim-core/api/feed_api.nim nim-core/api/filter_api.nim \
-	nim-core/api/find_api.nim \
+	nim-core/api/find_api.nim nim-core/api/downloads_api.nim \
 	nim-core/storage/database.nim nim-core/storage/schema.nim
 .PHONY: all build test check-abi clean
 

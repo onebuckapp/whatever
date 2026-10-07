@@ -422,6 +422,49 @@ int32_t bc_filter_compile(const char *lists, char *buffer, int32_t capacity,
 int32_t bc_filter_meta(const char *lists, const char *version, char *buffer,
                        int32_t capacity, int32_t *needed);
 
+/* -------------------------------------------------------------- downloads */
+
+/* Download history: one row per finished or in-flight browser download.
+ * Bytes never cross into the store, only paths and counts.
+ *
+ * Rows are keyed by a client-generated id (a UUID from the app), so
+ * recording needs no id-return round trip and progress updates reference a
+ * stable handle from the download's first byte. */
+
+/* Starts tracking a download. `bytes_expected` is -1 while the size is
+ * unknown; `started_at` of 0 or less means "now". Recording an existing id
+ * restarts it under a fresh row. */
+int32_t bc_download_record(const char *id, const char *source_url,
+                           const char *filename,
+                           const char *destination_path,
+                           int64_t bytes_expected, int64_t started_at);
+
+/* Advances the byte count of an in-flight download. Terminal rows ignore
+ * late progress. BC_ERR_NOT_FOUND when the id was never recorded. */
+int32_t bc_download_progress(const char *id, int64_t bytes_received);
+
+/* Marks a download done. A negative byte count keeps whatever progress
+ * recorded last, for delegates that only report completion. */
+int32_t bc_download_finish(const char *id, int64_t bytes_received,
+                           int64_t finished_at);
+
+/* Marks a download failed with the delegate's message. */
+int32_t bc_download_fail(const char *id, const char *error,
+                         int64_t bytes_received, int64_t finished_at);
+
+/* Marks a download cancelled by the user. */
+int32_t bc_download_cancel(const char *id, int64_t finished_at);
+
+/* Download history, newest first, capped. */
+int32_t bc_download_list(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Forgets one history row. The file itself is untouched. BC_ERR_NOT_FOUND
+ * when the id was never recorded. */
+int32_t bc_download_remove(const char *id);
+
+/* Forgets all download history. Files on disk are untouched. */
+int32_t bc_download_clear(void);
+
 #ifdef __cplusplus
 }
 #endif
