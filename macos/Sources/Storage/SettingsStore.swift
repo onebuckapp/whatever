@@ -62,9 +62,14 @@ struct AppSettings: Codable, Equatable {
     struct AppearanceSettings: Codable, Equatable {
         var noise = StoredNoise()
         var background = BackgroundMediaConfiguration()
+        /// Inactive tab cells. `.none` backgrounds and nil foregrounds mean
+        /// exactly the chrome from before themes existed.
+        var tabTheme = TabThemeConfiguration()
+        /// The selected tab cell, configured separately.
+        var activeTabTheme = TabThemeConfiguration()
 
         enum CodingKeys: String, CodingKey {
-            case noise, background
+            case noise, background, tabTheme, activeTabTheme
         }
 
         init() {}
@@ -81,6 +86,10 @@ struct AppSettings: Codable, Equatable {
             noise = try container.decodeIfPresent(StoredNoise.self, forKey: .noise) ?? StoredNoise()
             background = try container.decodeIfPresent(BackgroundMediaConfiguration.self, forKey: .background)
                 ?? BackgroundMediaConfiguration()
+            tabTheme = try container.decodeIfPresent(TabThemeConfiguration.self, forKey: .tabTheme)
+                ?? TabThemeConfiguration()
+            activeTabTheme = try container.decodeIfPresent(TabThemeConfiguration.self, forKey: .activeTabTheme)
+                ?? TabThemeConfiguration()
         }
 
         /// Codable mirror of `NoiseOverlayConfiguration`. `NSColor` is not
