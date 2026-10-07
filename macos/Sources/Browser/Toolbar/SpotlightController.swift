@@ -35,6 +35,15 @@ final class SpotlightController {
     /// `superview` would always be non-nil.
     var isOpen: Bool { !(dropdown?.isHidden ?? true) }
 
+    /// Explicit panel width, synced from the field. The panel used to share the
+    /// field's edges through two pins, but a long row's width demand travelled
+    /// that linkage backwards and parked the whole bar at content size. A set
+    /// width constant is solver input rather than an outcome, so content can
+    /// no longer move or resize anything no matter what priority it arrives
+    /// with; the leading pin keeps the left edges glued.
+    private var dropdownWidth: NSLayoutConstraint?
+    private var fieldFrameObserver: Any?
+
     private var selectedEntry: HistoryFuzzyEntry? {
         guard let selectedIndex, results.indices.contains(selectedIndex) else { return nil }
         return results[selectedIndex]
@@ -163,19 +172,38 @@ final class SpotlightController {
         dropdown.isHidden = true
         container.addSubview(dropdown)
         NSLayoutConstraint.activate([
-            // Same left and right edges, and hung one point *over* the bar's
-            // bottom edge rather than flush under it. Butt-joining two views on
-            // a non-integer boundary leaves a hairline of page showing between
-            // them, which is enough to read as the dropdown floating loose
-            // instead of hanging off the field. Overlapping by a point closes
-            // the seam without moving the dropdown visibly, and costs nothing
-            // because the point it covers is the field's own bottom edge.
+            // Same left edge and top join as before. The width is a synced
+            // constant, not a trailing pin (see `dropdownWidth`): with the
+            // panel width an input, its content is fully decoupled from the
+            // bar's geometry.
             dropdown.topAnchor.constraint(equalTo: fieldView.bottomAnchor, constant: -1),
             dropdown.leadingAnchor.constraint(equalTo: fieldView.leadingAnchor),
-            dropdown.trailingAnchor.constraint(equalTo: fieldView.trailingAnchor),
         ])
+        dropdownWidth = dropdown.widthAnchor.constraint(equalToConstant: fieldView.frame.width)
+        dropdownWidth?.isActive = true
+        syncDropdownWidth()
+        // Window resizes re-lay the bar; the panel follows the field there
+        // instead of through a constraint, so it needs to hear about it.
+        fieldView.postsFrameChangedNotifications = true
+        fieldFrameObserver = NotificationCenter.default.addObserver(
+            forName: NSView.frameDidChangeNotification,
+            object: fieldView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncDropdownWidth()
+        }
         self.dropdown = dropdown
         return dropdown
+    }
+
+    /// Copies the field's live width into the panel's width constraint.
+    /// Guarded: equal values must not re-mark the layout dirty on every
+    /// frame notification, or resizes would loop layout passes.
+    private func syncDropdownWidth() {
+        guard let fieldView, let dropdownWidth else { return }
+        let width = fieldView.frame.width
+        guard dropdownWidth.constant != width else { return }
+        dropdownWidth.constant = width
     }
 
     private func openPanel() {
@@ -184,6 +212,9 @@ final class SpotlightController {
         // is constructed.
         guard let dropdown = panel() else { return }
         dropdown.isHidden = false
+        // The bar may have resized while the panel was closed; pick the live
+        // width up before showing rather than flashing the stale one.
+        syncDropdownWidth()
         // Moved to the front so a card opening later cannot bury it. Safe to repeat
         // on a view that is already parented, and the constraints are relative to
         // the bar so nothing depends on its position in the view list.
