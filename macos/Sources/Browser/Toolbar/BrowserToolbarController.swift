@@ -161,6 +161,14 @@ final class BrowserToolbarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncFeedButton() }
             .store(in: &cancellables)
+        // Exception edits land here too (the card writes settings), so the
+        // shield tracks the toggle without waiting for a navigation.
+        SettingsStore.shared.$settings
+            .map(\.adblock.exceptions)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncAdBlockButton() }
+            .store(in: &cancellables)
 
         syncControls()
     }
@@ -173,6 +181,7 @@ final class BrowserToolbarController: NSObject {
             addressField.stringValue = ""
             spotlight.updateClearButton()
             syncFeedButton()
+            syncAdBlockButton()
             return
         }
 
@@ -200,6 +209,7 @@ final class BrowserToolbarController: NSObject {
             spotlightController.fieldDidEndEditing()
         }
         syncFeedButton()
+        syncAdBlockButton()
     }
 
     /// Shows the feed control exactly when the selected tab advertises feeds.
@@ -207,13 +217,43 @@ final class BrowserToolbarController: NSObject {
     /// The candidates are keyed to the page that produced them and cleared on
     /// navigation, so the button follows the page rather than lingering from
     /// the previous one.
-    private func syncFeedButton() {
-        let isEnabled = SettingsStore.shared.settings.feeds.isEnabled
+    private func syncFeedButton() {        let isEnabled = SettingsStore.shared.settings.feeds.isEnabled
         let candidates = isEnabled ? tab?.tabController.feedCandidates ?? [] : []
         feedButton.isHidden = candidates.isEmpty
         feedButton.toolTip = candidates.count == 1
             ? "Available feed"
             : "\(candidates.count) available feeds"
+    }
+
+    /// Shows the shield matching the current site's blocker state: checked
+    /// while blocking applies, crossed where the site (or its parent host)
+    /// is excepted. Same effective-state rule as the blocker's card, so the
+    /// two can never disagree about a subdomain.
+    private func syncAdBlockButton() {
+        let url = tab?.displayURL
+        let host: String? = {
+            guard let url,
+                  let scheme = url.scheme?.lowercased(),
+                  ["http", "https"].contains(scheme)
+            else { return nil }
+            return url.host?.lowercased()
+        }()
+        let isBlocking = host.map {
+            !ContentBlockerStore.isExcepted(
+                host: $0,
+                in: SettingsStore.shared.settings.adblock.exceptions
+            )
+        } ?? false
+        let image = NSImage(named: isBlocking ? "ShieldCheck" : "ShieldX")
+        image?.accessibilityDescription = isBlocking
+            ? "Content blocker active on this site"
+            : "Content blocker paused on this site"
+        image?.isTemplate = true
+        image?.size = NSSize(width: 18, height: 18)
+        adblockButton.image = image
+        adblockButton.toolTip = isBlocking
+            ? "Content Blocker — active on this site"
+            : "Content Blocker — paused on this site"
     }
 
     // MARK: - Actions
@@ -282,12 +322,7 @@ final class BrowserToolbarController: NSObject {
             help: "Bookmarks",
             action: #selector(openBookmarks)
         )
-        configure(
-            adblockButton,
-            symbol: "shield",
-            help: "Content Blocker",
-            action: #selector(openAdBlock)
-        )
+        configureAdBlockButton()
     }
 
     private func configureCenterStack() {
@@ -302,8 +337,17 @@ final class BrowserToolbarController: NSObject {
         centerStack.addArrangedSubview(feedButton)
     }
 
-    private func configureFeedButton() {
-        // Bundled vector rather than a system glyph, so the control always
+    /// Bundled Tabler vectors rather than a system glyph, so the control can
+    /// show a check (blocking) or a cross (paused) inside the shield. Like
+    /// the feed button: template images sized like the neighboring glyphs,
+    /// with `syncAdBlockButton` owning the state from here on.
+    private func configureAdBlockButton() {
+        adblockButton.target = self
+        adblockButton.action = #selector(openAdBlock)
+        syncAdBlockButton()
+    }
+
+    private func configureFeedButton() {        // Bundled vector rather than a system glyph, so the control always
         // shows the project’s RSS mark. It is a template image, matching the
         // toolbar’s label color, and is sized like the neighboring glyphs.
         let image = NSImage(named: "RSS")
