@@ -67,86 +67,172 @@ struct GeneralSettingsView: View {
 
 struct AppearanceSettingsView: View {
     @ObservedObject private var grain = NoiseOverlaySettings.shared
+    @State private var filter = ""
 
     var body: some View {
-        SettingsDetailStack {
-            SettingsGroup(
-                title: "Grain",
-                footnote: "A film-grain texture over the whole window. Every change applies as you make it."
-            ) {
-                SettingsToggleRow(
-                    title: "Enabled",
-                    subtitle: "Hides the texture without losing these settings.",
-                    isOn: grain.enabledBinding
-                )
-                SettingsButtonRow(
-                    title: "New pattern",
-                    subtitle: "Same settings, different grain."
-                ) {
-                    Button("Generate") {
-                        grain.rerollSeed()
-                    }
-                    .controlSize(.small)
+        VStack(alignment: .leading, spacing: 10) {
+            filterField
+            SettingsDetailStack {
+                if matches("Grain", "grain texture film noise pattern") {
+                    grainGroup
                 }
-                SettingsButtonRow(
-                    title: "Reset",
-                    subtitle: "Back to the built-in grain."
+                if matches("Look", "look color colour opacity intensity contrast size") {
+                    lookGroup
+                }
+                if matches(
+                    "Window Background",
+                    "background wallpaper backdrop image video fill"
                 ) {
-                    Button("Reset") {
-                        grain.reset()
-                    }
-                    .controlSize(.small)
+                    BackgroundSettingsGroups()
+                }
+                if matches(
+                    "Inactive Tabs Current Tab",
+                    "tab tabs theme inactive current foreground text color colour"
+                ) {
+                    TabThemeSettingsGroups()
+                }
+                if matches(
+                    "Address Bar",
+                    "address bar field width pill corner corners height rounded"
+                ) {
+                    AddressBarSettingsGroups()
+                }
+                if !filter.isEmpty, !hasAnyMatch {
+                    Text("No settings match “\(filter.trimmingCharacters(in: .whitespacesAndNewlines))”.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 24)
                 }
             }
-
-            SettingsGroup(
-                title: "Look",
-                isEnabled: grain.configuration.isEnabled
-            ) {
-                SettingsPickerRow(
-                    title: "Color",
-                    options: GrainColorMode.allCases,
-                    selection: grain.colorModeBinding,
-                    isSegmented: true,
-                    label: { $0.title }
-                )
-                SettingsSliderRow(
-                    title: "Opacity",
-                    value: grain.opacityBinding,
-                    range: 0...0.5,
-                    step: 0.05,
-                    format: { String(format: "%.2f", $0) }
-                )
-                SettingsSliderRow(
-                    title: "Intensity",
-                    value: grain.intensityBinding,
-                    range: 0...1,
-                    step: 0.05,
-                    format: { String(format: "%.2f", $0) }
-                )
-                SettingsSliderRow(
-                    title: "Contrast",
-                    value: grain.contrastBinding,
-                    range: 1...8,
-                    step: 0.1,
-                    format: { String(format: "%.1f", $0) }
-                )
-SettingsSliderRow(
-                    title: "Grain Size",
-                    value: grain.grainScaleBinding,
-                    range: 1...4,
-                    step: 0.1,
-                    format: { String(format: "%.1f×", $0) }
-                )
-            }
-
-            BackgroundSettingsGroups()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
+
+    /// Pinned above the scrolling groups: typing narrows the pane to the
+    /// matching sections, clearing restores everything.
+    private var filterField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+            TextField("Filter settings", text: $filter)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+            if !filter.isEmpty {
+                Button {
+                    filter = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            Color(nsColor: .controlBackgroundColor),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        // Aligned with the group content below (which pads 20 horizontally),
+        // daylight above it, and nothing below: the stack spacing owns that
+        // gap, so padding here too would double it.
+        .padding([.leading, .trailing], 20)
+        .padding(.top, 18)
+    }
+
+    /// Every query word must appear in the title or keywords. Empty filter
+    /// matches everything, so the pane opens unfiltered.
+    private func matches(_ title: String, _ keywords: String) -> Bool {
+        SettingsFilter.matches(query: filter, haystack: "\(title) \(keywords)")
+    }
+
+    private var hasAnyMatch: Bool {
+        matches("Grain", "grain texture film noise pattern")
+            || matches("Look", "look color colour opacity intensity contrast size")
+            || matches("Window Background", "background wallpaper backdrop image video fill")
+            || matches("Inactive Tabs Current Tab", "tab tabs theme inactive current foreground text color colour")
+            || matches("Address Bar", "address bar field width pill corner corners height rounded")
+    }
+
+    private var grainGroup: some View {
+        SettingsGroup(
+            title: "Grain",
+            footnote: "A film-grain texture over the whole window. Every change applies as you make it."
+        ) {
+            SettingsToggleRow(
+                title: "Enabled",
+                subtitle: "Hides the texture without losing these settings.",
+                isOn: grain.enabledBinding
+            )
+            SettingsButtonRow(
+                title: "New pattern",
+                subtitle: "Same settings, different grain."
+            ) {
+                Button("Generate") {
+                    grain.rerollSeed()
+                }
+                .controlSize(.small)
+            }
+            SettingsButtonRow(
+                title: "Reset",
+                subtitle: "Back to the built-in grain."
+            ) {
+                Button("Reset") {
+                    grain.reset()
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
+    private var lookGroup: some View {
+        SettingsGroup(
+            title: "Look",
+            isEnabled: grain.configuration.isEnabled
+        ) {
+            SettingsPickerRow(
+                title: "Color",
+                options: GrainColorMode.allCases,
+                selection: grain.colorModeBinding,
+                isSegmented: true,
+                label: { $0.title }
+            )
+            SettingsSliderRow(
+                title: "Opacity",
+                value: grain.opacityBinding,
+                range: 0...0.5,
+                step: 0.05,
+                format: { String(format: "%.2f", $0) }
+            )
+            SettingsSliderRow(
+                title: "Intensity",
+                value: grain.intensityBinding,
+                range: 0...1,
+                step: 0.05,
+                format: { String(format: "%.2f", $0) }
+            )
+            SettingsSliderRow(
+                title: "Contrast",
+                value: grain.contrastBinding,
+                range: 1...8,
+                step: 0.1,
+                format: { String(format: "%.1f", $0) }
+            )
+            SettingsSliderRow(
+                title: "Grain Size",
+                value: grain.grainScaleBinding,
+                range: 1...4,
+                step: 0.1,
+                format: { String(format: "%.1f×", $0) }
+            )
+        }
+    }
 }
 
-// MARK: - Web
+    // MARK: - Web
 
 struct WebSettingsView: View {
     @ObservedObject private var store = SettingsStore.shared

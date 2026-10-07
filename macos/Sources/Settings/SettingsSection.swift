@@ -345,6 +345,20 @@ struct SettingsPlaceholder: View {
     }
 }
 
+/// Word-based section matching for settings filter fields.
+///
+/// Every query word must appear somewhere in the haystack; an empty query
+/// matches everything, so panes open unfiltered. Case-insensitive, so
+/// "grain", "Grain", and "GRAIN" all find the Grain section.
+enum SettingsFilter {
+    static func matches(query: String, haystack: String) -> Bool {
+        let words = query.lowercased().split(whereSeparator: \.isWhitespace)
+        guard !words.isEmpty else { return true }
+        let target = haystack.lowercased()
+        return words.allSatisfy { target.range(of: $0) != nil }
+    }
+}
+
 /// Vertical rhythm shared by every detail pane.
 ///
 /// Owns its own scroll view. The card hands this a bounded height so that a pane
