@@ -16,7 +16,7 @@ struct DownloadsPopup: CenterPopup {
         config
             .backgroundColor(.clear)
             .cornerRadius(20)
-            .overlayColor(.black.opacity(0.38))
+            .overlayColor(.clear)
             .tapOutsideToDismissPopup(true)
     }
 
@@ -52,7 +52,7 @@ struct DownloadsPopupRootView: View {
                     popup
                         .backgroundColor(.clear)
                         .cornerRadius(20)
-                        .overlayColor(.black.opacity(0.38))
+                        .overlayColor(.clear)
                         .tapOutsideToDismissPopup(true)
                 }
             }

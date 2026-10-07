@@ -17,7 +17,7 @@ struct NoiseOverlaySettingsPopup: CenterPopup {
             .cornerRadius(20)
             // Same dimmed backdrop as the QR card, so both popups read
             // as one presentation style.
-            .overlayColor(.black.opacity(0.38))
+            .overlayColor(.clear)
             .tapOutsideToDismissPopup(true)
     }
 
@@ -239,7 +239,7 @@ struct NoiseOverlaySettingsRootView: View {
                     popup
                         .backgroundColor(.clear)
                         .cornerRadius(20)
-                        .overlayColor(.black.opacity(0.38))
+                        .overlayColor(.clear)
                         .tapOutsideToDismissPopup(true)
                 }
             }
