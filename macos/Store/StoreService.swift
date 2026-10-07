@@ -713,6 +713,110 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
+    // MARK: Downloads
+
+    func downloadRecord(
+        _ id: String,
+        _ sourceURL: String,
+        _ filename: String,
+        _ destinationPath: String,
+        _ bytesExpected: Int64,
+        _ startedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = id.withCString { identifier in
+                sourceURL.withCString { source in
+                    filename.withCString { name in
+                        destinationPath.withCString { destination in
+                            bc_download_record(
+                                identifier, source, name, destination,
+                                bytesExpected, startedAt
+                            )
+                        }
+                    }
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadProgress(
+        _ id: String,
+        _ bytesReceived: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = id.withCString { bc_download_progress($0, bytesReceived) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadFinish(
+        _ id: String,
+        _ bytesReceived: Int64,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = id.withCString { bc_download_finish($0, bytesReceived, finishedAt) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadFail(
+        _ id: String,
+        _ error: String?,
+        _ bytesReceived: Int64,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = id.withCString { identifier in
+                withOptionalCString(error) { message in
+                    bc_download_fail(identifier, message, bytesReceived, finishedAt)
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadCancel(
+        _ id: String,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    ) {
+        serve {
+            let status = id.withCString { bc_download_cancel($0, finishedAt) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadList(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_download_list(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func downloadRemove(_ id: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = id.withCString { bc_download_remove($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func downloadClear(reply: @escaping (NSError?) -> Void) {
+        serve {
+            reply(StoreErrors.check(bc_download_clear(), message: coreLastError()))
+        }
+    }
+
     // MARK: QR
 
     func qrSVG(

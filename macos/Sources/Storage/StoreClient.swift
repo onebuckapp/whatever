@@ -411,6 +411,72 @@ final class StoreClient {
         }
     }
 
+    // MARK: Downloads
+
+    /// Starts tracking a download. `bytesExpected` is -1 while the size is
+    /// unknown.
+    func recordDownload(
+        id: String,
+        sourceURL: String,
+        filename: String,
+        destinationPath: String,
+        bytesExpected: Int64,
+        startedAt: Date = Date()
+    ) async throws {
+        let stamp = Int64(startedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.downloadRecord(
+                id, sourceURL, filename, destinationPath,
+                bytesExpected, stamp, reply: done
+            )
+        }
+    }
+
+    func updateDownload(id: String, bytesReceived: Int64) async throws {
+        try await perform { proxy, done in
+            proxy.downloadProgress(id, bytesReceived, reply: done)
+        }
+    }
+
+    func finishDownload(id: String, bytesReceived: Int64, finishedAt: Date = Date()) async throws {
+        let stamp = Int64(finishedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.downloadFinish(id, bytesReceived, stamp, reply: done)
+        }
+    }
+
+    func failDownload(id: String, error: String?, bytesReceived: Int64, finishedAt: Date = Date()) async throws {
+        let stamp = Int64(finishedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.downloadFail(id, error, bytesReceived, stamp, reply: done)
+        }
+    }
+
+    func cancelDownload(id: String, finishedAt: Date = Date()) async throws {
+        let stamp = Int64(finishedAt.timeIntervalSince1970)
+        try await perform { proxy, done in
+            proxy.downloadCancel(id, stamp, reply: done)
+        }
+    }
+
+    func downloadHistory() async throws -> Data {
+        try await document { proxy, done in
+            proxy.downloadList(reply: done)
+        }
+    }
+
+    func removeDownload(id: String) async throws {
+        try await perform { proxy, done in
+            proxy.downloadRemove(id, reply: done)
+        }
+    }
+
+    func clearDownloads() async throws {
+        try await perform { proxy, done in
+            proxy.downloadClear(reply: done)
+        }
+    }
+
     // MARK: QR
 
     /// Renders `text` as a QR symbol's SVG document.

@@ -96,6 +96,83 @@ extension NavigationController: WKNavigationDelegate {
 
     func webView(
         _ webView: WKWebView,
+        decidePolicyFor navigationResponse: WKNavigationResponse,
+        decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+    ) {
+        // Anything WebKit cannot render — attachments, archives, installers —
+        // becomes a download instead of a blank viewer. An explicitly
+        // attached response downloads even when its MIME type is renderable:
+        // that header is the server saying "save this", which is how sites
+        // like Unsplash force-save otherwise viewable images. Renderable
+        // responses flow through untouched, including file:// listings the
+        // file browser already handles.
+        guard !navigationResponse.canShowMIMEType
+            || Self.servesAttachment(navigationResponse.response)
+        else {
+            decisionHandler(.allow)
+            return
+        }
+        decisionHandler(.download)
+    }
+
+    /// Whether the response carries `Content-Disposition: attachment`: the
+    /// server's explicit save-this-file instruction, independent of MIME type.
+    /// Static and nonisolated so tests can prove the rule without a web view.
+    static nonisolated func servesAttachment(_ response: URLResponse) -> Bool {
+        guard let http = response as? HTTPURLResponse else { return false }
+        return http.value(forHTTPHeaderField: "Content-Disposition")?
+            .lowercased()
+            .contains("attachment") == true
+    }
+
+    /// Continues a response the policy turned into a download: WebKit hands
+    /// over the transfer, and the app takes ownership from here.
+    func webView(
+        _ webView: WKWebView,
+        navigationResponse: WKNavigationResponse,
+        didBecome download: WKDownload
+    ) {
+        // A response without a URL has nothing to attribute the file to, so
+        // it is dropped rather than recorded under a placeholder address.
+        guard let source = navigationResponse.response.url else { return }
+        // Recorded regardless of privacy mode: the file itself lands on
+        // disk by user action either way, so the row is a pointer to real
+        // user data, not a browsing trace.
+        let operation = WebDownload(
+            download: download,
+            sourceURL: source,
+            suggestedFilename: navigationResponse.response.suggestedFilename,
+            bytesExpected: navigationResponse.response.expectedContentLength
+        )
+        Task { @MainActor in
+            DownloadsCenter.shared.adopt(operation)
+        }
+    }
+
+    /// Continues a download WebKit started on its own — "Download Image" and
+    /// "Download Linked File" from the context menu never consult the action
+    /// policy, so without this they die silently. There is no response to
+    /// read, so the filename comes from the URL and the size stays unknown
+    /// until the destination decision reports it.
+    func webView(
+        _ webView: WKWebView,
+        navigationAction: WKNavigationAction,
+        didBecome download: WKDownload
+    ) {
+        guard let source = navigationAction.request.url else { return }
+        let operation = WebDownload(
+            download: download,
+            sourceURL: source,
+            suggestedFilename: nil,
+            bytesExpected: -1
+        )
+        Task { @MainActor in
+            DownloadsCenter.shared.adopt(operation)
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {

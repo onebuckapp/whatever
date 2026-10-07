@@ -418,8 +418,15 @@ final class BrowserWindowController: NSWindowController {
         }
         // The trailing buttons are shortcuts into the settings modal rather than
         // separate surfaces, so there is one place for those panes to live.
+        // Downloads is the exception: the button opens the history popup over
+        // the current pane, and only the settings sidebar leads to download
+        // settings.
         toolbarController.onDownloads = { [weak self] in
-            self?.presentSettings(section: .downloads)
+            guard let self, let tab = self.selectedTab else {
+                SystemBeep.play()
+                return
+            }
+            self.pane(for: tab).presentDownloads()
         }
         toolbarController.onBookmarks = { [weak self] in
             self?.presentSettings(section: .bookmarks)
@@ -533,6 +540,7 @@ final class BrowserWindowController: NSWindowController {
 
         dismissQRCode()
         dismissFileBrowser()
+        dismissDownloads()
 
         selectedTabID = tab.id
         activeModel.activeTabID = tab.id
@@ -949,6 +957,7 @@ final class BrowserWindowController: NSWindowController {
         guard tabs.contains(where: { $0.id == tab.id }) else { return }
         dismissQRCode()
         dismissFileBrowser()
+        dismissDownloads()
         if let pane = paneCache.removeValue(forKey: tab.id) {
             contentController.forgetChild(pane)
         }
@@ -1033,6 +1042,14 @@ final class BrowserWindowController: NSWindowController {
         }
     }
 
+    /// Closes every open downloads popup, on the same transitions: the card
+    /// belongs to the pane layout showing it, not to the selection.
+    func dismissDownloads() {
+        for pane in paneCache.values {
+            pane.dismissDownloads()
+        }
+    }
+
     // MARK: - Find in page
 
     /// Opens the selected tab's find bar. The selected tab is always
@@ -1075,6 +1092,9 @@ final class BrowserWindowController: NSWindowController {
         }
         let pane = pane(for: tab)
         if pane.refreshFileBrowser() {
+            return
+        }
+        if pane.refreshDownloads() {
             return
         }
         if tab.tabController.isLoading {
@@ -1155,6 +1175,7 @@ final class BrowserWindowController: NSWindowController {
     private func rebuildContent() {
         dismissQRCode()
         dismissFileBrowser()
+        dismissDownloads()
         let visible = displayedTabs
         if visible.count <= 1 {
             splitController = nil

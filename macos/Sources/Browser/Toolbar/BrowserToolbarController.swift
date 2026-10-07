@@ -161,6 +161,13 @@ final class BrowserToolbarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncFeedButton() }
             .store(in: &cancellables)
+        // Finished downloads badge the button until the popup is opened.
+        DownloadsBadgeCenter.shared.$unseenCount
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] count in
+                self?.downloadsButton.badgeCount = count
+            }
+            .store(in: &cancellables)
         // Exception edits land here too (the card writes settings), so the
         // shield tracks the toggle without waiting for a navigation.
         SettingsStore.shared.$settings

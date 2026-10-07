@@ -140,6 +140,44 @@ import Foundation
         reply: @escaping (Data?, NSError?) -> Void
     )
 
+    // MARK: Downloads
+
+    func downloadRecord(
+        _ id: String,
+        _ sourceURL: String,
+        _ filename: String,
+        _ destinationPath: String,
+        _ bytesExpected: Int64,
+        _ startedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func downloadProgress(
+        _ id: String,
+        _ bytesReceived: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func downloadFinish(
+        _ id: String,
+        _ bytesReceived: Int64,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func downloadFail(
+        _ id: String,
+        _ error: String?,
+        _ bytesReceived: Int64,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func downloadCancel(
+        _ id: String,
+        _ finishedAt: Int64,
+        reply: @escaping (NSError?) -> Void
+    )
+    func downloadList(reply: @escaping (Data?, NSError?) -> Void)
+    func downloadRemove(_ id: String, reply: @escaping (NSError?) -> Void)
+    func downloadClear(reply: @escaping (NSError?) -> Void)
+
     // MARK: QR
 
     /// Renders a Model 2 QR symbol as a standalone SVG document.

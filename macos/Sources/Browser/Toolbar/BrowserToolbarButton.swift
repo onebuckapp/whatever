@@ -26,6 +26,15 @@ final class BrowserToolbarButton: NSButton {
     private var hoverTrackingArea: NSTrackingArea?
     private var isHovering = false
 
+    /// Unseen finished downloads for the badge. Zero hides it. Set by the
+    /// toolbar controller from the shared badge center.
+    var badgeCount = 0 {
+        didSet {
+            guard badgeCount != oldValue else { return }
+            needsDisplay = true
+        }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         commonInit()
@@ -119,5 +128,36 @@ final class BrowserToolbarButton: NSButton {
         }
         // With `isBordered` false this draws the glyph alone.
         super.draw(dirtyRect)
+        drawBadge()
+    }
+
+    /// Unseen-downloads counter: a red disc tucked into the top-trailing
+    /// corner, capped at 9+. Drawn in `draw(_:)` rather than as a subview so
+    /// it tracks the glyph through resizes with no layout of its own.
+    private func drawBadge() {
+        guard badgeCount > 0 else { return }
+        let text = badgeCount > 9 ? "9+" : "\(badgeCount)"
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 9.5, weight: .semibold),
+            .foregroundColor: NSColor.white,
+        ]
+        let textWidth = ceil((text as NSString).size(withAttributes: attributes).width)
+        let width = max(16, textWidth + 8)
+        let disc = NSRect(
+            x: bounds.maxX - width + 2,
+            y: bounds.maxY - 15,
+            width: width,
+            height: 15
+        )
+        NSColor.systemRed.setFill()
+        NSBezierPath(roundedRect: disc, xRadius: 7.5, yRadius: 7.5).fill()
+        let textSize = (text as NSString).size(withAttributes: attributes)
+        (text as NSString).draw(
+            at: NSPoint(
+                x: disc.midX - textSize.width / 2,
+                y: disc.midY - textSize.height / 2 + 0.5
+            ),
+            withAttributes: attributes
+        )
     }
 }

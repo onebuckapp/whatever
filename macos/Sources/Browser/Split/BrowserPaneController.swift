@@ -16,6 +16,7 @@ final class BrowserPaneController: NSViewController {
     private var pageBottomConstraint: NSLayoutConstraint?
     private var qrPopupPresenter: QRPopupPresenter?
     private var fileBrowserPresenter: FileBrowserPresenter?
+    private var downloadsPresenter: DownloadsPresenter?
     private var findController: FindController?
 
     init(tab: BrowserTab, activeModel: ActivePaneModel) {
@@ -156,6 +157,40 @@ final class BrowserPaneController: NSViewController {
     func refreshFileBrowser() -> Bool {
         guard let fileBrowserPresenter, fileBrowserPresenter.isPresented else { return false }
         fileBrowserPresenter.refresh()
+        return true
+    }
+
+    // MARK: - Downloads
+
+    /// Shows download history over this pane's page. Retrying a failed row
+    /// navigates this pane's tab to the source, which routes back through
+    /// the download policy and records a fresh row.
+    func presentDownloads() {
+        guard let pageContainer else { return }
+        // Like the file browser: reopening reloads in place rather than
+        // stacking a second card.
+        if let downloadsPresenter, downloadsPresenter.isPresented {
+            dismissDownloads()
+        }
+        let presenter = DownloadsPresenter(container: view, area: pageContainer) { [weak self] in
+            self?.downloadsPresenter = nil
+        }
+        downloadsPresenter = presenter
+        presenter.present { [weak self] url in
+            self?.tab.navigate(to: url)
+        }
+    }
+
+    func dismissDownloads() {
+        downloadsPresenter?.dismiss()
+        downloadsPresenter = nil
+    }
+
+    /// Reloads the open history for ⌘R, reporting whether one was open.
+    @discardableResult
+    func refreshDownloads() -> Bool {
+        guard let downloadsPresenter, downloadsPresenter.isPresented else { return false }
+        downloadsPresenter.refresh()
         return true
     }
 

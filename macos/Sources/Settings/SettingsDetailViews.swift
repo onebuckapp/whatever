@@ -792,12 +792,71 @@ struct SearchSettingsView: View {
 // MARK: - Downloads
 
 struct DownloadsSettingsView: View {
+    @StateObject private var store = DownloadsStore()
+    @State private var isConfirmingClear = false
+
     var body: some View {
-        SettingsPlaceholder(
-            symbol: "arrow.down.circle",
-            title: "No download history yet",
-            message: "Downloads appear here once Whatever tracks them."
-        )
+        SettingsDetailStack {
+            SettingsGroup(
+                title: "Location",
+                footnote: "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+            ) {
+                SettingsButtonRow(
+                    title: "Download folder",
+                    subtitle: DownloadsCenter.downloadsDirectory.path
+                ) {
+                    Button("Reveal") {
+                        NSWorkspace.shared.activateFileViewerSelecting([DownloadsCenter.downloadsDirectory])
+                    }
+                    .controlSize(.small)
+                }
+            }
+
+            SettingsGroup(
+                title: "Storage",
+                footnote: "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+            ) {
+                SettingsButtonRow(
+                    title: "Download history",
+                    subtitle: store.items.isEmpty ? "No downloads yet" : "\(store.items.count) items"
+                ) {
+                    EmptyView()
+                }
+                if isConfirmingClear {
+                    Text("Forget every download row?")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Spacer(minLength: 0)
+                        Button("Cancel") {
+                            isConfirmingClear = false
+                        }
+                        .controlSize(.small)
+                        Button("Clear everything", role: .destructive) {
+                            isConfirmingClear = false
+                            Task { await store.clear() }
+                        }
+                        .controlSize(.small)
+                    }
+                } else {
+                    SettingsButtonRow(
+                        title: "Clear history",
+                        subtitle: "Forget all download rows."
+                    ) {
+                        Button("Clear", role: .destructive) {
+                            isConfirmingClear = true
+                        }
+                        .controlSize(.small)
+                        .disabled(store.items.isEmpty)
+                    }
+                }
+            }
+        }
+        .task {
+            await DownloadsCenter.shared.reconcileInterrupted()
+            store.load()
+        }
     }
 }
 
