@@ -16,7 +16,6 @@ import SwiftUI
 final class SpotlightDropdown: NSView {
     /// The field's radius and border, shared rather than restated, so the panel and
     /// the bar cannot drift apart.
-    private static let cornerRadius = SpotlightField.cornerRadius
     private static let borderWidth: CGFloat = 1
 
     /// Where the fuzzy results go. Replaced wholesale per query, so it is a plain
@@ -115,6 +114,13 @@ final class SpotlightDropdown: NSView {
         )
         let hosted = NSHostingView(rootView: list)
         hosted.translatesAutoresizingMaskIntoConstraints = false
+        // Content must never size the panel: the rows fit whatever width the
+        // bar pins dictate, and a long row's intrinsic width reaching the
+        // field through the shared edges parks the whole bar at content size,
+        // off-centre. Demoted in both directions, so the pins always win and
+        // rows compress or stretch into the panel instead.
+        hosted.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        hosted.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         resultsView?.removeFromSuperview()
         resultsView = hosted
         shownEntryIDs = ids
@@ -141,7 +147,8 @@ final class SpotlightDropdown: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let radius = Self.cornerRadius
+        // Same cap as the field: the slider maximum rounds fully at any size.
+        let radius = SpotlightField.resolvedRadius(forHeight: bounds.height)
         let line = Self.borderWidth
 
         // The fill is inset by half the stroke so the border is not painted over

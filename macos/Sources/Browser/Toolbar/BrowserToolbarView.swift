@@ -35,6 +35,19 @@ final class BrowserToolbarView: NSView {
     private let trailingCluster = NSStackView()
     private let center: NSView
 
+    /// Breathing room between the field and each button cluster in stretch
+    /// mode, so the field never touches a glyph.
+    private static let stretchGap: CGFloat = 8
+
+    /// Centring constraint for the default fixed-width field. Kept to swap
+    /// against the stretch pins below.
+    private var centerXConstraint: NSLayoutConstraint?
+    /// Pins the field across the space between the clusters. Built once,
+    /// toggled with the centring constraint; Auto Layout re-resolves them
+    /// on every resize, which is what makes the mode responsive.
+    private var stretchConstraints: [NSLayoutConstraint] = []
+    private var isStretched = false
+
     init(leading: [NSView], center: NSView, trailing: [NSView]) {
         self.center = center
         super.init(frame: .zero)
@@ -51,6 +64,22 @@ final class BrowserToolbarView: NSView {
             addSubview(view)
         }
 
+        // Centred on the strip rather than floated between the two clusters by
+        // flexible spaces. The clusters happen to be the same width today, so
+        // this looks identical to what `NSToolbar` did, but it stays centred
+        // when they are not.
+        let centerX = center.centerXAnchor.constraint(equalTo: centerXAnchor)
+        centerXConstraint = centerX
+        stretchConstraints = [
+            center.leadingAnchor.constraint(
+                equalTo: leadingCluster.trailingAnchor,
+                constant: Self.stretchGap
+            ),
+            center.trailingAnchor.constraint(
+                equalTo: trailingCluster.leadingAnchor,
+                constant: -Self.stretchGap
+            ),
+        ]
         NSLayoutConstraint.activate([
             leadingCluster.leadingAnchor.constraint(
                 equalTo: leadingAnchor,
@@ -58,11 +87,7 @@ final class BrowserToolbarView: NSView {
             ),
             leadingCluster.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            // Centred on the strip rather than floated between the two clusters by
-            // flexible spaces. The clusters happen to be the same width today, so
-            // this looks identical to what `NSToolbar` did, but it stays centred
-            // when they are not.
-            center.centerXAnchor.constraint(equalTo: centerXAnchor),
+            centerX,
             center.centerYAnchor.constraint(equalTo: centerYAnchor),
 
             trailingCluster.trailingAnchor.constraint(
@@ -79,6 +104,19 @@ final class BrowserToolbarView: NSView {
             cluster.setContentHuggingPriority(.defaultLow, for: .horizontal)
         }
         center.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+    }
+
+    /// Switches the field between a centred fixed width and filling the space
+    /// between the button clusters. Idempotent: repeated calls with the same
+    /// value touch nothing, so settings ticks that change other fields do not
+    /// rebuild constraints.
+    func setFullWidth(_ fillsWidth: Bool) {
+        guard fillsWidth != isStretched else { return }
+        isStretched = fillsWidth
+        centerXConstraint?.isActive = !fillsWidth
+        for constraint in stretchConstraints {
+            constraint.isActive = fillsWidth
+        }
     }
 
     required init?(coder: NSCoder) {

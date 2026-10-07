@@ -23,9 +23,21 @@ final class SpotlightField: NSView {
     // MARK: Geometry
 
     /// Matches the corner radius the dropdown uses, so the two are the same curve.
-    static let cornerRadius: CGFloat = 10
+    ///
+    /// Mutable because the address bar settings own it: the controller writes
+    /// the configured value here and both this view and the dropdown read it
+    /// at draw time, so one assignment re-skins both. Always read through
+    /// `resolvedRadius(forHeight:)` when drawing, which caps it at half the
+    /// height so no setting can invert the arcs.
+    static var cornerRadius: CGFloat = 10
     /// The 1pt border, drawn at the same radius as the fill so it tracks it.
     private static let borderWidth: CGFloat = 1
+    /// Draw-time corner radius for a view of `height`: the configured value
+    /// capped at half the height, so the maximum always reads as a pill.
+    static func resolvedRadius(forHeight height: CGFloat) -> CGFloat {
+        min(max(Self.cornerRadius, 0), max(height, 0) / 2)
+    }
+
     /// Room for the leading glyph plus the gap to the text, measured from the left edge.
     private static let leadingInset: CGFloat = 30
     /// Same on the right, for the clear button.
@@ -358,7 +370,8 @@ final class SpotlightField: NSView {
         )
         // Bottom corners square while the dropdown is showing, so the two shapes
         // share one straight edge and a single outline runs around both.
-        let radius = Self.cornerRadius - line / 2
+        // Capped at half the height: the slider maximum draws a full pill.
+        let radius = Self.resolvedRadius(forHeight: bounds.height) - line / 2
         let path = Self.outline(
             in: rect,
             topRadius: radius,

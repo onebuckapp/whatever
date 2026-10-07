@@ -22,9 +22,10 @@ struct AppSettings: Codable, Equatable {
     var search = SearchSettings()
     var adblock = AdBlockSettings()
     var feeds = FeedSettings()
+    var addressBar = AddressBarSettings()
 
     enum CodingKeys: String, CodingKey {
-        case general, appearance, web, search, adblock, feeds
+        case general, appearance, web, search, adblock, feeds, addressBar
     }
 
     init() {}
@@ -42,6 +43,8 @@ struct AppSettings: Codable, Equatable {
             ?? AdBlockSettings()
         feeds = try container.decodeIfPresent(FeedSettings.self, forKey: .feeds)
             ?? FeedSettings()
+        addressBar = try container.decodeIfPresent(AddressBarSettings.self, forKey: .addressBar)
+            ?? AddressBarSettings()
     }
 
     /// Startup and history defaults.

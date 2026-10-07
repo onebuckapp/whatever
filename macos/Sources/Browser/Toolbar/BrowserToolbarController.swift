@@ -31,6 +31,15 @@ final class BrowserToolbarController: NSObject {
 
     private weak var controller: BrowserWindowController?
     private var cancellables = Set<AnyCancellable>()
+    /// Chrome-level subscriptions that must survive tab switches. `cancellables`
+    /// resets on every `setTab`, so anything not about the tab lives here.
+    private var chromeCancellables = Set<AnyCancellable>()
+    /// Style-owned constraints, kept to retarget rather than rebuild when the
+    /// address bar settings change.
+    private var addressContainerMaxWidth: NSLayoutConstraint?
+    private var addressContainerPreferredWidth: NSLayoutConstraint?
+    private var addressContainerHeight: NSLayoutConstraint!
+    private var spotlightHeight: NSLayoutConstraint!
     private var tab: BrowserTab?
     /// Reported by `SpotlightField`, which has no `isEditing` of its own to ask
     /// unlike the `NSTextField` it replaced. Set while editing so `syncControls`
@@ -67,6 +76,16 @@ final class BrowserToolbarController: NSObject {
         configureCenterStack()
         configureAddressField()
         configureSpotlight()
+        // Address chrome follows settings for the life of the window, not the
+        // tab: subscribing here rather than in `setTab` keeps it alive across
+        // tab switches.
+        SettingsStore.shared.$settings
+            .map(\.addressBar)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyAddressBarStyle() }
+            .store(in: &chromeCancellables)
+        applyAddressBarStyle()
         // Wired here rather than in the spotlight's own init because it needs `self`.
         spotlight.onEditingChanged = { [weak self] isEditing in
             self?.isEditingAddress = isEditing
@@ -347,6 +366,11 @@ final class BrowserToolbarController: NSObject {
         centerStack.orientation = .horizontal
         centerStack.alignment = .centerY
         centerStack.spacing = 6
+        // Fill, not gravity: in stretch mode the stack itself is pinned across
+        // the strip, and the container must grow into it rather than sit at
+        // its leading edge at preferred width. The feed button's fixed size
+        // keeps it put while the container takes the extra space.
+        centerStack.distribution = .fill
         centerStack.addArrangedSubview(addressContainer)
         centerStack.addArrangedSubview(feedButton)
     }
@@ -408,6 +432,20 @@ final class BrowserToolbarController: NSObject {
             equalToConstant: Self.addressFieldWidth
         )
         preferredWidth.priority = .defaultHigh
+        // Both width constraints come off in stretch mode, where the pins to
+        // the clusters own the width: the stack's fill fights even the
+        // lower-priority preferred width instead of yielding to it, and the
+        // ambiguity parks the field at preferred size off-centre. Both are
+        // kept so toggling the mode never rebuilds constraints.
+        let maxWidth = addressContainer.widthAnchor.constraint(
+            lessThanOrEqualToConstant: Self.addressFieldWidth
+        )
+        addressContainerMaxWidth = maxWidth
+        addressContainerPreferredWidth = preferredWidth
+        addressContainerHeight = addressContainer.heightAnchor.constraint(
+            equalToConstant: Self.addressFieldHeight
+        )
+        spotlightHeight = spotlight.heightAnchor.constraint(equalToConstant: Self.addressFieldHeight)
         NSLayoutConstraint.activate([
             spotlight.leadingAnchor.constraint(equalTo: addressContainer.leadingAnchor),
             spotlight.trailingAnchor.constraint(equalTo: addressContainer.trailingAnchor),
@@ -415,13 +453,26 @@ final class BrowserToolbarController: NSObject {
             // Both the container and the spotlight: the container is what the strip
             // centres and sizes, and with only the spotlight pinned the container
             // collapses to zero height and the drawn chrome disappears with it.
-            addressContainer.heightAnchor.constraint(equalToConstant: Self.addressFieldHeight),
-            spotlight.heightAnchor.constraint(equalToConstant: Self.addressFieldHeight),
+            addressContainerHeight,
+            spotlightHeight,
             preferredWidth,
-            addressContainer.widthAnchor.constraint(
-                lessThanOrEqualToConstant: Self.addressFieldWidth
-            ),
+            maxWidth,
         ])
+    }
+
+    /// Applies the address bar chrome settings: stretch mode, corner radius,
+    /// and field height. Height lands on both the container and the field so
+    /// the drawn chrome keeps its size.
+    private func applyAddressBarStyle() {
+        let style = SettingsStore.shared.settings.addressBar
+        toolbarView.setFullWidth(style.fillsWidth)
+        addressContainerMaxWidth?.isActive = !style.fillsWidth
+        addressContainerPreferredWidth?.isActive = !style.fillsWidth
+        SpotlightField.cornerRadius = style.cornerRadius
+        let height = CGFloat(style.fieldHeight)
+        addressContainerHeight.constant = height
+        spotlightHeight.constant = height
+        spotlight.needsDisplay = true
     }
 
     private static let addressFieldHeight: CGFloat = 32
