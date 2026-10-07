@@ -83,11 +83,17 @@ final class BrowserPaneController: NSViewController {
     func hostPage() {
         guard let pageContainer else { return }
         let webView = tab.ensureWebView()
-        // The menu item lives on the view, so a rebuilt view needs rewiring;
-        // reassigning the same closure onto the hosted view is harmless.
+        // The menu items live on the view, so a rebuilt view needs rewiring;
+        // reassigning the same closures onto the hosted view is harmless.
         if let browserView = webView as? BrowserWebView {
             browserView.onGenerateQRCode = { [weak self] in
                 self?.presentPageQRCode()
+            }
+            browserView.onOpenLinkInNewTab = { [weak self] url in
+                self?.openLinkInNewTab(url)
+            }
+            browserView.onOpenLinkInNewWindow = { [weak self] url in
+                self?.openLinkInNewWindow(url)
             }
         }
         guard webView.superview !== pageContainer else { return }
@@ -110,6 +116,50 @@ final class BrowserPaneController: NSViewController {
     }
 
     // MARK: - QR code
+
+    /// Opens a context-menu link in a new tab of this window.
+    ///
+    /// A scheme the page cannot draw, such as mailto: or tel:, goes to the
+    /// app that handles it instead — the same rule a `window.open` for one
+    /// follows — rather than opening a tab that could never render it.
+    /// Keyboard focus stays where it was: the menu, not the address field,
+    /// was the explicit gesture.
+    private func openLinkInNewTab(_ url: URL) {
+        guard NavigationPolicy.canLoadInPage(URLRequest(url: url)) else {
+            NavigationPolicy.handOffToSystem(url)
+            return
+        }
+        let controller = BrowserCoordinator.shared.controller(for: view.window)
+        BrowserCoordinator.shared.newTab(
+            url: url,
+            privacyMode: tab.privacyMode,
+            in: controller,
+            focusesAddressBar: false
+        )
+    }
+
+    /// Opens a context-menu link in a new window.
+    ///
+    /// A private tab opens a private window: the coordinator's plain
+    /// `newWindow(url:)` always builds a regular tab, which would leak the
+    /// link out of the private session.
+    private func openLinkInNewWindow(_ url: URL) {
+        guard NavigationPolicy.canLoadInPage(URLRequest(url: url)) else {
+            NavigationPolicy.handOffToSystem(url)
+            return
+        }
+        if tab.privacyMode == .privateBrowsing {
+            let fresh = BrowserTab(
+                privacyMode: .privateBrowsing,
+                history: BrowserCoordinator.shared.history,
+                initialURL: url
+            )
+            BrowserCoordinator.shared.newWindow(containing: fresh)
+        } else {
+            BrowserCoordinator.shared.newWindow(url: url)
+        }
+    }
+
 
     /// Shows the QR card over this pane's page. The symbol is encoded by the
     /// Nim backend and rendered from its SVG document; the presenter owns
