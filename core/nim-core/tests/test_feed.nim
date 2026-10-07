@@ -84,6 +84,59 @@ const
 </html>
 """
 
+  CdataFeedUrl = "https://example.com/cdata.xml"
+  CdataPageUrl = "https://example.com/cdata"
+  RdfFeedUrl = "https://example.com/rdf.xml"
+  CdataAtomUrl = "https://example.org/cdata-atom.xml"
+
+  CdataFixture = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Example CDATA News</title>
+    <link>https://example.com/cdata</link>
+    <description>Feed with CDATA everywhere</description>
+    <item>
+      <guid>cdata-one</guid>
+      <title><![CDATA[First “quoted” story & more]]></title>
+      <link>https://example.com/cdata/one</link>
+      <description><![CDATA[First summary with <b>markup</b> &amp; entities]]></description>
+      <pubDate>Wed, 01 Oct 2025 12:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+
+  RdfFixture = """<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+  <channel>
+    <title>Example RDF News</title>
+    <link>https://example.com/rdf</link>
+    <description>RDF feed</description>
+  </channel>
+  <item>
+    <title><![CDATA[RDF story one]]></title>
+    <link>https://example.com/rdf/one</link>
+    <description><![CDATA[RDF summary one]]></description>
+  </item>
+</rdf:RDF>
+"""
+
+  CdataAtomFixture = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>tag:example.org,2025:cdata</id>
+  <title>Example CDATA Journal</title>
+  <updated>2025-10-03T12:00:00Z</updated>
+  <link href="https://example.org/cdata"/>
+  <entry>
+    <id>tag:example.org,2025:cdata-one</id>
+    <title><![CDATA[CDATA atom story]]></title>
+    <updated>2025-10-03T12:00:00Z</updated>
+    <link href="https://example.org/cdata-one"/>
+    <summary>CDATA atom summary</summary>
+  </entry>
+</feed>
+"""
+
 suite "feed c abi":
   test "subscriptions converge on one normalized feed row":
     check feedSubscribe(RssFeedUrl.cstring, RssPageUrl.cstring, "".cstring, "Example RSS".cstring,
@@ -141,6 +194,39 @@ suite "feed c abi":
       feedArticles(RssFeedUrl.cstring, 0'i32, 10'i32, 0'i64, 0'i64, buffer, capacity, needed))
     check listed[0]["isRead"].getBool
     check listed[0]["isSaved"].getBool
+
+  test "CDATA titles and summaries survive ingestion":
+    # Publishers like Digi24 wrap every title and description in CDATA, which
+    # stdlib innerText reports as empty. Articles must keep their real titles
+    # instead of falling back to showing their URL.
+    for row in [
+      (CdataFeedUrl, CdataPageUrl, CdataFixture),
+      (RdfFeedUrl, "https://example.com/rdf", RdfFixture),
+      (CdataAtomUrl, "https://example.org/cdata", CdataAtomFixture),
+    ]:
+      let (feedUrl, pageUrl, fixture) = row
+      check feedSubscribe(feedUrl.cstring, pageUrl.cstring, "".cstring, "".cstring,
+        "".cstring, 0'i64) == Ok
+      let report = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+        feedIngest(feedUrl.cstring, 1_700_000_900'i64, fixture.cstring, buffer, capacity, needed))
+      check report["stored"].getInt == 1
+      let listed = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+        feedArticles(feedUrl.cstring, 0'i32, 10'i32, 0'i64, 0'i64, buffer, capacity, needed))
+      check listed.len == 1
+      check listed[0]["title"].getStr.len > 0
+      # The empty-title fallback shows the URL; a real title must differ.
+      check listed[0]["title"].getStr != listed[0]["url"].getStr
+    let rssListed = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      feedArticles(CdataFeedUrl.cstring, 0'i32, 10'i32, 0'i64, 0'i64, buffer, capacity, needed))
+    check rssListed[0]["title"].getStr == "First “quoted” story & more"
+    check rssListed[0]["summary"].getStr == "First summary with markup & entities"
+    let rdfListed = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      feedArticles(RdfFeedUrl.cstring, 0'i32, 10'i32, 0'i64, 0'i64, buffer, capacity, needed))
+    check rdfListed[0]["title"].getStr == "RDF story one"
+    check rdfListed[0]["summary"].getStr == "RDF summary one"
+    let atomListed = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      feedArticles(CdataAtomUrl.cstring, 0'i32, 10'i32, 0'i64, 0'i64, buffer, capacity, needed))
+    check atomListed[0]["title"].getStr == "CDATA atom story"
 
   test "Atom ingestion stores authors and feed metadata":
     check feedSubscribe(AtomFeedUrl.cstring, AtomPageUrl.cstring, "".cstring, "".cstring,

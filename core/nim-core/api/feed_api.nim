@@ -381,30 +381,60 @@ proc stripMarkup(html: string): string =
   ## Conservative tag stripper for summaries and content excerpts. It does not
   ## try to understand scripts, styles, comments, or malformed markup perfectly;
   ## those regions are skipped rather than emitted as text.
+  ##
+  ## CDATA sections are content, not markup: their payload flows inline with
+  ## no word separator (a `<b>` splits words, but `<![CDATA[foo]]>` IS the
+  ## word). The payload itself is markup again — descriptions routinely wrap
+  ## HTML in CDATA — so it recurses through this same stripper instead of
+  ## emitting raw. Entities therefore decode inside descriptions exactly as
+  ## they do outside them; a payload without any `>` no longer swallows the
+  ## whole description the way the old find-the-next-`>` skip did.
   var text = newStringOfCap(html.len)
+  var run = newStringOfCap(64)
+  proc flushRun() =
+    ## Entities decode per text run, outside CDATA only.
+    if run.len > 0:
+      text.add(decodeEntities(run))
+      run.setLen(0)
+  proc separate() =
+    if text.len == 0 or text[^1] != ' ':
+      text.add(' ')
   var i = 0
   while i < html.len:
     if html[i] == '<':
-      if at(html, i, "<!--"):
+      if at(html, i, "<![CDATA["):
+        flushRun()
+        let stop = html.find("]]>", i + 9)
+        if stop < 0:
+          text.add(stripMarkup(html[i + 9 .. ^1]))
+          break
+        text.add(stripMarkup(html[i + 9 ..< stop]))
+        i = stop + 3
+      elif at(html, i, "<!--"):
+        flushRun()
         let stop = html.find("-->", i + 4)
         i = if stop < 0: html.len else: stop + 3
+        separate()
       elif at(html, i, "<script") or at(html, i, "<SCRIPT") or
            at(html, i, "<style") or at(html, i, "<STYLE"):
+        flushRun()
         let tagEnd = html.find('>', i + 1)
         if tagEnd < 0:
           break
         let closing = if html[i + 1] == 's' or html[i + 1] == 'S': "</script" else: "</style"
         let stop = html.toLowerAscii.find(closing, tagEnd + 1)
         i = if stop < 0: html.len else: html.find('>', stop) + 1
+        separate()
       else:
+        flushRun()
         let stop = html.find('>', i + 1)
         i = if stop < 0: html.len else: stop + 1
-      if text.len == 0 or text[^1] != ' ':
-        text.add(' ')
+        separate()
     else:
-      text.add(html[i])
+      run.add(html[i])
       inc i
-  strutils.splitWhitespace(decodeEntities(text)).join(" ").strip
+  flushRun()
+  strutils.splitWhitespace(text).join(" ").strip
 
 proc innerXml(node: XmlNode): string =
   ## Markup inside `node` without its own outer tags, so an RSS description or
@@ -435,9 +465,28 @@ proc firstNamedChild(parent: XmlNode, names: openArray[string]): XmlNode =
       return child
   nil
 
+proc richText(node: XmlNode): string =
+  ## CDATA-aware text extraction. Stdlib `innerText` returns "" for `xnCData`,
+  ## which silently drops every title, link, and description a publisher wraps
+  ## in `<![CDATA[…]]>`; the article then falls back to showing its URL as its
+  ## title. Text, entity, and CDATA children all count as content here, while
+  ## comments stay excluded exactly like `innerText` excludes them.
+  if node.isNil:
+    return ""
+  case node.kind
+  of xnText, xnVerbatimText, xnEntity, xnCData:
+    node.text
+  of xnElement:
+    var text = newStringOfCap(64)
+    for child in node:
+      text.add(richText(child))
+    text
+  else:
+    ""
+
 proc childText(parent: XmlNode, names: openArray[string]): string =
   let node = firstNamedChild(parent, names)
-  if node.isNil: "" else: node.innerText.strip
+  if node.isNil: "" else: richText(node).strip
 
 proc allNamedDescendants(parent: XmlNode, names: openArray[string]): seq[XmlNode] =
   if parent.isNil:
@@ -1005,7 +1054,7 @@ proc rawEntryAuthors(item: XmlNode): seq[string] =
   for child in childElements(item):
     case localTagName(child.tag)
     of "author", "creator", "name":
-      let text = child.innerText.strip
+      let text = richText(child).strip
       if text.len > 0:
         result.add(text)
     else:
@@ -1070,7 +1119,7 @@ proc lenientAtomEntries(document: XmlNode, feedUrl, siteUrl: string): seq[Normal
     let id = firstNamedChild(item, ["id"])
     let idText = if id.isNil: "" else: id.innerText.strip
     let link = normalizeUrl(chooseAlternateLink(item), base)
-    let title = firstNamedChild(item, ["title"]).innerText.strip
+    let title = childText(item, ["title"])
     let published = firstNamedChild(item, ["published", "updated"])
     let updated = firstNamedChild(item, ["updated"])
     let (publishedUnix, publishedRaw) = normalizeEntryDate(if published.isNil: "" else: published.innerText)
@@ -1107,13 +1156,20 @@ proc enrichStrictEntries(entries: var seq[NormalizedEntry], document: XmlNode,
   let base = baseUrlForFeed(feedUrl, siteUrl)
   for item in rawItemNodes(document, root):
     let guid = firstNamedChild(item, ["guid", "id"])
-    let guidText = if guid.isNil: "" else: guid.innerText.strip
+    let guidText = if guid.isNil: "" else: richText(guid).strip
     let link = normalizeUrl(chooseAlternateLink(item), base)
     let resolved = if link.len > 0: link
       else: normalizeUrl(childText(item, ["link"]), base)
     for entry in entries.mitems:
       if (guidText.len > 0 and entry.guid == guidText) or
          (resolved.len > 0 and entry.link == resolved):
+        # The validating parser drops CDATA titles the same way `innerText`
+        # does, so an empty strict title is re-read from the raw document
+        # instead of leaving the article to display its URL.
+        if entry.title.len == 0:
+          let rawTitle = childText(item, ["title"])
+          if rawTitle.len > 0:
+            entry.title = rawTitle
         let (summaryHtml, contentHtml) = rawEntryHtml(item)
         if summaryHtml.len > 0 and entry.summaryHtml.len == 0:
           entry.summaryHtml = summaryHtml
@@ -1146,7 +1202,7 @@ proc feedIconUrl(document: XmlNode, root, base: string): string =
     let remote = normalizeUrl(childText(node, ["url"]), base)
     if remote.len > 0:
       return remote
-    let direct = normalizeUrl(node.innerText.strip, base)
+    let direct = normalizeUrl(richText(node).strip, base)
     if direct.len > 0:
       return direct
   ""
@@ -1168,7 +1224,7 @@ proc normalizeFeedDocument(payload, feedUrl: string, strictOnly = false): Normal
     let channel = if root == "rdf": channelNode(document) else: firstNamedChild(document, ["channel"])
     let target = if channel.isNil: document else: channel
     let node = firstNamedChild(target, ["description", "subtitle", "tagline"])
-    if node.isNil: "" else: node.innerText.strip
+    if node.isNil: "" else: richText(node).strip
   case root
   of "rss":
     try:
