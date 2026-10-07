@@ -83,8 +83,54 @@ struct RSSFeedsSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Retention",
-                footnote: "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own.",
+                title: "Headline crawl",
+                footnote: "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode.",
+                isEnabled: settings.settings.feeds.isEnabled
+            ) {
+                SettingsToggleRow(
+                    title: "Enable Crawl",
+                    subtitle: "Shows a scrolling bar that displays headlines at the bottom.",
+                    isOn: settings.binding(\.feeds.crawlEnabled)
+                )
+                SettingsSliderRow(
+                    title: "Crawl speed",
+                    value: settings.binding(\.feeds.crawlSpeed),
+                    range: 20...200,
+                    step: 5,
+                    format: { String(format: "%.0f pt/s", $0) }
+                )
+                SettingsPickerRow(
+                    title: "Crawl direction",
+                    options: AppSettings.CrawlDirection.allCases,
+                    selection: settings.binding(\.feeds.crawlDirection),
+                    isSegmented: true,
+                    label: { $0.title }
+                )
+                SettingsSliderRow(
+                    title: "Font size",
+                    value: settings.binding(\.feeds.crawlFontSize),
+                    range: 10...16,
+                    step: 0.5,
+                    format: { String(format: "%.1f pt", $0) }
+                )
+                SettingsSliderRow(
+                    title: "Bar height",
+                    value: settings.binding(\.feeds.crawlBarHeight),
+                    range: 22...40,
+                    step: 1,
+                    format: { String(format: "%.0f pt", $0) }
+                )
+                SettingsSliderRow(
+                    title: "Background opacity",
+                    value: settings.binding(\.feeds.crawlBackgroundOpacity),
+                    range: 0.3...1,
+                    step: 0.05,
+                    format: { String(format: "%.0f%%", $0 * 100) }
+                )
+            }
+
+            SettingsGroup(
+                title: "Retention",                footnote: "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own.",
                 isEnabled: settings.settings.feeds.isEnabled
             ) {
                 SettingsSliderRow(

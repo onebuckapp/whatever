@@ -297,6 +297,39 @@ struct AppSettings: Codable, Equatable {
         /// Whether malformed feeds are rejected instead of being recovered
         /// with a lenient projection.
         var strictParsing = false
+        /// Whether the headline crawl bar is shown along the bottom of
+        /// browser windows. Hidden when there is nothing to show, and the
+        /// animation stops with it, so a disabled crawl costs nothing.
+        var crawlEnabled = false
+        /// Crawl speed in points per second.
+        var crawlSpeed: Double = 60
+        /// Crawl scroll direction.
+        var crawlDirection = CrawlDirection.rightToLeft
+        /// Crawl headline font size in points.
+        var crawlFontSize: Double = 12
+        /// Crawl bar height in points.
+        var crawlBarHeight: Double = 28
+        /// Crawl bar background opacity, from mostly transparent to opaque.
+        /// Text itself always uses the system label color, so Light and Dark
+        /// Mode keep working without stored colors.
+        var crawlBackgroundOpacity: Double = 0.85
+    }
+
+    /// Scroll direction of the headline crawl bar.
+    enum CrawlDirection: String, Codable, Equatable, CaseIterable, Identifiable {
+        var id: String { rawValue }
+
+        /// Headlines enter from the right and exit to the left.
+        case rightToLeft
+        /// Headlines enter from the left and exit to the right.
+        case leftToRight
+
+        var title: String {
+            switch self {
+            case .rightToLeft: "Right to left"
+            case .leftToRight: "Left to right"
+            }
+        }
     }
 
     /// Which article images the reader may download and store.

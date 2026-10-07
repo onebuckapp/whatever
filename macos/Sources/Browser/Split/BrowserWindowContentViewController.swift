@@ -19,6 +19,9 @@ final class BrowserWindowContentViewController: NSViewController {
     private var settingsPresenter: SettingsModalPresenter?
     private var adBlockPresenter: AdBlockPopupPresenter?
     private var feedReaderPresenter: FeedReaderPresenter?
+    /// Internal for layout tests, which drive visibility through the
+    /// controller's testing seams.
+    var crawlBarController: CrawlBarController?
     private var shield: ModalEventShieldView?
 
     /// Set by the window controller. `onDropZoneChanged` receives nil
@@ -48,6 +51,9 @@ final class BrowserWindowContentViewController: NSViewController {
     /// views they pin, so abandoned ones keep discarded pages (and their processes)
     /// alive.
     private var childConstraints: [ObjectIdentifier: [NSLayoutConstraint]] = [:]
+    /// The bottom-edge constraint of each set above, tracked separately so the
+    /// crawl bar can re-pin it without matching heuristics.
+    private var childBottomConstraints: [ObjectIdentifier: NSLayoutConstraint] = [:]
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -330,13 +336,17 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Measured from the tab bar's own frame rather than from the tab bar's
     /// height, because the bar is inset by the window's safe area now that the
     /// window is full-size.
+    ///
+    /// Shrinks from the bottom while the headline crawl is visible, so drop
+    /// zones never claim the strip the ticker occupies.
     var pageAreaRect: NSRect {
         let top = tabBar.frame.maxY
+        let bottom = crawlBarController?.occupiedHeight ?? 0
         return NSRect(
             x: 0,
             y: top,
             width: view.bounds.width,
-            height: max(0, view.bounds.height - top)
+            height: max(0, view.bounds.height - top - bottom)
         )
     }
 
@@ -410,6 +420,7 @@ final class BrowserWindowContentViewController: NSViewController {
                 background?.configuration = settings.appearance.background
             }
         background.configuration = SettingsStore.shared.settings.appearance.background
+        installCrawlBar()
     }
 
     /// Where a parked child's view is moved to, horizontally.
@@ -467,6 +478,8 @@ final class BrowserWindowContentViewController: NSViewController {
             controller.view.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(controller.view)
             forgetConstraints(for: controller)
+            let bottom = pageBottomConstraint(for: controller.view)
+            childBottomConstraints[key] = bottom
             childConstraints[key] = [
                 // Anchored to the tab bar rather than to the view's top plus the
                 // bar's height, because the bar no longer sits at the top of the
@@ -474,7 +487,7 @@ final class BrowserWindowContentViewController: NSViewController {
                 controller.view.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
                 controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                bottom,
             ]
             hierarchyChanged = true
         }
@@ -502,7 +515,88 @@ final class BrowserWindowContentViewController: NSViewController {
             if let dropPreview {
                 view.subviews = view.subviews.filter { $0 !== dropPreview } + [dropPreview]
             }
+            // The page may have arrived above the crawl bar; the grain keeps
+            // its front-most seat behind nothing.
+            crawlBarController?.bringToFront()
             noiseOverlay?.moveToFront()
+        }
+    }
+
+    // MARK: - Headline crawl
+
+    /// Installs the window-wide headline crawl bar along the bottom edge.
+    ///
+    /// One bar per window rather than one per pane: in a split both panes
+    /// shrink above the same strip, and each pane's own find bar keeps its
+    /// `bar.bottom == pane.bottom - 6` pin, which now resolves just above the
+    /// ticker with no pane-side changes. Cmd+F therefore always opens above
+    /// the crawl bar.
+    private func installCrawlBar() {
+        let controller = CrawlBarController(container: view) { [weak self] url in
+            // Ticker taps always open a new tab: the strip is window-wide
+            // ambient content, never the current page, so replacing the page
+            // underneath would lose where the user was reading.
+            self?.onOpenFeedArticle?(url, true)
+        }
+        controller.onVisibilityChanged = { [weak self] in
+            self?.crawlVisibilityChanged()
+        }
+        crawlBarController = controller
+        crawlVisibilityChanged()
+    }
+
+    /// Re-pins the page area and restores sibling order after the crawl bar
+    /// enters, leaves, or is first installed.
+    private func crawlVisibilityChanged() {
+        updateCrawlBottomPins()
+        crawlBarController?.bringToFront()
+        noiseOverlay?.moveToFront()
+    }
+
+    /// The page area's bottom edge: the crawl bar's top while it is visible,
+    /// the window bottom otherwise.
+    private func pageBottomConstraint(for childView: NSView) -> NSLayoutConstraint {
+        if let bar = crawlBarController?.barView, bar.superview === view {
+            return childView.bottomAnchor.constraint(equalTo: bar.topAnchor)
+        }
+        return childView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+    }
+
+    /// Re-pins every child's bottom edge after the crawl bar enters or leaves.
+    ///
+    /// Only the tracked bottom constraint of each set is replaced; top and
+    /// sides are untouched. Parked children (manual frames, off-screen) keep
+    /// an inactive replacement; the current child takes its replacement live
+    /// in the same pass. A retired constraint is removed from the view when
+    /// it is actually installed there; one that was never installed is owed
+    /// nothing and is skipped.
+    ///
+    /// Activation deliberately does NOT consult `old.isActive`: removing the
+    /// bar drops every constraint referencing it before this runs, so a
+    /// retired pin routinely reads inactive even when it laid out the page a
+    /// moment ago. Trusting that flag orphaned the page with no bottom pin
+    /// at all — a zero-height web view until the next tab switch re-pinned
+    /// it. Parked-ness comes from the view (`translatesAutoresizingMaskInto
+    /// Constraints`), which hierarchy changes cannot forge.
+    private func updateCrawlBottomPins() {
+        for child in children {
+            let key = ObjectIdentifier(child)
+            guard var constraints = childConstraints[key],
+                  let old = childBottomConstraints[key],
+                  let index = constraints.firstIndex(of: old)
+            else { continue }
+            let replacement = pageBottomConstraint(for: child.view)
+            let parked = child.view.translatesAutoresizingMaskIntoConstraints
+            old.isActive = false
+            if view.constraints.contains(old) {
+                view.removeConstraint(old)
+            }
+            if !parked {
+                replacement.isActive = true
+            }
+            constraints[index] = replacement
+            childConstraints[key] = constraints
+            childBottomConstraints[key] = replacement
         }
     }
 
@@ -547,6 +641,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private func forgetConstraints(for controller: NSViewController) {
         guard let constraints = childConstraints.removeValue(forKey: ObjectIdentifier(controller))
         else { return }
+        childBottomConstraints.removeValue(forKey: ObjectIdentifier(controller))
         NSLayoutConstraint.deactivate(constraints)
         // `NSLayoutConstraint.remove()` is not exposed to Swift, and dropping
         // our reference is not enough: a deactivated constraint stays installed on
