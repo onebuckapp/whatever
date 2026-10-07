@@ -17,11 +17,22 @@ final class QRPopupPresenter {
     private var stackID: PopupStackID?
     private var escapeMonitor: Any?
     private var onDidDismiss: (() -> Void)?
+    /// Fires once the card is actually on screen. Presentation is async (the
+    /// symbol arrives over XPC), so a shield claim belongs here, not at the
+    /// `present` call: claiming early would deafen the page during the
+    /// encode round trip, and strand the shield when the encode fails.
+    private var onDidPresent: (() -> Void)?
 
-    init(container: NSView, area: NSView, onDidDismiss: (() -> Void)? = nil) {
+    init(
+        container: NSView,
+        area: NSView,
+        onDidDismiss: (() -> Void)? = nil,
+        onDidPresent: (() -> Void)? = nil
+    ) {
         self.container = container
         self.area = area
         self.onDidDismiss = onDidDismiss
+        self.onDidPresent = onDidPresent
     }
 
     var isPresented: Bool {
@@ -98,6 +109,8 @@ final class QRPopupPresenter {
 
         self.hostingView = hostingView
         self.stackID = stackID
+        // The card is on screen now, so cover the page behind it.
+        onDidPresent?()
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             if event.keyCode == 53 {

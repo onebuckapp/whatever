@@ -6,10 +6,9 @@ import SwiftUI
 /// to it, and a way into the full Content Blocker settings.
 ///
 /// Presented by Mijick/Popups like the QR card: a small centered card over a
-/// dimmed backdrop, tap-outside to dismiss. No shield is installed for it —
-/// the card is transient and the page underneath stays live, exactly like
-/// the QR card, so a fall-through release lands on the page rather than on
-/// a dismissal handler.
+/// transparent backdrop, tap-outside to dismiss. Shielded like every other
+/// card while up, so the page underneath goes inert and an outside press
+/// dismisses the card instead of reaching the page.
 struct AdBlockPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String

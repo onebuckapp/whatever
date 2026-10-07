@@ -1051,7 +1051,7 @@ final class BrowserWindowController: NSWindowController {
     }
 
     /// Claims the window's modal shield for a pane popup (file browser,
-    /// downloads). One shield serves the whole window by claim, so coexisting
+    /// downloads, QR card). One shield serves the whole window by claim, so coexisting
     /// pane cards never steal each other's cover; a shield click dismisses
     /// the frontmost card.
     func claimPopupShield(id: String, onDismiss: @escaping () -> Void) {

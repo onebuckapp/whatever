@@ -100,7 +100,9 @@ final class BrowserPaneController: NSViewController {
 
     /// Shows the QR card over this pane's page. The symbol is encoded by the
     /// Nim backend and rendered from its SVG document; the presenter owns
-    /// presentation and dismissal.
+    /// presentation and dismissal. Shielded like every other card while up:
+    /// the transparent overlay makes the page inert and dismisses the card
+    /// on an outside press.
     func presentQRCode(text: String) {
         guard !text.isEmpty else {
             SystemBeep.play()
@@ -112,9 +114,19 @@ final class BrowserPaneController: NSViewController {
         if let qrPopupPresenter, qrPopupPresenter.isPresented {
             return
         }
-        let presenter = QRPopupPresenter(container: view, area: pageContainer) { [weak self] in
-            self?.qrPopupPresenter = nil
-        }
+        let presenter = QRPopupPresenter(
+            container: view,
+            area: pageContainer,
+            onDidDismiss: { [weak self] in
+                self?.qrPopupPresenter = nil
+                self?.releasePopupShield(id: "qr-code")
+            },
+            onDidPresent: { [weak self] in
+                self?.claimPopupShield(id: "qr-code") { [weak self] in
+                    self?.dismissQRCode()
+                }
+            }
+        )
         qrPopupPresenter = presenter
         presenter.present(text: text)
     }
