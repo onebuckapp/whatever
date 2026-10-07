@@ -364,23 +364,24 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         detach(tab: tab, from: source, atScreenPoint: point)
     }
 
-    /// Moves a tab into another window at a given index. The source
-    /// window closes itself if it empties.
+    /// Moves a tab to an index in `destination`: a reorder when the tab is
+    /// already there, a move from another window otherwise. The source
+    /// window closes itself if a move empties it.
     func moveTab(
         _ tab: BrowserTab,
         to index: Int,
         in destination: BrowserWindowController
     ) {
-        guard destination.tabs.allSatisfy({ $0.id != tab.id }) else { return }
         let source = windows.first {
             $0.tabs.contains { $0.id == tab.id }
         }
-        guard let source, source !== destination else {
+        guard let source else { return }
+        if source !== destination {
+            source.detachTab(tab)
+            destination.addTab(tab, at: index)
+        } else {
             destination.moveTab(tab, to: index)
-            return
         }
-        source.detachTab(tab)
-        destination.addTab(tab, at: index)
     }
 
     /// Moves a tab to a new window, removing it from `source`, which closes
