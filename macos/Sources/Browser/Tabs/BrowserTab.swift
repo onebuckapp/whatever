@@ -155,7 +155,7 @@ final class BrowserTab: NSObject {
 
     /// What the page area should show this tab as.
     ///
-    /// Prefers the live page so a URL that redirects, or a `whtvr://` homepage
+    /// Prefers the live page so a URL that redirects, or a `w://` homepage
     /// with no address bar entry, reports what the user sees.
     var displayURL: URL {
         webView?.url ?? currentURL

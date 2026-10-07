@@ -300,7 +300,7 @@ extension BrowserPaneController: WKUIDelegate {
     ///
     /// Falls back to the page's title and then to a constant, because an
     /// `NSAlert` with an empty heading is worse than an unhelpful one. Hostless
-    /// pages (`whtvr://about`, `about:blank`) have no site to name, so the title
+    /// pages (`w://about`, `about:blank`) have no site to name, so the title
     /// is the best available answer and the constant is the floor.
     ///
     /// Takes a plain `WKWebView` rather than the subclass because the delegate

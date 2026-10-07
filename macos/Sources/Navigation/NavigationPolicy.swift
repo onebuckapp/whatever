@@ -6,9 +6,10 @@ import WebKit
 /// handed to the OS and cancelled in the tab.
 enum NavigationPolicy {
     /// The schemes a web view can render itself. Everything else needs another
-    /// app.
+    /// app. `whtvr` is the retired name of `w` and stays accepted so stored
+    /// URLs keep resolving instead of bouncing to the OS.
     static let inPageSchemes: Set<String> = [
-        "http", "https", "file", "about", "data", "blob", "whtvr",
+        "http", "https", "file", "about", "data", "blob", "w", "whtvr",
     ]
 
     static func decision(for request: URLRequest) -> WKNavigationActionPolicy {

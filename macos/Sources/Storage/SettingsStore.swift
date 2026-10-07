@@ -139,7 +139,7 @@ struct AppSettings: Codable, Equatable {
         /// which media needs a click before it plays.
         var mediaAutoplay = MediaAutoplayPolicy.all
         /// `WKWebViewConfiguration.limitsNavigationsToAppBoundDomains`. Left
-        /// off: the `whtvr://` homepage handler is part of this app, and
+        /// off: the `w://` homepage handler is part of this app, and
         /// app-bound navigation is strict about what that covers.
         var limitsNavigationsToAppBoundDomains = false
         /// `WKWebViewConfiguration.suppressesIncrementalRendering`.

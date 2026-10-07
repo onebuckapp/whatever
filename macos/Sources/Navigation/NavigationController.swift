@@ -214,7 +214,7 @@ extension NavigationController: WKNavigationDelegate {
         if navigationAction.navigationType == .linkActivated,
            navigationAction.targetFrame?.isMainFrame == true,
            let scheme = url.scheme?.lowercased(),
-           ["http", "https", "whtvr"].contains(scheme),
+            ["http", "https", "w", "whtvr"].contains(scheme),
            let owner {
             owner.navigate(to: url)
             decisionHandler(.cancel)

@@ -19,9 +19,12 @@ enum WebViewFactory {
         configuration.websiteDataStore = dataStore
         // Fresh pool per page: nothing outlives the view.
         configuration.processPool = WKProcessPool()
-        // Served from memory by HomepageSchemeHandler; whtvr://about is
-        // the homepage and always shows the bundled markup.
-        configuration.setURLSchemeHandler(HomepageSchemeHandler(), forURLScheme: "whtvr")
+        // Served from memory by HomepageSchemeHandler; w://about is
+        // the homepage and always shows the bundled markup. The retired
+        // whtvr:// name stays registered so stored URLs keep resolving.
+        let homepageHandler = HomepageSchemeHandler()
+        configuration.setURLSchemeHandler(homepageHandler, forURLScheme: "w")
+        configuration.setURLSchemeHandler(homepageHandler, forURLScheme: "whtvr")
         // The half of the user's web settings WebKit only reads here. The other
         // half is applied by `applyLiveWebSettings` once the view exists.
         SettingsStore.shared.settings.web.apply(to: configuration)

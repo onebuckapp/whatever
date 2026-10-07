@@ -54,7 +54,7 @@ extension AppSettings.WebSettings {
         page.allowsContentJavaScript = allowsJavaScript
         if #available(macOS 15.2, *) {
             // `.keepAsRequested` leaves WebKit's behaviour alone. The other cases
-            // all try to upgrade or re-request, which breaks `whtvr://`: it is
+            // all try to upgrade or re-request, which breaks `w://`: it is
             // Whatever's own scheme, served by its own handler, and there is no
             // HTTPS version of it to fall back to.
             page.preferredHTTPSNavigationPolicy = .keepAsRequested
