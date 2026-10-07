@@ -174,9 +174,10 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Opens the reader for the selected tab's advertised feeds, or closes it
     /// when already open.
     ///
-    /// No shield goes in: the reader is a browsing surface of its own, and the
-    /// page may stay interactive underneath it. Subscriptions and downloads
-    /// still require a regular tab; private tabs get a read-only view of the
+    /// Shielded like every other card: the backdrop stays transparent, but a
+    /// click over the page must reach the shield (dismissing the card), never
+    /// the `WKWebView` underneath. Subscriptions and downloads still require
+    /// a regular tab; private tabs get a read-only view of the
     /// already-persisted library plus the current page's transient candidates.
     func presentFeedReader(candidates: [FeedCandidate], tab: BrowserTab) {
         guard isViewLoaded else { return }
@@ -187,6 +188,7 @@ final class BrowserWindowContentViewController: NSViewController {
         }
         let presenter = FeedReaderPresenter(container: view) { [weak self] in
             self?.feedReaderPresenter = nil
+            self?.releaseShield(id: "feed-reader")
         }
         feedReaderPresenter = presenter
         presenter.present(
@@ -199,6 +201,11 @@ final class BrowserWindowContentViewController: NSViewController {
                 self?.onOpenFeedArticle?(url, newTab)
             }
         )
+        if presenter.isPresented {
+            claimShield(id: "feed-reader", dismissOnPress: true) { [weak self] in
+                self?.dismissFeedReader()
+            }
+        }
     }
 
     func dismissFeedReader() {
