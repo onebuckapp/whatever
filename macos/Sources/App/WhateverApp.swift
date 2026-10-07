@@ -89,12 +89,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.renameSystemCloseItemToCloseTab()
+        // Idle-tab reaping runs for the life of the app once started.
+        TabSleeper.shared.start()
         // One subscription, so a web setting changed anywhere — a settings
         // control, a migration, a future programmatic caller — reaches open
         // pages the same way.
         SettingsStore.shared.onChange = { changed in
             if changed.contains("web") {
                 BrowserCoordinator.shared.applyLiveWebSettings()
+                // The sleep threshold lives in the same section: enabling it
+                // reaps at once instead of waiting for the next minute.
+                TabSleeper.shared.sweep()
             }
             if changed.contains("appearance") {
                 BrowserCoordinator.shared.applyLiveBackgroundSettings()

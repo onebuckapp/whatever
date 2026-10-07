@@ -57,6 +57,18 @@ final class BrowserTab: NSObject {
         return presentation.recordsHistory ?? SettingsStore.shared.settings.general.recordsHistory
     }
 
+    /// When the tab was last shown. The sleeper compares this against the
+    /// setting to decide whose page gets discarded; selecting the tab
+    /// refreshes it. Starts at creation, so a restored window's background
+    /// tabs can sleep without ever having been shown in this launch.
+    private(set) var lastActiveAt = Date()
+
+    /// Records a showing. Called by the window on every selection, including
+    /// the implicit one when a tab is added or a split focuses a pane.
+    func markActive() {
+        lastActiveAt = Date()
+    }
+
     /// Whether the page is allowed to see the mouse at all.
     ///
     /// Turned off for as long as a modal card covers the window. Held here rather
@@ -196,6 +208,9 @@ final class BrowserTab: NSObject {
     /// Drops the view, keeping the history. Frees the page's processes.
     func discardWebView() {
         guard let old = webView else { return }
+        // The bar keeps showing the page's title while the tab has no view:
+        // the placeholder stands in until the rebuilt page reports its own.
+        tabController.setPlaceholderTitle(tabController.title)
         old.stopLoading()
         old.navigationDelegate = nil
         old.removeFromSuperview()

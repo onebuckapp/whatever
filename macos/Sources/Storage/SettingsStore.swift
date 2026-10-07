@@ -112,6 +112,47 @@ struct AppSettings: Codable, Equatable {
         }
     }
 
+    /// When a hidden tab's page is discarded to free memory.
+    ///
+    /// App behaviour, not a WebKit property: nothing here is read when a view
+    /// is built, so it stays out of `configTimeWebKeys` and the settings UI
+    /// carries its own footnote rather than the derived engine one.
+    enum InactiveTabSleep: String, Codable, Equatable, CaseIterable, Identifiable {
+        /// For `SettingsPickerRow`, which wants each option to be a stable item.
+        var id: String { rawValue }
+        /// Hidden tabs keep their pages, whatever the cost.
+        case off
+        /// A hidden tab's page is dropped after 5 idle minutes.
+        case after5Minutes
+        /// A hidden tab's page is dropped after 15 idle minutes.
+        case after15Minutes
+        /// A hidden tab's page is dropped after 30 idle minutes.
+        case after30Minutes
+        /// A hidden tab's page is dropped after 1 idle hour.
+        case after1Hour
+
+        /// Idle minutes before a hidden tab sleeps, or nil when sleeping is off.
+        var minutes: Double? {
+            switch self {
+            case .off: nil
+            case .after5Minutes: 5
+            case .after15Minutes: 15
+            case .after30Minutes: 30
+            case .after1Hour: 60
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .off: "Off"
+            case .after5Minutes: "After 5 minutes"
+            case .after15Minutes: "After 15 minutes"
+            case .after30Minutes: "After 30 minutes"
+            case .after1Hour: "After 1 hour"
+            }
+        }
+    }
+
     /// Which media WebKit will start playing without a click.
     ///
     /// Mirrors `WKAudiovisualMediaTypes`, which WebKit only reads when a view is
@@ -184,6 +225,9 @@ struct AppSettings: Codable, Equatable {
         /// `WKWebViewConfiguration.applicationNameForUserAgent`, sent as
         /// `Whatever/<version>` so sites see the real app.
         var applicationNameForUserAgent = "Whatever"
+        /// When a hidden tab's page is discarded to free its processes.
+        /// Slept tabs reload their address when shown again.
+        var sleepInactiveTabs = InactiveTabSleep.off
 
         /// What a document from before any of these keys existed decodes to.
         ///
@@ -235,6 +279,8 @@ struct AppSettings: Codable, Equatable {
                 ?? Self.undocumented.allowsMagnification
             applicationNameForUserAgent = try container.decodeIfPresent(String.self, forKey: .applicationNameForUserAgent)
                 ?? Self.undocumented.applicationNameForUserAgent
+            sleepInactiveTabs = try container.decodeIfPresent(InactiveTabSleep.self, forKey: .sleepInactiveTabs)
+                ?? Self.undocumented.sleepInactiveTabs
         }
     }
 

@@ -543,6 +543,7 @@ final class BrowserWindowController: NSWindowController {
         dismissDownloads()
 
         selectedTabID = tab.id
+        tab.markActive()
         activeModel.activeTabID = tab.id
         toolbarController.setTab(tab)
         bindProgress(to: tab)
@@ -1190,6 +1191,11 @@ final class BrowserWindowController: NSWindowController {
         dismissFileBrowser()
         dismissDownloads()
         let visible = displayedTabs
+        // Wakes slept tabs: a tab whose view was discarded rebuilds it here,
+        // loading its address anew. Hidden tabs stay unrealized.
+        for tab in visible {
+            pane(for: tab).hostPage()
+        }
         if visible.count <= 1 {
             splitController = nil
             singlePane = nil

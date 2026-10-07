@@ -329,6 +329,22 @@ struct WebSettingsView: View {
                     isOn: store.binding(\.web.tabFocusesLinks)
                 )
             }
+
+            SettingsGroup(
+                title: "Sleeping tabs",
+                // Hand-written rather than the derived engine footnote: this
+                // is app behaviour, not a WebKit property, and neither
+                // "applies immediately" nor "needs a new page" describes a
+                // minute-cadence reaper.
+                footnote: "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+            ) {
+                SettingsPickerRow(
+                    title: "Sleep unused tabs",
+                    options: AppSettings.InactiveTabSleep.allCases,
+                    selection: store.binding(\.web.sleepInactiveTabs),
+                    label: { $0.label }
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

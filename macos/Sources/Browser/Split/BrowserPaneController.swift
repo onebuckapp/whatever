@@ -49,30 +49,16 @@ final class BrowserPaneController: NSViewController {
         view.addSubview(pageContainer)
         self.pageContainer = pageContainer
 
-        // A pane only exists for a tab the page area is showing, so asking the
-        // tab to realize itself here is what builds the page. A restored tab
-        // arrives without one.
-        let webView = tab.ensureWebView()
-        // This pane is also the `WKUIDelegate`. WebKit holds it weakly, and a
-        // cross-site navigation replaces the view while this pane stays, so the
-        // assignment belongs here rather than at construction: it is the moment a
-        // view is known to have an owner willing to host a popup. Without it
-        // WebKit has nobody to ask for a `target="_blank"` target and drops the
-        // navigation without a word.
-        webView.uiDelegate = self
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        pageContainer.addSubview(webView)
-
         NSLayoutConstraint.activate([
             pageContainer.topAnchor.constraint(equalTo: view.topAnchor),
             pageContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
             pageContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-
-            webView.topAnchor.constraint(equalTo: pageContainer.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: pageContainer.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: pageContainer.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: pageContainer.bottomAnchor),
         ])
+
+        // A pane only exists for a tab the page area is showing, so asking the
+        // tab to realize itself here is what builds the page. A restored tab
+        // arrives without one.
+        hostPage()
         // Held rather than anonymous: the find bar deactivates this while it
         // is open and reactivates it on close, so the page holder yields its
         // bottom edge to the bar instead of overlapping it.
@@ -86,14 +72,41 @@ final class BrowserPaneController: NSViewController {
                 self?.updateBorder(activeID: activeID, showsIndicator: showsIndicator)
             }
         updateBorder(activeID: activeModel.activeTabID, showsIndicator: activeModel.showsIndicator)
+    }
 
-        // The web view injects the item into WebKit's own menu and calls
-        // back here when it is chosen.
-        if let webView = tab.webView as? BrowserWebView {
-            webView.onGenerateQRCode = { [weak self] in
+    /// Ensures the tab's page exists and is embedded in this pane.
+    ///
+    /// Waking a slept tab back up: selecting a tab whose view was discarded
+    /// rebuilds it here and loads its address anew. No-op when the hosted
+    /// view is current. Only called for displayed tabs — calling it for a
+    /// hidden tab would realize a page nobody is looking at.
+    func hostPage() {
+        guard let pageContainer else { return }
+        let webView = tab.ensureWebView()
+        // The menu item lives on the view, so a rebuilt view needs rewiring;
+        // reassigning the same closure onto the hosted view is harmless.
+        if let browserView = webView as? BrowserWebView {
+            browserView.onGenerateQRCode = { [weak self] in
                 self?.presentPageQRCode()
             }
         }
+        guard webView.superview !== pageContainer else { return }
+        // This pane is also the `WKUIDelegate`. WebKit holds it weakly, and a
+        // cross-site navigation replaces the view while this pane stays, so the
+        // assignment belongs here rather than at construction: it is the moment a
+        // view is known to have an owner willing to host a popup. Without it
+        // WebKit has nobody to ask for a `target="_blank"` target and drops the
+        // navigation without a word.
+        webView.uiDelegate = self
+        webView.removeFromSuperview()
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        pageContainer.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: pageContainer.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: pageContainer.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: pageContainer.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: pageContainer.bottomAnchor),
+        ])
     }
 
     // MARK: - QR code
