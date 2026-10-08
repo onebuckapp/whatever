@@ -18,6 +18,11 @@ struct WhateverApp: App {
             EmptyView()
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Whatever") {
+                    AppDelegate.showAbout()
+                }
+            }
             TabCommands()
             CommandMenu("Find") {
                 Button("Find in Page…") {
@@ -68,6 +73,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let item = fileMenu.submenu?.items.first(where: { $0.title == "Close" })
         else { return }
         item.title = "Close Tab"
+    }
+
+    /// Opens the standard About panel with Whatever's tagline and
+    /// copyright credits. The panel itself stays Apple's — name and
+    /// version come from the bundle — only the credits are ours.
+    static func showAbout() {
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: AboutContent.credits()])
     }
 
     /// Opens the settings modal on whichever browser window is frontmost.
@@ -164,6 +176,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
+    }
+
+    /// Opens addresses the system routes to the app: default-browser clicks
+    /// and `open <url>`. One tab per address in the key window (or a fresh
+    /// window when there is none), without grabbing the address bar — the
+    /// page is already where the user is going.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Task { @MainActor in
+            for url in urls {
+                BrowserCoordinator.shared.newTab(url: url, focusesAddressBar: false)
+            }
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

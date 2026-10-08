@@ -59,6 +59,23 @@ targets:
     info:
       path: Resources/Info.plist
       properties:
+        # Declared here (not hardcoded in the plist) because xcodegen
+        # rewrites the file at `path` on every `generate`, restoring any
+        # values set there. Build-setting references survive: Xcode expands
+        # them when it processes the plist, so 0.1.0 stays defined once in
+        # `settings.base.MARKETING_VERSION` above.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Claims http/https so the app appears in the system's Default
+        # Browser list. `Viewer` (not `Editor`): Whatever opens links, it
+        # does not own the schemes. Declared here for the same reason as the
+        # versions above: xcodegen rewrites the plist at `path` on generate.
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Viewer
+            CFBundleURLName: com.onebuckapp.whatever
+            CFBundleURLSchemes:
+              - http
+              - https
         # Declares the bundled XPC service to launchd. Without it the service is
         # present on disk but unregistered, and an NSXPCConnection to it fails
         # with "failed at lookup with error 3 - No such process".
