@@ -24,9 +24,19 @@ jobs:
           set -eu
           # xcodegen emits a project in the Xcode 16 format (object version
           # 77), which the image default Xcode (15.x on macos-14) cannot
-          # open. Pick an installed Xcode 16+ instead of depending on the
-          # image default, which drifts between images and over time.
-          latest="$(ls -d /Applications/Xcode_1[6-9]*.app /Applications/Xcode_[2-9]*.app 2>/dev/null || true | sort | tail -1)"
+          # open. Pick the newest installed Xcode 16+ instead of depending
+          # on the image default, which drifts between images and over time.
+          latest="$(
+            for app in /Applications/Xcode_*.app; do
+              [[ -d "${app}" ]] || continue
+              ver="$(basename "${app}" .app)"
+              ver="${ver#Xcode_}"
+              ver="${ver#Xcode}"
+              major="${ver%%.*}"
+              [[ "${major}" =~ ^[0-9]+$ ]] && [[ "${major}" -ge 16 ]] || continue
+              printf '%s %s\n' "${ver}" "${app}"
+            done | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 | cut -d' ' -f2-
+          )"
           [[ -n "${latest}" ]] || { echo "ERROR: no Xcode 16+ found under /Applications"; ls -d /Applications/Xcode_*.app || true; exit 1; }
           echo ">> selecting Xcode: ${latest}"
           sudo xcode-select -s "${latest}"
