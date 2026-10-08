@@ -38,6 +38,9 @@ before starting what's new.
   sleep exemptions together, instead of scattered toggles.
 - **Print to PDF and screenshots.** Full-page capture and clean PDF export
   from the page menu.
+- **Built-in torrent client.** Magnet links and .torrent files download
+  in-app with progress, seeding controls, and selective file picking —
+  peer-to-peer, no servers, in line with everything else.
 
 ## Privacy and safety
 
@@ -51,6 +54,9 @@ before starting what's new.
   the existing upgrade-known-hosts option.
 - **Tracker report.** A per-site panel showing what the blocker stopped on
   the current page.
+- **Proxy settings.** Manual HTTP/SOCKS configuration with bypass lists and
+  PAC file support, plus per-profile proxies once profiles exist. Nothing
+  leaves the machine except through the proxy the user chose.
 
 ## Customization and automation
 
