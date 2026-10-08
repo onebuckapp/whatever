@@ -10,6 +10,11 @@
 **Browsing**
 - WebKit pages with draggable tabs, side-by-side split view, and session restore
 - Private tabs, per-tab mute, and per-tab history with Back / Forward
+- Sleeping tabs: untouched tabs release their memory, reload on return
+- Per-state tab themes: solid, image, or looping video backgrounds
+- Personal start page on `w://`, with backdrop and logo
+- Address bar that stretches full width, with adjustable roundness and height
+- Link menu that works: Open in New Tab, Open in New Window, no stray downloads
 - Popup windows open as real tabs; `window.close` and JavaScript dialogs handled
 - External schemes (`mailto:`, `tel:`...) hand off to the system
 - Reload and reload-from-origin (`⌘R` / `⇧⌘R`), with stop while loading
@@ -41,12 +46,21 @@
   - Linear/Radial gradients
   - Image or Video
 - Beautiful Settings modal (General, Appearance, Web, Blocker, Bookmarks, Feeds, History, Search, Downloads)
-- Bookmarks and searchable History
+- Bookmarks (in progress) and searchable History
 - Written in Nim language and Swift
 - Open Source | `GPLv3` License
 
 ### About
 Whatever treats the browser as a quiet room rather than a billboard: pages render fast behind a blocker that compiles its lists on your machine, your tabs come back where you left them, and your library — bookmarks, feeds, history, downloads — sits in local databases instead of someone else's cloud. No accounts, no sync servers. Just you, the page, and whatever you were looking for.
+
+### 🗺 Roadmap
+Where this goes next — tab groups and workspaces, profiles, a reader mode, a local password manager, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
+
+### 🛠 Build
+- `make macos` — build the app (includes the Nim core)
+- `make core` — build only the Nim core
+- `make test` — run the core test suite (macOS UI tests live in the `WhateverTests` scheme)
+- `make check-abi` — verify the core's C ABI still matches its header
 
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/onebuckapp/whatever/issues)
