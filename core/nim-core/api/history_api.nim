@@ -14,12 +14,13 @@
 #
 # Ownership, threading and sync: see api/abi.nim.
 
-import std/[algorithm, options, strutils, tables, times]
+import std/[algorithm, base64, options, strutils, tables, times, uri]
 import openparser/json
 # Leaf module on purpose: it pulls in nimsimd, which `openparser/json` already
 # brings, and nothing else. Reaching for the `openparser` umbrella instead would
 # drag the QR ciphers and nimcypher into the archive.
 import openparser/fuzzy
+import openparser/path
 import boogie/stores/rdbms
 import ../storage/database
 import ../storage/schema
@@ -124,6 +125,96 @@ proc dayBucket(at: int64): string =
   ## converts.
   fromUnix(at).inZone(local()).format("yyyy-MM-dd")
 
+proc schemeBefore(text: string, sep: int): string =
+  ## The scheme candidate immediately before a `://` separator: longest run
+  ## of scheme characters (`ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`)
+  ## starting with a letter, else "". The scan charset is ASCII-only, so a
+  ## multibyte byte simply stops the scan — unicode elsewhere passes
+  ## through untouched, and nothing here is ever lowercased in full.
+  var start = sep - 1
+  while start >= 0 and
+      text[start] in {'a'..'z', 'A'..'Z', '0'..'9', '+', '-', '.'}:
+    dec start
+  let nameStart = start + 1
+  if nameStart < sep and text[nameStart] in {'a'..'z', 'A'..'Z'}:
+    text[nameStart ..< sep]
+  else:
+    ""
+
+proc hasMarker(text: string): bool =
+  ## Whether `text` carries an embedded http(s) address: the signature of a
+  ## click tracker (`?uddg=https%3A…`, `/goto=http://…`). Each `://` is
+  ## classified by its scheme via `detectKind`, so matching is
+  ## case-insensitive without ever transforming the input — prose
+  ## mentioning "http" without an address never matches.
+  var start = 0
+  while true:
+    let sep = text.find("://", start)
+    if sep < 0:
+      return false
+    if detectKind(schemeBefore(text, sep)) == pkWeb:
+      return true
+    start = sep + 3
+
+proc decoded(text: string): string =
+  ## Percent-decoded, without plus-decoding: '+' is legal unencoded inside a
+  ## URL. Undecodable input decodes to "" rather than raising.
+  try: decodeUrl(text, decodePlus = false)
+  except CatchableError: ""
+
+proc decodedHttpPrefix(value: string): bool =
+  ## Whether `value` base64-decodes to something starting with http(s):// —
+  ## the shape of trackers that encode rather than quote their destination
+  ## (e.g. Bing's `u` parameter). A short alphanumeric prefix tag (up to
+  ## three characters) may precede the payload; each stripped suffix tries
+  ## in turn, and only a decode landing on an http(s) prefix wins, so random
+  ## tokens cannot match by chance. Comparison touches the prefix slice
+  ## only; the rest passes through untouched.
+  let text = value.strip()
+  if text.len == 0:
+    return false
+  for skip in 0 .. min(3, text.len):
+    if skip > 0:
+      let dropped = text[0 ..< skip]
+      if not dropped.allCharsInSet({'a'..'z', 'A'..'Z', '0'..'9'}):
+        break
+    var piece = text[skip .. ^1].replace("-", "+").replace("_", "/")
+    while piece.len mod 4 != 0:
+      piece.add('=')
+    let payload =
+      try: decode(piece)
+      except CatchableError: continue
+    if payload.len < "http://".len:
+      continue
+    let prefix = payload[0 ..< min(8, payload.len)].toLowerAscii()
+    if prefix.startsWith("http://") or prefix.startsWith("https://"):
+      return true
+  false
+
+proc hasEmbeddedLink*(rawUrl: string): bool =
+  ## Whether `rawUrl` is a click tracker carrying another link inside itself
+  ## rather than a page: any query value — or the path tail — holding an
+  ## http(s) address, raw or percent-encoded. Nothing is decoded beyond one
+  ## pass and nothing is resolved: the answer is only ever keep or skip.
+  if rawUrl.len == 0:
+    return false
+  let parsed =
+    try: parsePath(rawUrl)
+    except CatchableError: return false
+  if parsed.isLocal or parsed.kind != pkWeb:
+    return false
+  for param in parsed.query:
+    if hasMarker(param.value) or hasMarker(decoded(param.value)):
+      return true
+    # Encoded destinations carry no literal marker: Bing's `u` parameter
+    # is base64 with a short prefix tag. Detection only — the value is
+    # never resolved or stored.
+    if decodedHttpPrefix(param.value) or decodedHttpPrefix(decoded(param.value)):
+      return true
+  if hasMarker(parsed.path) or hasMarker(decoded(parsed.path)):
+    return true
+  false
+
 proc visitRow(url, title, host, bucket: string, first, last, count: int64): RowData =
   rdbms.row([
     ("url", newTextValue(url)),
@@ -173,9 +264,17 @@ proc historyRecord*(url, title: cstring, visitedAt: int64,
   if url.isNil or url.len == 0:
     setError("history url is required")
     return ErrBadInput
+  let target = $url
+  # Click trackers never store: a link carrying another link inside itself
+  # (`?uddg=https%3A…`, `/goto=http://…`) is a bounce, not a visit. Skipping
+  # is Ok rather than an error — there is nothing to record, not a failure
+  # to record. The destination records itself when WebKit follows the
+  # tracker's script to it.
+  if hasEmbeddedLink(target):
+    clearError()
+    return Ok
   let collapseWindow =
     if collapseWindowSecs < 0'i64: DefaultCollapseWindowSecs else: collapseWindowSecs
-  let target = $url
   let pageTitle = if title.isNil or title.len == 0: target else: $title
   let visited = if visitedAt > 0'i64: visitedAt else: getTime().toUnix()
   let bucket = dayBucket(visited)
@@ -201,6 +300,17 @@ proc historyRecord*(url, title: cstring, visitedAt: int64,
     discard db.history.insertRow(HistoryTable,
       visitRow(target, pageTitle, host, bucket, visited, visited, 1'i64))
     Ok
+
+proc bcHistoryShouldRecord*(url: cstring): int32 {.exportc: "bc_history_should_record".} =
+  ## Whether `url` registers in history: 1 for a page, 0 for a click
+  ## tracker carrying another link inside itself (see `hasEmbeddedLink`).
+  ## The app records first and asks after — navigation never waits on the
+  ## answer — dropping the entry when it comes back 0. Fail-open: anything
+  ## but a tracker records, since a missing visit is worse than an extra one.
+  if url.isNil:
+    setError("history url is required")
+    return ErrBadInput
+  if hasEmbeddedLink($url): 0'i32 else: 1'i32
 
 proc historyRecent*(limit: int32, buffer: ptr char, capacity: int32, needed: ptr int32): int32 {.exportc: "bc_history_recent".} =
   ## Most recently visited entries as a JSON array, newest first. `limit` is

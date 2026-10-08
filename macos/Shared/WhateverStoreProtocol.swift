@@ -225,6 +225,13 @@ import Foundation
         _ limit: Int32,
         reply: @escaping (Data?, NSError?) -> Void
     )
+
+    // MARK: Navigation
+
+    /// Whether `url` registers in history: 1 for a page, 0 for a click
+    /// tracker carrying another link inside itself. The app records first
+    /// and asks after, so navigation never waits on the answer.
+    func historyShouldRecord(_ url: String, reply: @escaping (Int32, NSError?) -> Void)
 }
 
 /// Status ordinals shared with the core, mirroring `core/include/browsercore.h`.

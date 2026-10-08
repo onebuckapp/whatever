@@ -160,6 +160,13 @@ int32_t bc_bookmarks_clear(void);
 int32_t bc_history_record(const char *url, const char *title, int64_t visited_at,
                           int64_t collapse_window_secs);
 
+/* Whether `url` registers in history: 1 for a page, 0 for a click tracker
+ * carrying another link inside itself. The app records first and asks
+ * after, so navigation never waits on the answer.
+ *
+ * Returns one of the BC_* result codes. */
+int32_t bc_history_should_record(const char *url);
+
 /* Most recently visited entries, newest first. `limit` is clamped to 500. */
 int32_t bc_history_recent(int32_t limit, char *buffer, int32_t capacity,
                           int32_t *needed);

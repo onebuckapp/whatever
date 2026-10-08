@@ -220,13 +220,17 @@ final class BrowserTab: NSObject {
         // the placeholder stands in until the rebuilt page reports its own.
         tabController.setPlaceholderTitle(tabController.title)
         old.stopLoading()
+        old.navigationDelegate = nil
+        // Detached before the dying view is pointed at blank: the blank
+        // commits near-synchronously (no network), so observing it would
+        // outlive the detach through the main-actor hop and record
+        // about:blank as a visit — which is where Back would then land.
+        tabController.detachFromWebView()
+        old.removeFromSuperview()
         if old.url?.absoluteString != "about:blank" {
             old.load(URLRequest(url: URL(string: "about:blank")!))
         }
-        old.navigationDelegate = nil
-        old.removeFromSuperview()
         webView = nil
-        tabController.detachFromWebView()
     }
 
     /// Puts the current address back after the page's process was killed.
@@ -251,6 +255,7 @@ final class BrowserTab: NSObject {
         load(url, from: previous)
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
+        resolveHistoryRegistration(url)
     }
 
     /// Logs an address the page committed to without going through
@@ -264,6 +269,32 @@ final class BrowserTab: NSObject {
     /// nothing here collapses repeats.
     func noteCommitted(url: URL) {
         guard tabHistory.noteCommitted(url) else { return }
+        updateHistoryNavigation()
+        BrowserCoordinator.shared.sessionDidChange()
+        resolveHistoryRegistration(url)
+    }
+
+    /// Asks Nim whether `url` registers in history. Fire-and-forget: the
+    /// entry recorded above, and its page is already loading, so the check
+    /// never blocks navigation — a tracker entry drops when Nim answers.
+    /// Fail-open throughout: any failure keeps the entry, exactly as
+    /// without the check.
+    func resolveHistoryRegistration(_ url: URL) {
+        guard ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard let shouldRecord = try? await BrowserCore.historyShouldRecord(url.absoluteString),
+                  !shouldRecord
+            else { return }
+            self.dropHistoryEntry(url)
+        }
+    }
+
+    /// Drops a tracker entry Nim declined to register. The tracker's page
+    /// may still be showing; its bounce to the destination records normally
+    /// when it commits. A missing entry means the user already moved on.
+    func dropHistoryEntry(_ url: URL) {
+        guard tabHistory.drop(url) else { return }
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
     }

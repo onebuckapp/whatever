@@ -938,4 +938,12 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
             reply(payload.data, nil)
         }
     }
+
+    // MARK: Navigation
+
+    func historyShouldRecord(_ url: String, reply: @escaping (Int32, NSError?) -> Void) {
+        serve {
+            reply(url.withCString { bc_history_should_record($0) }, nil)
+        }
+    }
 }

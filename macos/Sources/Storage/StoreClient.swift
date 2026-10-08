@@ -542,6 +542,24 @@ final class StoreClient {
             )
         }
     }
+
+    // MARK: Navigation
+
+    /// Whether `url` registers in history: true for a page, false for a
+    /// click tracker. The caller records first and drops after, so the
+    /// check never blocks navigation. Stateless.
+    func historyShouldRecord(_ url: String) async throws -> Bool {
+        let proxy = try store()
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
+            proxy.historyShouldRecord(url) { answer, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: answer == 1)
+            }
+        }
+    }
 }
 
 /// What the service reported about itself.

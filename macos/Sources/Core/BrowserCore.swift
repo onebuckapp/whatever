@@ -71,6 +71,12 @@ enum BrowserCore {
         )
         return try JSONDecoder().decode(FindMatches.self, from: data)
     }
+
+    /// Whether `url` registers in history: true for a page, false for a
+    /// click tracker carrying another link inside itself.
+    static func historyShouldRecord(_ url: String) async throws -> Bool {
+        try await StoreClient.shared.historyShouldRecord(url)
+    }
 }
 
 /// One find-in-page result set, mirrored from the core's `bc_find_matches`

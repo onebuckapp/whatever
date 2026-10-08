@@ -12,6 +12,8 @@ import Foundation
 /// - `noteCommitted` reconciles addresses the page committed to without going
 ///   through `navigate(to:)` (scripted, form, and redirect navigations), so
 ///   the list cannot disagree with what is on screen.
+/// - `drop` removes click trackers Nim declined to register, fixing the
+///   index, so Back skips them.
 struct TabHistory: Equatable {
     private(set) var urls: [URL] = []
     private(set) var index: Int = -1
@@ -60,14 +62,35 @@ struct TabHistory: Equatable {
         return urls[index]
     }
 
+    /// Drops the entry matching `url`, fixing the index. Returns whether
+    /// anything changed. Used when Nim reports the entry is a click tracker
+    /// that should never have registered: the tracker's page may still be
+    /// showing, and its bounce to the destination records normally when it
+    /// commits. A missing entry means the user already moved on — nothing
+    /// to do.
+    @discardableResult
+    mutating func drop(_ url: URL) -> Bool {
+        guard let at = urls.firstIndex(where: { url.hasSameAddress(as: $0) }) else { return false }
+        urls.remove(at: at)
+        if urls.isEmpty {
+            index = -1
+        } else {
+            if at <= index { index -= 1 }
+            index = min(index, urls.count - 1)
+        }
+        return true
+    }
+
     /// Logs a committed address that bypassed `navigate(to:)`.
     ///
-    /// Returns whether anything was appended. A match against the current
+    /// Returns whether the list changed. A match against the current
     /// address (see `URL.hasSameAddress`) is a no-op, so reloads and
     /// back/forward loads — which move the index before loading — never
-    /// duplicate.
+    /// duplicate. `about:blank` never records: it is the teardown address a
+    /// dying view is pointed at, not a visit, and Back must never land on it.
     @discardableResult
     mutating func noteCommitted(_ url: URL) -> Bool {
+        guard url.absoluteString != "about:blank" else { return false }
         if let current = currentURL, url.hasSameAddress(as: current) {
             return false
         }

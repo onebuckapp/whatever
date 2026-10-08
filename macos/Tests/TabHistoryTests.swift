@@ -82,6 +82,62 @@ struct TabHistoryTests {
         #expect(history.urls.count == 1)
     }
 
+    @Test("about:blank never records")
+    func blankNeverRecords() {
+        var history = TabHistory()
+        history.navigate(to: url("https://website.com"))
+        // The teardown address a dying view is pointed at: Back must never
+        // land on it, even if its commit outruns the detach.
+        #expect(history.noteCommitted(url("about:blank")) == false)
+        #expect(history.urls.map(\.absoluteString) == ["https://website.com"])
+        #expect(history.index == 0)
+        #expect(history.canGoBack == false)
+    }
+
+    @Test("dropping the current entry keeps the tab on its predecessor")
+    func dropCurrent() {
+        var history = TabHistory()
+        history.navigate(to: url("https://search.example/"))
+        history.navigate(to: url("https://tracker.example/l/?uddg=https://shop.example/"))
+        #expect(history.drop(url("https://tracker.example/l/?uddg=https://shop.example/")) == true)
+        #expect(history.urls.map(\.absoluteString) == ["https://search.example/"])
+        #expect(history.index == 0)
+        #expect(history.currentURL?.absoluteString == "https://search.example/")
+    }
+
+    @Test("dropping a middle entry shifts the index onto the next page")
+    func dropMiddle() {
+        var history = TabHistory()
+        history.navigate(to: url("https://a.example"))
+        history.navigate(to: url("https://tracker.example/"))
+        history.navigate(to: url("https://b.example"))
+        #expect(history.drop(url("https://tracker.example/")) == true)
+        #expect(history.urls.map(\.absoluteString) == [
+            "https://a.example", "https://b.example",
+        ])
+        #expect(history.index == 1)
+        #expect(history.currentURL?.absoluteString == "https://b.example")
+    }
+
+    @Test("dropping a missing entry changes nothing")
+    func dropMissing() {
+        var history = TabHistory()
+        history.navigate(to: url("https://a.example"))
+        #expect(history.drop(url("https://gone.example/")) == false)
+        #expect(history.urls.map(\.absoluteString) == ["https://a.example"])
+        #expect(history.index == 0)
+    }
+
+    @Test("dropping the only entry empties the list")
+    func dropSole() {
+        var history = TabHistory()
+        history.navigate(to: url("https://tracker.example/"))
+        #expect(history.drop(url("https://tracker.example/")) == true)
+        #expect(history.urls.isEmpty)
+        #expect(history.index == -1)
+        #expect(history.canGoBack == false)
+    }
+
     @Test("a committed address drops forward entries like a navigation")
     func committedDropsForward() {
         var history = TabHistory()

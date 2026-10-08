@@ -143,6 +143,49 @@ suite "store c abi":
           inc rows
       check rows == 1
 
+  test "click trackers never store":
+    ## A link carrying another link is a bounce, not a visit: recording
+    ## answers Ok (nothing failed) but stores nothing. The destination
+    ## records itself when WebKit follows the tracker's script to it.
+    let tracker =
+      "https://duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.britannica.com%2Fbiography%2FThomas-Paine&notrut=duckduck_in"
+    check historyRecord(tracker.cstring, "Tracker".cstring, 1_700_002_000, -1) == Ok
+    check bcHistoryShouldRecord(tracker.cstring) == 0'i32
+    for entry in readRecent(200):
+      check entry["url"].getStr() != tracker
+    check bcHistoryShouldRecord("https://www.britannica.com/biography/Thomas-Paine".cstring) == 1'i32
+
+  test "base64-encoded trackers never store":
+    ## Bing's `u` parameter carries no literal address — only a prefixed
+    ## base64 payload decoding to one.
+    let bing =
+      "https://www.bing.com/ck/a?!&&p=421b7ec6e1591082186a5f601d515790b5b387ef54999625161170e7f7dfad03JmltdHM9MTc5MTQxNzYwMA&ptn=3&ver=2&hsh=4&fclid=251f9c42-c2f0-6ac2-03ac-8baec39c6b88&u=a1aHR0cHM6Ly9naXRodWIuY29tL29yZ3Mvb3BlbnBlZXBzL3JlcG9zaXRvcmllcw&ntb=1"
+    check hasEmbeddedLink(bing)
+    check bcHistoryShouldRecord(bing.cstring) == 0'i32
+    check historyRecord(bing.cstring, "Tracker".cstring, 1_700_002_100, -1) == Ok
+    for entry in readRecent(200):
+      check entry["url"].getStr() != bing
+    check bcHistoryShouldRecord("https://github.com/orgs/openpeeps/repositories".cstring) == 1'i32
+
+  test "embedded-link detection is generic and unicode-safe":
+    check hasEmbeddedLink("http://example.com/goto=http://example.net")
+    check hasEmbeddedLink("https://tracker.example/r?next=https://second.example/&dest=https://first.example/")
+    check hasEmbeddedLink("https://duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.wikipedia.org%2F&notrut=duckduck_in")
+    check hasEmbeddedLink("https://exämple.com/?q=Ünïcodé&next=https://shop.example/Ünïcodé")
+    check hasEmbeddedLink("https://tracker.example/c?u=aHR0cHM6Ly9zaG9wLmV4YW1wbGUv")
+    check hasEmbeddedLink("https://tracker.example/c?u=a1aHR0cHM6Ly9zaG9wLmV4YW1wbGUv")
+    check not hasEmbeddedLink("https://tracker.example/c?u=!aHR0cHM6Ly9zaG9wLmV4YW1wbGUv")
+    check not hasEmbeddedLink("https://tracker.example/c?token=dGhpcyBpcyBqdXN0IGEgdG9rZW4")
+    check not hasEmbeddedLink("https://shop.example/")
+    check not hasEmbeddedLink("https://exämple.com/Ünïcodé?q=Ünïcodé")
+    check not hasEmbeddedLink("https://example.com/?next=/local/path")
+    check not hasEmbeddedLink("https://example.com/?q=http+proxy+setup")
+    check not hasEmbeddedLink("w://about")
+    check not hasEmbeddedLink("mailto:someone@example.com")
+    check not hasEmbeddedLink("")
+    check bcHistoryShouldRecord("https://shop.example/".cstring) == 1'i32
+    check bcHistoryShouldRecord(nil) == ErrBadInput
+
   test "history by day matches the local-time bucket":
     let url = "https://example.com/day"
     let visitedAt = 1_700_000_000'i64
