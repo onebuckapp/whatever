@@ -61,6 +61,21 @@ before starting what's new.
   operation of tabs, panes, and the library.
 - **Theme sharing.** Export and import window/tab themes as files.
 
+## Automation and remote control
+
+- **Programmatic control via WebSockets / UDS, Chrome-DevTools-style.**
+  Drive a running Whatever instance from scripts and tools: list and select
+  tabs, navigate, evaluate JavaScript, capture screenshots, observe
+  downloads, and read the library (bookmarks, history, feeds). A Unix domain
+  socket for local automation plus an opt-in WebSocket endpoint for remote
+  use, speaking a small JSON protocol in the spirit of the DevTools Protocol
+  rather than cloning it.
+- **Security model.** Off by default; enabling requires an explicit flag,
+  binds localhost only, and uses a per-launch token. No remote debugging
+  without the user turning it on.
+- **Headless mode.** Run without windows for scraping, testing, and CI,
+  reusing the same protocol.
+
 ## Platform
 
 The Nim core (`core/nim-core`: bookmarks, downloads, feeds, filters,
