@@ -17,6 +17,10 @@ final class BrowserToolbarButton: NSButton {
     /// button would have wanted.
     private static let side: CGFloat = 24
     private static let fillRadius: CGFloat = 8
+    /// Outer width including the padding the fixed constraints add, for
+    /// containers that lay this out by hand and need to reserve its space.
+    static let outerWidth: CGFloat = side + 6
+    static let outerHeight: CGFloat = side - 2
 
     /// Faint enough to be a hint rather than a highlight. Neutral rather than
     /// accent-tinted, so it does not imply the button is the default action.

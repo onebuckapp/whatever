@@ -45,6 +45,11 @@ final class TabBarView: NSView {
     private var itemViews: [UUID: TabBarItemView] = [:]
     private let insertionMarker = TabInsertionMarkerView()
 
+    /// New-tab button riding after the last cell, scrolling with the strip.
+    /// A toolbar button, so hover and press read exactly like the top bar's.
+    private let newTabButton = BrowserToolbarButton()
+    var newTabAction: (() -> Void)?
+
     /// Tabs in display order. The window keeps `tabs` sorted with
     /// pinned tabs leading, so this is the same as `tabs` and the drop
     /// indices computed here map straight onto model indices.
@@ -63,6 +68,18 @@ final class TabBarView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         registerForDraggedTypes([TabDragPayload.type])
+        // Same glyph treatment as the top bar buttons: the default cut
+        // renders ~16pt tall, and 13.5 lands ~18 with a medium weight.
+        newTabButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "New Tab")?
+            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        newTabButton.toolTip = "New Tab"
+        newTabButton.target = self
+        newTabButton.action = #selector(newTabTapped)
+        addSubview(newTabButton)
+    }
+
+    @objc private func newTabTapped() {
+        newTabAction?()
     }
 
     required init?(coder: NSCoder) {
@@ -95,12 +112,14 @@ final class TabBarView: NSView {
     }
 
     /// Width the strip wants; the container scrolls when this exceeds
-    /// the visible width.
+    /// the visible width. Includes the new-tab button riding after the
+    /// last cell.
     var preferredWidth: CGFloat {
         var total: CGFloat = 0
         for tab in laidOutTabs {
             total += width(for: tab) + 4
         }
+        total += 4 + BrowserToolbarButton.outerWidth
         return max(0, total + 12)
     }
 
@@ -117,6 +136,14 @@ final class TabBarView: NSView {
             item.frame = NSRect(x: x, y: 4, width: width(for: tab), height: tabHeight)
             x += item.frame.width + 4
         }
+        // After the last cell, vertically centered on it. The button's own
+        // constraints fix its size, so the frame only places it.
+        newTabButton.frame = NSRect(
+            x: x,
+            y: 4 + (tabHeight - BrowserToolbarButton.outerHeight) / 2,
+            width: BrowserToolbarButton.outerWidth,
+            height: BrowserToolbarButton.outerHeight
+        )
         if insertionIndex != nil {
             layoutInsertionMarker()
         }
@@ -279,30 +306,27 @@ extension TabBarView {
     }
 }
 
-/// Window chrome around the strip: horizontal scrolling on the left and
-/// a fixed new-tab button on the trailing edge.
+/// Window chrome around the strip: horizontal scrolling, with the new-tab
+/// button riding after the last cell inside the strip itself.
 final class TabBarContainerView: NSView {
     let strip = TabBarView()
     private let scrollView = NSScrollView()
-    private let newTabButton: NSButton = {
-        let button = NSButton(frame: .zero)
-        button.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "New Tab")
-        button.imagePosition = .imageOnly
-        return button
-    }()
-    var newTabAction: (() -> Void)?
+    var newTabAction: (() -> Void)? {
+        get { strip.newTabAction }
+        set { strip.newTabAction = newValue }
+    }
 
     override var intrinsicContentSize: NSSize {
         NSSize(width: NSView.noIntrinsicMetric, height: 36)
     }
 
     init(newTabAction: @escaping () -> Void) {
-        self.newTabAction = newTabAction
         super.init(frame: .zero)
         // Auto Layout positions this container; autoresizing masks would
         // fight the height constraint the window chrome installs.
         translatesAutoresizingMaskIntoConstraints = false
         setUpSubviews()
+        self.newTabAction = newTabAction
     }
 
     required init?(coder: NSCoder) {
@@ -330,14 +354,6 @@ final class TabBarContainerView: NSView {
         scrollView.documentView = strip
         addSubview(scrollView)
 
-        newTabButton.target = self
-        newTabButton.action = #selector(newTabTapped)
-        newTabButton.isBordered = false
-        newTabButton.bezelStyle = .shadowlessSquare
-        newTabButton.contentTintColor = .secondaryLabelColor
-        newTabButton.toolTip = "New Tab"
-        addSubview(newTabButton)
-
         // Scroll the strip when a drag hovers near either visible edge.
         strip.autoScroll = { [weak self] stripX in
             guard let self else { return 0 }
@@ -362,25 +378,9 @@ final class TabBarContainerView: NSView {
         }
     }
 
-    @objc private func newTabTapped() {
-        newTabAction?()
-    }
-
     override func layout() {
         super.layout()
-        let buttonSize: CGFloat = 30
-        scrollView.frame = NSRect(
-            x: 0,
-            y: 0,
-            width: max(0, bounds.width - buttonSize),
-            height: bounds.height
-        )
-        newTabButton.frame = NSRect(
-            x: bounds.maxX - buttonSize + 2,
-            y: (bounds.height - 20) / 2,
-            width: 20,
-            height: 20
-        )
+        scrollView.frame = bounds
         // The strip's height comes from the container, which the window pins to
         // `tabBarHeight`, rather than being read back from the clip view. Reading
         // it back let the scroll view decide the height, which is the coupling
