@@ -997,13 +997,20 @@ final class BrowserWindowController: NSWindowController {
 
     // MARK: - Local files
 
-    /// Opens an address from the address bar. `file://` directories open the
+    /// Opens an address from the address bar. `w://settings` opens the
+    /// Settings modal over the current page instead of navigating: it is a
+    /// command, not a place, so the tab keeps its address and history
+    /// untouched. `file://` directories open the
     /// native browser popup over the current page instead of navigating:
     /// WebKit's own directory listing is what this replaces, and a listing
     /// is browsed, not visited, so it takes no history entry. Everything
     /// else — including `file://` files, which WebKit renders — navigates
     /// the selected tab as before.
     func openAddress(_ url: URL) {
+        if Self.isSettingsAddress(url) {
+            presentSettings()
+            return
+        }
         if Self.isFileDirectory(url) {
             guard let tab = selectedTab else {
                 SystemBeep.play()
@@ -1013,6 +1020,14 @@ final class BrowserWindowController: NSWindowController {
             return
         }
         selectedTab?.navigate(to: url)
+    }
+
+    /// Whether `url` is the settings address: scheme `w` (or its retired
+    /// `whtvr` alias) with host `settings`. `URL` already lowercases both,
+    /// so no case folding is needed here.
+    static func isSettingsAddress(_ url: URL) -> Bool {
+        guard ["w", "whtvr"].contains(url.scheme?.lowercased()) else { return false }
+        return url.host?.lowercased() == "settings"
     }
 
     /// Whether `url` names a directory on this machine. Synchronous
