@@ -24,6 +24,9 @@ final class BackgroundImageStore {
 
     enum Loaded {
         case success(CGImage)
+        /// Every frame of an animated image, graded like a still, with the
+        /// first frame doubling as the poster.
+        case animated(poster: CGImage, frames: [AnimatedImageFrame])
         case failure(BackgroundMediaError)
     }
 
@@ -41,6 +44,8 @@ final class BackgroundImageStore {
 
     private struct Entry {
         let image: CGImage?
+        /// Empty for stills: only animated images carry frames.
+        let frames: [AnimatedImageFrame]
         let error: BackgroundMediaError?
     }
 
@@ -87,19 +92,54 @@ final class BackgroundImageStore {
             }
             let outcome = Outcome(
                 token: token,
-                loaded: entry.image.map { Loaded.success($0) }
-                    ?? .failure(entry.error ?? .unsupportedImage(path: path))
+                loaded: Self.loaded(for: entry, path: key.path)
             )
             DispatchQueue.main.async { completion(outcome) }
         }
         return token
     }
 
+    /// Picks the outcome shape: animated when frames survived grading, the
+    /// still when only one image did, failure otherwise.
+    private static func loaded(for entry: Entry, path: String) -> Loaded {
+        if let error = entry.error {
+            return .failure(error)
+        }
+        if !entry.frames.isEmpty, let poster = entry.image {
+            return .animated(poster: poster, frames: entry.frames)
+        }
+        if let image = entry.image {
+            return .success(image)
+        }
+        return .failure(.unsupportedImage(path: path))
+    }
+
     // MARK: - Decoding
 
     private func produce(key: Key, url: URL) -> Entry {
+        // Animated images decode every frame up front and grade each one
+        // like a still, so playback never filters. The shared frame loader
+        // already thumbnails and caps, exactly like the still path below.
+        if let frames = AnimatedImage.frames(at: url, maxPixelSize: key.maxPixelSize),
+           !frames.isEmpty {
+            let graded: [AnimatedImageFrame]
+            if key.effects.isIdentity {
+                graded = frames
+            } else {
+                graded = frames.compactMap { frame in
+                    apply(
+                        key.effects, to: frame.image,
+                        originalSize: CGSize(width: frame.image.width, height: frame.image.height)
+                    ).map { AnimatedImageFrame(image: $0, duration: frame.duration) }
+                }
+            }
+            guard let poster = graded.first?.image else {
+                return Entry(image: nil, frames: [], error: .unsupportedImage(path: key.path))
+            }
+            return Entry(image: poster, frames: graded, error: nil)
+        }
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
-            return Entry(image: nil, error: .unreadableFile(path: key.path))
+            return Entry(image: nil, frames: [], error: .unreadableFile(path: key.path))
         }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -111,15 +151,16 @@ final class BackgroundImageStore {
             kCGImageSourceShouldCacheImmediately: false,
         ]
         guard let raw = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return Entry(image: nil, error: .unsupportedImage(path: key.path))
+            return Entry(image: nil, frames: [], error: .unsupportedImage(path: key.path))
         }
         guard key.effects.isIdentity else {
             return Entry(
                 image: apply(key.effects, to: raw, originalSize: pixelSize(of: source) ?? CGSize(width: raw.width, height: raw.height)),
+                frames: [],
                 error: nil
             )
         }
-        return Entry(image: raw, error: nil)
+        return Entry(image: raw, frames: [], error: nil)
     }
 
     /// The source's real pixel dimensions, which the thumbnail has already thrown

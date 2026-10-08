@@ -8,6 +8,7 @@ import AVFoundation
 /// Main thread only, like the cells that use it.
 enum TabThemeMedia {
     private static let images = NSCache<NSString, NSImage>()
+    private static let animations = NSCache<NSString, AnimatedImageFrames>()
 
     /// Decoded image for a settings path, cached. A missing or unreadable
     /// file reads as nil and the cell falls back to no background; the pane
@@ -23,6 +24,30 @@ enum TabThemeMedia {
         }
         images.setObject(image, forKey: path as NSString)
         return image
+    }
+
+    /// Decoded animation frames for a settings path, cached, or nil when the
+    /// file is not animated. Frames are thumbnails bounded well above the
+    /// largest cell, never full-size: a hundred full-size frames would turn
+    /// one GIF into gigabytes.
+    static func animation(at path: String) -> [AnimatedImageFrame]? {
+        if let hit = animations.object(forKey: path as NSString) {
+            return hit.frames.isEmpty ? nil : hit.frames
+        }
+        let frames = AnimatedImage.frames(
+            at: URL(fileURLWithPath: path),
+            maxPixelSize: 880
+        ) ?? []
+        animations.setObject(AnimatedImageFrames(frames: frames), forKey: path as NSString)
+        return frames.isEmpty ? nil : frames
+    }
+}
+
+/// `NSCache` holds objects, so the frame array rides in one.
+private final class AnimatedImageFrames: NSObject {
+    let frames: [AnimatedImageFrame]
+    init(frames: [AnimatedImageFrame]) {
+        self.frames = frames
     }
 }
 

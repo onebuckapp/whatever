@@ -462,16 +462,27 @@ final class TabBarItemView: NSView {
             guard let layer = Self.gradientLayer(config.background.gradient) else { break }
             installMediaLayer(layer)
         case .image:
-            guard let path = config.background.path,
-                  let image = TabThemeMedia.image(at: path)
-            else {
-                break
+            guard let path = config.background.path else { break }
+            if let frames = TabThemeMedia.animation(at: path),
+               !frames.isEmpty {
+                // Animated image: the first frame is the resting contents so
+                // the loop failing still leaves the poster, and the loop dies
+                // with the layer on the next theme change.
+                let layer = CALayer()
+                layer.contents = frames[0].image
+                layer.contentsGravity = .resizeAspectFill
+                layer.contentsScale = window?.backingScaleFactor ?? 2
+                installMediaLayer(layer)
+                if let loop = AnimatedImage.loopAnimation(frames: frames) {
+                    layer.add(loop, forKey: "contentsLoop")
+                }
+            } else if let image = TabThemeMedia.image(at: path) {
+                let layer = CALayer()
+                layer.contents = image
+                layer.contentsGravity = .resizeAspectFill
+                layer.contentsScale = window?.backingScaleFactor ?? 2
+                installMediaLayer(layer)
             }
-            let layer = CALayer()
-            layer.contents = image
-            layer.contentsGravity = .resizeAspectFill
-            layer.contentsScale = window?.backingScaleFactor ?? 2
-            installMediaLayer(layer)
         case .video:
             guard let path = config.background.path,
                   let player = TabVideoPool.shared.acquire(path: path)

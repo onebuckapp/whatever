@@ -93,6 +93,14 @@ final class BackgroundMediaView: NSView {
     /// video poster. Nil until a file has been read.
     private var image: CGImage?
     private var imageToken: BackgroundImageStore.Token?
+    /// Frames of the current animated image, empty for stills. The poster
+    /// above still shows until the link advances past it.
+    private var animationFrames: [AnimatedImageFrame] = []
+    /// Seconds into the loop. Advanced by elapsed time on every tick, never
+    /// by wall time, so backgrounding the app cannot jump the animation.
+    private var animationTime: TimeInterval = 0
+    private var lastAnimationTick = Date()
+    private var animationTimer: Timer?
     /// Pixel width the current still was decoded for. Zero before the first
     /// decode, so the install-time request (which runs before layout, when
     /// bounds are still zero) is recognised as undersized and redone once
@@ -145,6 +153,10 @@ final class BackgroundMediaView: NSView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        animationTimer?.invalidate()
     }
 
     // MARK: - Event transparency
@@ -236,6 +248,7 @@ final class BackgroundMediaView: NSView {
         case .none, .solid, .gradient:
             imageToken = nil
             image = nil
+            stopAnimation()
         case .image:
             reloadMedia(path: configuration.path, isFatal: true)
         case .video:
@@ -292,6 +305,7 @@ final class BackgroundMediaView: NSView {
         guard let path, !path.isEmpty else {
             imageToken = nil
             image = nil
+            stopAnimation()
             return
         }
         // Bounded by the screen's pixel density: decoding a 6K wallpaper at full
@@ -314,7 +328,16 @@ final class BackgroundMediaView: NSView {
                     switch result.loaded {
                     case .success(let cgImage):
                         self.image = cgImage
+                        self.animationFrames = []
+                        self.stopAnimation()
                         self.decodedPixelSize = self.requestedPixelSize
+                        self.needsDisplay = true
+                    case .animated(let poster, let frames):
+                        self.image = poster
+                        self.animationFrames = frames
+                        self.animationTime = 0
+                        self.decodedPixelSize = self.requestedPixelSize
+                        self.startAnimation()
                         self.needsDisplay = true
                     case .failure(let error):
                         // Reported before anything is changed, so the pane can say
@@ -322,6 +345,8 @@ final class BackgroundMediaView: NSView {
                         BackgroundDiagnostics.shared.report(error.message)
                         self.onError?(error)
                         self.image = nil
+                        self.animationFrames = []
+                        self.stopAnimation()
                         guard isFatal else { return }
                         // Drop back to no background rather than leaving a blank
                         // window or retrying forever on a bad path. Written to the
@@ -361,6 +386,57 @@ final class BackgroundMediaView: NSView {
             isActive: configuration.isActive,
             isSuspended: isPlaybackSuspended || configuration.effects.opacity <= 0.001
         )
+    }
+
+    /// Runs the animated-image loop: a timer advancing loop time,
+    /// redrawing only when the frame actually turns over. The timer lives
+    /// only while frames are set; every path that clears them stops it, and
+    /// `deinit` is the backstop, since the runloop holds the timer and the
+    /// timer's closure is weak.
+    private func startAnimation() {
+        guard animationTimer == nil, !animationFrames.isEmpty else { return }
+        lastAnimationTick = Date()
+        // Finer than the shortest conventional hold, in the common modes so
+        // menu tracking never stalls the loop.
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            self?.animationTick()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        animationTimer = timer
+    }
+
+    private func stopAnimation() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+        animationFrames = []
+        animationTime = 0
+    }
+
+    private func animationTick() {
+        guard !animationFrames.isEmpty else { return }
+        let now = Date()
+        defer { lastAnimationTick = now }
+        let before = currentAnimationIndex()
+        animationTime += now.timeIntervalSince(lastAnimationTick)
+        if currentAnimationIndex() != before {
+            needsDisplay = true
+        }
+    }
+
+    /// Index of the frame showing at the loop time: durations walked from
+    /// the top, wrapping by the total. Frames are few and this runs only on
+    /// turnover ticks, so no lookup structure.
+    private func currentAnimationIndex() -> Int {
+        let total = animationFrames.reduce(0) { $0 + $1.duration }
+        guard total > 0 else { return 0 }
+        var remaining = animationTime.truncatingRemainder(dividingBy: total)
+        for (index, frame) in animationFrames.enumerated() {
+            if remaining < frame.duration {
+                return index
+            }
+            remaining -= frame.duration
+        }
+        return 0
     }
 
     // MARK: - Drawing
@@ -435,6 +511,14 @@ final class BackgroundMediaView: NSView {
     }
 
     private func drawImage(in context: CGContext) {
+        // An animated image draws whichever frame the loop time says; a
+        // still draws the one image it has.
+        let image: CGImage?
+        if animationFrames.isEmpty {
+            image = self.image
+        } else {
+            image = animationFrames[currentAnimationIndex()].image
+        }
         guard let image else { return }
         let intrinsic = NSSize(width: image.width, height: image.height)
         let viewport = bounds.size
