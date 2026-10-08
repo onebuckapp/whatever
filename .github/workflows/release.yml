@@ -116,7 +116,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dmg-macos-${{ matrix.arch }}
+          name: whatever-dmg-macos-${{ matrix.arch }}
           path: '*.dmg'
 
   release:
@@ -132,7 +132,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: dmg-*
+          pattern: whatever-dmg-*
           path: dist
           merge-multiple: true
 
