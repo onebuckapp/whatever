@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="https://github.com/openpeeps/PKG/blob/main/.github/logo.png" width="90px"><br>
-  This is Whatever – a beautiful, lightweight web browser for browsing the dead internet<br>
+  <img src="https://github.com/onebuckapp/whatever/blob/main/.github/whatever-icon.png" width="128px" height="128px"><br>
+  This is Whatever – the perfect app for browsing the dead internet ☠️<br>
   Powered by WebKit &bullet; Written in Nim and Swift
 </p>
 
