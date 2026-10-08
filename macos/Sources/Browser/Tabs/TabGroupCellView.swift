@@ -149,6 +149,12 @@ final class TabGroupCellView: NSView {
         pressLocation = nil
     }
 
+    /// Middle-click closes both members, matching the cell's single close
+    /// button. Left-button press/drag tracking is untouched.
+    override func otherMouseDown(with event: NSEvent) {
+        onClose?()
+    }
+
     override func rightMouseDown(with event: NSEvent) {
         guard let menu = contextMenuProvider?() else {
             super.rightMouseDown(with: event)

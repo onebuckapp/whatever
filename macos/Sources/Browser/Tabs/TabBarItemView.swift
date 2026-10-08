@@ -137,6 +137,12 @@ final class TabBarItemView: NSView {
         pressLocation = nil
     }
 
+    /// Middle-click closes the tab, like every other browser. Not part of
+    /// the press/drag tracking above, which is left-button only.
+    override func otherMouseDown(with event: NSEvent) {
+        onClose?()
+    }
+
     // MARK: - NSDraggingSource
 
     @objc func draggingSession(
