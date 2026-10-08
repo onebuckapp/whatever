@@ -2,28 +2,30 @@ import WebKit
 
 /// Lets a page be see-through, so the window background shows behind it.
 ///
-/// Entirely opt-in, and off unless a background is actually configured: with no
-/// background there is nothing to reveal, and a transparent page over the window
-/// colour is not the appearance this browser had before.
+/// Only the style rule is opt-in. The two view steps below run on every
+/// page unconditionally: loaded pages paint their own backgrounds whatever
+/// the view says, so they change nothing on screen except the loading flash
+/// and scroll-bounce areas, which show the window instead of white, and
+/// pages that are natively transparent.
 ///
-/// Three steps, in order, and only these three:
+/// Three steps, in order:
 ///
 /// 1. `drawsOpaquePageBackground = false` on our `BrowserWebView`, which
 ///    overrides `isOpaque` and clears the view's layer. `NSView` has no
 ///    `backgroundColor` on macOS — that is `UIView` — and `isOpaque` is
-///    get-only, so the subclass override is the only way to express it. Neither
-///    is sufficient on its own: WebKit paints the page's own background
-///    regardless, so this alone changes nothing you can see.
+///    get-only, so the subclass override is the only way to express it.
 /// 2. `underPageBackgroundColor = .clear`, which is public on macOS 12 and
-///    controls the colour behind the page, notably in scroll-bounce areas.
+///    controls the colour behind the page, notably in scroll-bounce areas
+///    and before the first paint.
 /// 3. A style rule forcing `background-color: transparent` on the root
-///    elements. This is the only step that actually works, and it is why this is
-///    opt-in.
+///    elements (the opt-in half). This is the only step that reveals the
+///    background through a page that paints its own, which is why the
+///    setting gates just this one.
 ///
-/// Expect it to be partial, and the settings pane says so. A site that sets its
-/// background on a wrapper element, or paints a background image on `body`, still
-/// hides the media, and there is no way to see through that without rewriting the
-/// page.
+/// Expect the opt-in to be partial, and the settings pane says so. A site
+/// that sets its background on a wrapper element, or paints a background
+/// image on `body`, still hides the media, and there is no way to see
+/// through that without rewriting the page.
 ///
 /// Removals go through `removeAllUserScripts()` because `WKUserContentController`
 /// has no `removeUserScript(_:)`. That call also takes the find-in-page bridge
@@ -69,12 +71,11 @@ enum PageTransparency {
     }
 
     static func apply(enabled: Bool, to webView: WKWebView) {
-        // Step 1. Only our own subclass can answer this; anything else keeps the
-        // default rather than being poked at.
-        (webView as? BrowserWebView)?.drawsOpaquePageBackground = !enabled
-        // Step 2. Public, and the only one of the two that is not a no-op on its
-        // own: it is what shows in scroll-bounce areas.
-        webView.underPageBackgroundColor = enabled ? .clear : .windowBackgroundColor
+        // Steps 1 and 2 run whether or not the style rule is wanted: the
+        // view never paints an opaque backdrop of its own, so the loading
+        // flash shows the window behind the page instead of white.
+        (webView as? BrowserWebView)?.drawsOpaquePageBackground = false
+        webView.underPageBackgroundColor = .clear
 
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()

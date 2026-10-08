@@ -45,13 +45,14 @@ final class BrowserWebView: WKWebView {
 
     /// Whether WebKit should be left to paint an opaque page background.
     ///
-    /// Turned off for the opt-in "show the window background through pages"
-    /// setting. `isOpaque` is get-only on `NSView`, so this is the only way to
+    /// Always off: an opaque view flashes white before the first paint, and
+    /// the window behind the page is the correct thing to show there.
+    /// `isOpaque` is get-only on `NSView`, so this is the only way to
     /// answer it, and this subclass is the only place that legally can.
     ///
-    /// Necessary but nowhere near sufficient: WebKit paints the *page's* own
-    /// background whatever this says, so on its own this changes nothing visible.
-    /// See `PageTransparency`.
+    /// Necessary but nowhere near sufficient for seeing through a page:
+    /// WebKit paints the *page's* own background whatever this says. See
+    /// `PageTransparency`.
     var drawsOpaquePageBackground = true {
         didSet {
             guard drawsOpaquePageBackground != oldValue else { return }

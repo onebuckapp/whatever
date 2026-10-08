@@ -1,13 +1,13 @@
 import AppKit
+import AVFoundation
 import Combine
 
 /// One cell for a whole split group: two titles with their own favicons and
 /// a single close button. The pair reads as one larger tab; clicking it
 /// shows the split, and dragging it moves both tabs together.
 ///
-/// Styling follows `TabBarItemView` (washes, outline, hover close) but
-/// deliberately not tab themes: a media background belongs to one tab, and
-/// stretching either member's over both halves would mislabel one of them.
+/// Themes mirror a lone cell: the active tab's customization while a member
+/// is selected, the inactive one otherwise.
 final class TabGroupCellView: NSView {
     var onPress: (() -> Void)?
     var onClose: (() -> Void)?
@@ -28,6 +28,7 @@ final class TabGroupCellView: NSView {
     private var leading: BrowserTab
     private var trailing: BrowserTab
 
+    private let backgroundView = NSView()
     private let leadingFavicon = NSImageView()
     private let leadingTitle = NSTextField(labelWithString: "")
     private let trailingFavicon = NSImageView()
@@ -40,6 +41,15 @@ final class TabGroupCellView: NSView {
     private var selected = false
     private var dragging = false
     private var pressLocation: NSPoint?
+    /// Media layer for the themed background (gradient, image, or video),
+    /// or nil for solid colours, which paint the host layer directly.
+    private var mediaLayer: CALayer?
+    /// Pool path held while the theme is a video, released on change and
+    /// teardown.
+    private var videoPath: String?
+    /// What `applyTheme` last built, so layout passes and unrelated settings
+    /// ticks do not rebuild media layers.
+    private var appliedThemeKey: (config: TabThemeConfiguration, selected: Bool)?
 
     init(leading: BrowserTab, trailing: BrowserTab) {
         self.leading = leading
@@ -59,6 +69,12 @@ final class TabGroupCellView: NSView {
         layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
         layer?.masksToBounds = true
         translatesAutoresizingMaskIntoConstraints = false
+        backgroundView.isHidden = true
+        backgroundView.wantsLayer = true
+        backgroundView.layer?.cornerRadius = 8
+        backgroundView.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        backgroundView.layer?.masksToBounds = true
+        addSubview(backgroundView)
         divider.wantsLayer = true
         divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
         addSubview(leadingFavicon)
@@ -251,6 +267,22 @@ final class TabGroupCellView: NSView {
                 self?.trailingFavicon.image = image
             }
             .store(in: &cancellables)
+        // Tab chrome theming: the active cell reads its own configuration,
+        // every other cell the shared one. `removeDuplicates` keeps slider
+        // drags in Settings from rebuilding media layers per tick.
+        SettingsStore.shared.$settings
+            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme) }
+            .removeDuplicates { $0 == $1 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyTheme() }
+            .store(in: &cancellables)
+        applyTheme()
+    }
+
+    deinit {
+        if let videoPath {
+            TabVideoPool.shared.release(path: videoPath)
+        }
     }
 
     private func updateToolTip() {
@@ -262,6 +294,7 @@ final class TabGroupCellView: NSView {
     }
 
     private func updateAppearance() {
+        applyTheme()
         if dragging {
             layer?.backgroundColor = NSColor.controlAccentColor
                 .withAlphaComponent(0.35).cgColor
@@ -274,10 +307,111 @@ final class TabGroupCellView: NSView {
         } else {
             layer?.backgroundColor = NSColor.clear.cgColor
         }
-        leadingTitle.textColor = selected ? .labelColor : .secondaryLabelColor
-        trailingTitle.textColor = selected ? .labelColor : .secondaryLabelColor
+        // Text colour lives in `applyTheme`, which runs just above: a custom
+        // foreground replaces this, nil keeps it.
         closeButton.isHidden = !(hover || selected)
         closeButton.alphaValue = selected ? 1 : 0.7
+    }
+
+    // MARK: - Theme
+
+    /// Paints the cell's configured theme: the active tab's customization
+    /// while a member is selected, the inactive one otherwise. The state
+    /// washes above (dragging, selected, hover) are untouched: they
+    /// composite over the theme. Text colour lives here, not in
+    /// `updateAppearance`, which runs just above.
+    private func applyTheme() {
+        let settings = SettingsStore.shared.settings.appearance
+        let config = selected ? settings.activeTabTheme : settings.tabTheme
+        if let applied = appliedThemeKey, applied == (config, selected) {
+            return
+        }
+        mediaLayer?.removeFromSuperlayer()
+        mediaLayer = nil
+        if let videoPath {
+            TabVideoPool.shared.release(path: videoPath)
+            self.videoPath = nil
+        }
+        backgroundView.isHidden = false
+        backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
+        backgroundView.layer?.contents = nil
+        appliedThemeKey = (config, selected)
+
+        switch config.background.kind {
+        case .none:
+            break
+        case .solid:
+            backgroundView.layer?.backgroundColor = config.background.solid.color.nsColor.cgColor
+        case .gradient:
+            guard let layer = Self.gradientLayer(config.background.gradient) else { break }
+            installMediaLayer(layer)
+        case .image:
+            guard let path = config.background.path,
+                  let image = TabThemeMedia.image(at: path)
+            else {
+                break
+            }
+            let layer = CALayer()
+            layer.contents = image
+            layer.contentsGravity = .resizeAspectFill
+            layer.contentsScale = window?.backingScaleFactor ?? 2
+            installMediaLayer(layer)
+        case .video:
+            guard let path = config.background.path,
+                  let player = TabVideoPool.shared.acquire(path: path)
+            else {
+                break
+            }
+            videoPath = path
+            let layer = AVPlayerLayer(player: player)
+            layer.videoGravity = .resizeAspectFill
+            installMediaLayer(layer)
+        }
+
+        if let foreground = config.foreground?.nsColor {
+            leadingTitle.textColor = foreground
+            trailingTitle.textColor = foreground
+            closeButton.contentTintColor = foreground
+            leadingFavicon.contentTintColor = foreground
+            trailingFavicon.contentTintColor = foreground
+        } else {
+            leadingTitle.textColor = selected ? .labelColor : .secondaryLabelColor
+            trailingTitle.textColor = selected ? .labelColor : .secondaryLabelColor
+            closeButton.contentTintColor = .secondaryLabelColor
+            leadingFavicon.contentTintColor = .secondaryLabelColor
+            trailingFavicon.contentTintColor = .secondaryLabelColor
+        }
+    }
+
+    private func installMediaLayer(_ layer: CALayer) {
+        layer.frame = backgroundView.bounds
+        backgroundView.layer?.addSublayer(layer)
+        mediaLayer = layer
+    }
+
+    /// Gradient honoring the stored stops, angle, and radial geometry, so a
+    /// hand-set gradient renders rather than dropping to nothing.
+    private static func gradientLayer(_ gradient: BackgroundMediaConfiguration.Gradient) -> CALayer? {
+        guard gradient.isUsable else { return nil }
+        let layer = CAGradientLayer()
+        layer.colors = gradient.stops.map { $0.color.nsColor.cgColor }
+        layer.locations = gradient.stops.map { NSNumber(value: $0.location) }
+        switch gradient.kind {
+        case .linear:
+            // Degrees clockwise from pointing up; the unit-space diagonal
+            // this spans covers the layer at any size.
+            let radians = CGFloat(gradient.angle) * .pi / 180
+            let dx = sin(radians) / 2
+            let dy = cos(radians) / 2
+            layer.startPoint = CGPoint(x: 0.5 - dx, y: 0.5 + dy)
+            layer.endPoint = CGPoint(x: 0.5 + dx, y: 0.5 - dy)
+        case .radial:
+            layer.type = .radial
+            layer.startPoint = CGPoint(x: gradient.centerX, y: gradient.centerY)
+            let radius = max(0, gradient.endRadius - gradient.startRadius)
+            layer.endPoint = CGPoint(x: gradient.centerX + radius, y: gradient.centerY)
+        }
+        return layer
     }
 
     /// Snapshot of the cell used as the drag image, plus the divider between
@@ -300,6 +434,11 @@ final class TabGroupCellView: NSView {
 
     override func layout() {
         super.layout()
+        backgroundView.frame = bounds
+        // The media fills the cell at any size; gradient geometry is unit
+        // space, so only the frame needs tracking.
+        mediaLayer?.frame = backgroundView.bounds
+        // The border is drawn, not layered, so it repaints with every layout.
         needsDisplay = true
         updateAppearance()
 
