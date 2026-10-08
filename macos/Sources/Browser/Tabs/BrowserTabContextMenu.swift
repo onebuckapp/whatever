@@ -9,6 +9,8 @@ enum TabMenuAction: String {
     case splitWithNextTab
     case splitWithPreviousTab
     case closePane
+    case ungroupSplit
+    case openGroupInNewWindow
     case focusNextPane
     case focusPreviousPane
     case reloadTab
@@ -129,6 +131,7 @@ enum BrowserTabContextMenu {
             controller.duplicateTab(tab)
         case .togglePin:
             tab.presentation.isPinned.toggle()
+            controller.dissolveGroupIfContains(tab)
             controller.refresh()
         case .splitWithNextTab:
             controller.splitWithNextTab()
@@ -136,6 +139,10 @@ enum BrowserTabContextMenu {
             controller.splitWithPreviousTab()
         case .closePane:
             controller.closePane(tab)
+        case .ungroupSplit, .openGroupInNewWindow:
+            // Group-only commands, handled by TabGroupMenuTarget. A lone tab
+            // never offers them, so reaching here means a stale item.
+            break
         case .focusNextPane:
             controller.focusNextPane()
         case .focusPreviousPane:
@@ -177,6 +184,63 @@ enum BrowserTabContextMenu {
         target: TabMenuTarget
     ) {
         let item = NSMenuItem(title: title, action: #selector(TabMenuTarget.handleMenuItem(_:)), keyEquivalent: "")
+        item.target = target
+        item.representedObject = command.rawValue
+        menu.addItem(item)
+    }
+}
+
+/// Retained by the window controller so `NSMenuItem`'s weak target stays
+/// alive while a group menu is on screen. The group, not a tab: every
+/// command here operates on the whole pair.
+@MainActor
+final class TabGroupMenuTarget: NSObject {
+    private weak var controller: BrowserWindowController?
+
+    init(controller: BrowserWindowController) {
+        self.controller = controller
+    }
+
+    @objc func handleMenuItem(_ sender: NSMenuItem) {
+        guard let action = sender.representedObject as? String,
+              let command = TabMenuAction(rawValue: action),
+              let controller
+        else {
+            return
+        }
+        switch command {
+        case .ungroupSplit:
+            controller.dissolveGroup()
+        case .openGroupInNewWindow:
+            controller.moveGroupToNewWindow()
+        default:
+            break
+        }
+    }
+}
+
+/// Builds the right-click menu for a merged group cell: reverting
+/// ("Close Pane" dissolves back to two tabs) and moving the whole group.
+@MainActor
+enum BrowserTabGroupMenu {
+    static func menu(controller: BrowserWindowController) -> NSMenu {
+        let target = TabGroupMenuTarget(controller: controller)
+        // Held like the per-tab targets so the weak item target above
+        // stays alive while the menu is on screen.
+        controller.retainGroupMenuTarget(target)
+        let menu = NSMenu()
+        add("Close Pane", .ungroupSplit, to: menu, target: target)
+        add("Open in New Window", .openGroupInNewWindow, to: menu, target: target)
+        return menu
+    }
+
+    private static func add(
+        _ title: String,
+        _ command: TabMenuAction,
+        to menu: NSMenu,
+        target: TabGroupMenuTarget
+    ) {
+        let item = NSMenuItem(title: title, action: #selector(TabGroupMenuTarget.handleMenuItem(_:)), keyEquivalent: "")
         item.target = target
         item.representedObject = command.rawValue
         menu.addItem(item)

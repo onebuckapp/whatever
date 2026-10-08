@@ -14,10 +14,27 @@ final class BrowserPaneController: NSViewController {
     private var activeCancellable: AnyCancellable?
     private var pageContainer: NSView?
     private var pageBottomConstraint: NSLayoutConstraint?
+    private var pageLeadingConstraint: NSLayoutConstraint?
+    private var pageTrailingConstraint: NSLayoutConstraint?
     private var qrPopupPresenter: QRPopupPresenter?
     private var fileBrowserPresenter: FileBrowserPresenter?
     private var downloadsPresenter: DownloadsPresenter?
     private var findController: FindController?
+    private var clickMonitor: Any?
+
+    /// Where this pane sits: alone, or flush against its sibling in a split.
+    ///
+    /// A split reads as one grouped surface — `[ tab 1 | tab 2 ]` rather than
+    /// `[ tab 1 ] [ tab 2 ]` — so the inner sides lose their margin and their
+    /// corner radius, and the meeting borders form the separator. Set by the
+    /// window controller whenever it rebuilds the page area.
+    enum SplitPosition {
+        case single, leading, trailing
+    }
+
+    var splitPosition: SplitPosition = .single {
+        didSet { applySplitPosition() }
+    }
 
     init(tab: BrowserTab, activeModel: ActivePaneModel) {
         self.tab = tab
@@ -27,6 +44,12 @@ final class BrowserPaneController: NSViewController {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        if let clickMonitor {
+            NSEvent.removeMonitor(clickMonitor)
+        }
     }
 
     override func loadView() {
@@ -51,9 +74,13 @@ final class BrowserPaneController: NSViewController {
 
         NSLayoutConstraint.activate([
             pageContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            pageContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-            pageContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
         ])
+        pageLeadingConstraint = pageContainer.leadingAnchor.constraint(
+            equalTo: view.leadingAnchor, constant: 6)
+        pageLeadingConstraint?.isActive = true
+        pageTrailingConstraint = pageContainer.trailingAnchor.constraint(
+            equalTo: view.trailingAnchor, constant: -6)
+        pageTrailingConstraint?.isActive = true
 
         // A pane only exists for a tab the page area is showing, so asking the
         // tab to realize itself here is what builds the page. A restored tab
@@ -72,6 +99,66 @@ final class BrowserPaneController: NSViewController {
                 self?.updateBorder(activeID: activeID, showsIndicator: showsIndicator)
             }
         updateBorder(activeID: activeModel.activeTabID, showsIndicator: activeModel.showsIndicator)
+        applySplitPosition()
+        installClickToFocus()
+    }
+
+    /// Lays the page out for the current split position: flush inner sides
+    /// with square corners in a split, full chrome alone. This view is not
+    /// flipped, so the visual bottom is minY.
+    private func applySplitPosition() {
+        guard let pageContainer else { return }
+        switch splitPosition {
+        case .single:
+            pageLeadingConstraint?.constant = 6
+            pageTrailingConstraint?.constant = -6
+            pageContainer.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        case .leading:
+            pageLeadingConstraint?.constant = 6
+            pageTrailingConstraint?.constant = 0
+            pageContainer.layer?.maskedCorners = [.layerMinXMinYCorner]
+        case .trailing:
+            pageLeadingConstraint?.constant = 0
+            pageTrailingConstraint?.constant = -6
+            pageContainer.layer?.maskedCorners = [.layerMaxXMinYCorner]
+        }
+    }
+
+    /// Clicking a pane's page focuses its tab, so the address bar and the
+    /// active outline follow the pointer in a split. A local monitor rather
+    /// than page script: it needs no cooperation from the site and fires for
+    /// every press.
+    ///
+    /// The press must genuinely land on the page: hit-testing through the
+    /// window's content view skips anything covered by a card, the shield,
+    /// or the find bar, since those swallow the click before the page sees
+    /// it and focusing underneath would both select a tab and hand it a
+    /// click meant for the card. Already-selected tabs are left alone, so
+    /// ordinary clicks never pay for a full switch.
+    private func installClickToFocus() {
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] event in
+            self?.focusIfClicked(event)
+            return event
+        }
+    }
+
+    private func focusIfClicked(_ event: NSEvent) {
+        guard let window = view.window,
+              event.window === window,
+              let webView = tab.webView,
+              let contentView = window.contentView
+        else { return }
+        let point = contentView.convert(event.locationInWindow, from: nil)
+        guard let hit = contentView.hitTest(point),
+              hit === webView || hit.isDescendant(of: webView)
+        else { return }
+        guard let controller = BrowserCoordinator.shared.controller(for: window),
+              controller.selectedTabID != tab.id
+        else { return }
+        controller.selectTab(tab)
     }
 
     /// Ensures the tab's page exists and is embedded in this pane.

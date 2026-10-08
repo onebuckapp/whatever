@@ -5,11 +5,12 @@ import Testing
 /// Proves the split divider cannot squeeze a pane out of existence.
 ///
 /// The clamp is pure inputs by design, so this runs without views: the
-/// drag path (min/max coordinates), the programmatic path
-/// (`constrainSplitPosition`), and restores all share
-/// `clampedDividerPosition`. Instantiating the controller headless stalls
-/// the suite in this environment, so the live `NSSplitView` behavior stays
-/// a manual check.
+/// programmatic path (`constrainSplitPosition`) and restores share
+/// `clampedDividerPosition`. Live drags are clamped by the items'
+/// `minimumThickness` through layout instead — the min/max coordinate
+/// delegate methods are autolayout-incompatible and assert. Instantiating
+/// the controller headless stalls the suite in this environment, so the
+/// live `NSSplitView` behavior stays a manual check.
 struct SplitDividerTests {
     private let width: CGFloat = 1300
     private var minimum: CGFloat { BrowserSplitViewController.minimumPaneWidth }

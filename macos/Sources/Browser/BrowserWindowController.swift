@@ -234,6 +234,14 @@ final class BrowserWindowController: NSWindowController {
     private(set) var tabs: [BrowserTab] = []
     private(set) var selectedTabID: UUID?
     private(set) var layout: ContentLayout
+    /// The sticky split group: the pair (and ratio) that renders joined in
+    /// the tab bar and side by side in the page area.
+    ///
+    /// `layout` is only the current view — selecting a tab outside the group
+    /// shows that tab alone but keeps this, so opening a new tab hides the
+    /// split without destroying it and reselecting a member brings it back.
+    /// Only closing or displacing a member dissolves it.
+    private(set) var splitGroup: ContentLayout?
 
     private let activeModel = ActivePaneModel()
     private var toolbarController: BrowserToolbarController!
@@ -246,6 +254,8 @@ final class BrowserWindowController: NSWindowController {
     private var titleSubscription: AnyCancellable?
     private var progressCancellables = Set<AnyCancellable>()
     private var menuTargets: [UUID: TabMenuTarget] = [:]
+    /// Held while a group menu is on screen: `NSMenuItem` targets are weak.
+    private var groupMenuTarget: TabGroupMenuTarget?
     /// Observers for the frame notifications, held so they can be removed.
     private var frameObservers: [NSObjectProtocol] = []
 
@@ -318,6 +328,24 @@ final class BrowserWindowController: NSWindowController {
                 : .single(tabID: restoredTabs.first?.id ?? UUID())
         }
         self.layout = layout
+        // The sticky group comes back with the window, so a split hidden
+        // behind another tab at quit still renders joined and reselects
+        // into view. An old document without one falls back to the shown
+        // layout, which names a valid pair exactly when it is a split.
+        var restoredGroup: ContentLayout?
+        if let saved = record.splitGroup,
+           case .split(let leading, let trailing, let ratio) = saved,
+           rebuiltIDs.contains(leading), rebuiltIDs.contains(trailing),
+           leading != trailing {
+            restoredGroup = .split(
+                leadingTabID: leading,
+                trailingTabID: trailing,
+                ratio: CGFloat(ratio)
+            )
+        } else if case .split = layout {
+            restoredGroup = layout
+        }
+        self.splitGroup = restoredGroup
 
         let content = BrowserWindowContentViewController()
         self.contentController = content
@@ -409,6 +437,10 @@ final class BrowserWindowController: NSWindowController {
         }
         contentController.onTabDropped = { [weak self] tab, zone in
             self?.handleSplitDrop(of: tab, zone: zone)
+        }
+        contentController.onTabGroupDropped = { [weak self] pair in
+            guard let self else { return }
+            BrowserCoordinator.shared.moveTabs(pair, to: self.tabs.count, in: self)
         }
         toolbarController.onAddressSubmitted = { [weak self] url in
             self?.openAddress(url)
@@ -552,12 +584,32 @@ final class BrowserWindowController: NSWindowController {
         }
         window?.title = tab.tabController.title
 
-        // Selecting a tab that is not part of a split collapses to it.
-        if !displayedTabs.contains(where: { $0.id == tab.id }) {
+        // The split is sticky: selecting a member restores its view, while
+        // selecting anything else shows that tab alone but keeps the group,
+        // so opening a new tab hides the split without destroying it.
+        if let group = validSplitGroup(),
+           case .split(let leading, let trailing, let ratio) = group,
+           [leading, trailing].contains(tab.id) {
+            layout = .split(leadingTabID: leading, trailingTabID: trailing, ratio: ratio)
+        } else {
+            if case .split = layout {
+                splitGroup = layout
+            }
             layout = .single(tabID: tab.id)
         }
         refresh()
         sessionDidChange()
+    }
+
+    /// The sticky group, only when both members are still tabs of this
+    /// window. A group naming a closed tab must never drive the view.
+    private func validSplitGroup() -> ContentLayout? {
+        guard let group = splitGroup,
+              case .split(let leading, let trailing, _) = group,
+              tabs.contains(where: { $0.id == leading }),
+              tabs.contains(where: { $0.id == trailing })
+        else { return nil }
+        return group
     }
 
     /// Drives the 2pt indicator under the toolbar from the active tab.
@@ -578,6 +630,62 @@ final class BrowserWindowController: NSWindowController {
         tabs.insert(tab, at: min(max(0, index), tabs.count))
         refresh()
         sessionDidChange()
+    }
+
+    /// Reorders a split group as one unit, keeping pane order. The sticky
+    /// group names IDs rather than indices, so it survives the move untouched.
+    func moveTabPair(_ pair: [BrowserTab], to index: Int) {
+        guard pair.count == 2,
+              tabs.contains(where: { $0.id == pair[0].id }),
+              tabs.contains(where: { $0.id == pair[1].id })
+        else { return }
+        let ids = Set(pair.map(\.id))
+        let remaining = tabs.filter { !ids.contains($0.id) }
+        let target = min(max(0, index), remaining.count)
+        tabs = Array(remaining[..<target]) + pair + Array(remaining[target...])
+        refresh()
+        sessionDidChange()
+    }
+
+    /// Dissolves the sticky group without closing anything: the pair stays
+    /// as two adjacent tabs and the page shows the selection alone. This is
+    /// what "Close Pane" means on a grouped cell — reverting, not closing.
+    func dissolveGroup() {
+        guard splitGroup != nil else { return }
+        splitGroup = nil
+        if case .split = layout, let tab = selectedTab {
+            layout = .single(tabID: tab.id)
+        }
+        refresh()
+        sessionDidChange()
+    }
+
+    /// Dissolves the group when it names `tab`, leaving everything else
+    /// alone. Pinning a member un-groups it: a pinned cell has room for a
+    /// favicon only, never for two titles.
+    func dissolveGroupIfContains(_ tab: BrowserTab) {
+        guard let group = validSplitGroup(),
+              case .split(let leading, let trailing, _) = group,
+              leading == tab.id || trailing == tab.id
+        else { return }
+        dissolveGroup()
+    }
+
+    /// Closes both members of the sticky group. What the group cell's single
+    /// close button does.
+    func closeGroup() {
+        guard let group = validSplitGroup(),
+              case .split(let leading, let trailing, _) = group,
+              let first = tabs.first(where: { $0.id == leading }),
+              let second = tabs.first(where: { $0.id == trailing })
+        else { return }
+        BrowserCoordinator.shared.recordClosedTab(first)
+        BrowserCoordinator.shared.recordClosedTab(second)
+        removeTab(first)
+        // The first removal dissolved the group; the second is plain.
+        if tabs.contains(where: { $0.id == second.id }) {
+            removeTab(second)
+        }
     }
 
     @discardableResult
@@ -657,6 +765,7 @@ final class BrowserWindowController: NSWindowController {
         case .single:
             break
         }
+        dissolveSplitGroup(naming: tab.id)
 
         if let pane = paneCache.removeValue(forKey: tab.id) {
             // Pane popups live at window level above the shield, so unlike
@@ -676,6 +785,15 @@ final class BrowserWindowController: NSWindowController {
             selectTab(tabs[min(index, tabs.count - 1)])
         }
         sessionDidChange()
+    }
+
+    /// Drops the sticky group when one of its members leaves the window. A
+    /// group naming a gone tab must never drive the view back.
+    private func dissolveSplitGroup(naming tabID: UUID) {
+        guard case .split(let leading, let trailing, _) = splitGroup,
+              leading == tabID || trailing == tabID
+        else { return }
+        splitGroup = nil
     }
 
     /// Removes a tab. The last tab closes the window; a removed tab
@@ -705,6 +823,7 @@ final class BrowserWindowController: NSWindowController {
         case .single:
             break
         }
+        dissolveSplitGroup(naming: tab.id)
 
         if let pane = paneCache.removeValue(forKey: tab.id) {
             contentController.forgetChild(pane)
@@ -769,6 +888,14 @@ final class BrowserWindowController: NSWindowController {
         else {
             return false
         }
+        // A group cell has room for two titles, never for pinned cells: a
+        // pinned tab cannot join a split.
+        guard !currentTab.presentation.isPinned,
+              !droppedTab.presentation.isPinned
+        else {
+            SystemBeep.play()
+            return false
+        }
 
         let ratio: CGFloat = BrowserSplitViewController.defaultRatio
         switch zone {
@@ -787,6 +914,10 @@ final class BrowserWindowController: NSWindowController {
         case .center:
             return false
         }
+        if case .split(let leading, let trailing, _) = layout {
+            placeAdjacent(leadingTabID: leading, trailingTabID: trailing)
+            splitGroup = layout
+        }
 
         rebuildSplitView()
         selectTab(droppedTab)
@@ -803,6 +934,10 @@ final class BrowserWindowController: NSWindowController {
             }
             return
         }
+        guard !tab.presentation.isPinned else {
+            SystemBeep.play()
+            return
+        }
         switch zone {
         case .leading:
             layout = .split(leadingTabID: tab.id, trailingTabID: trailing, ratio: ratio)
@@ -811,9 +946,30 @@ final class BrowserWindowController: NSWindowController {
         case .center:
             return
         }
+        if case .split(let leading, let trailing, _) = layout {
+            placeAdjacent(leadingTabID: leading, trailingTabID: trailing)
+            splitGroup = layout
+        }
         rebuildSplitView()
         selectTab(tab)
         sessionDidChange()
+    }
+
+    /// Pulls the split pair together in the tab bar, in pane order, so the
+    /// two cells render joined. The anchor is the earlier of the two tabs,
+    /// so forming a group disturbs the order as little as possible.
+    private func placeAdjacent(leadingTabID: UUID, trailingTabID: UUID) {
+        guard let leading = tabs.first(where: { $0.id == leadingTabID }),
+              let trailing = tabs.first(where: { $0.id == trailingTabID }),
+              let leadingIndex = tabs.firstIndex(where: { $0.id == leadingTabID }),
+              let trailingIndex = tabs.firstIndex(where: { $0.id == trailingTabID })
+        else { return }
+        guard trailingIndex != leadingIndex + 1 else { return }
+        let anchor = min(leadingIndex, trailingIndex)
+        let others = tabs.filter { $0.id != leadingTabID && $0.id != trailingTabID }
+        tabs = Array(others[..<min(anchor, others.count)])
+            + [leading, trailing]
+            + Array(others[min(anchor, others.count)...])
     }
 
     /// Splits the selected tab with the next tab in the tab bar.
@@ -858,6 +1014,8 @@ final class BrowserWindowController: NSWindowController {
             closeTab(tab)
             return
         }
+        // Explicitly closed, not merely hidden: the group goes with it.
+        splitGroup = nil
         layout = .single(tabID: remaining.id)
         rebuildContent()
         selectTab(remaining)
@@ -866,6 +1024,7 @@ final class BrowserWindowController: NSWindowController {
 
     func collapseSplit() {
         guard isSplit, let tab = selectedTab ?? displayedTabs.first else { return }
+        splitGroup = nil
         layout = .single(tabID: tab.id)
         rebuildContent()
         sessionDidChange()
@@ -932,7 +1091,15 @@ final class BrowserWindowController: NSWindowController {
     }
 
     func refreshTabBar() {
-        contentController.tabBar.strip.setTabs(tabs, selectedTabID: selectedTabID)
+        // The bar joins the sticky pair whether it is on screen or hidden,
+        // so the group reads as one unit until it is dissolved.
+        var pair: (UUID, UUID)?
+        if let group = validSplitGroup(),
+           case .split(let leading, let trailing, _) = group {
+            pair = (leading, trailing)
+        }
+        contentController.tabBar.strip.setTabs(
+            tabs, selectedTabID: selectedTabID, splitPair: pair)
     }
 
     /// Pinned tabs always lead the bar. Keeping that invariant in the
@@ -953,6 +1120,11 @@ final class BrowserWindowController: NSWindowController {
         let target = TabMenuTarget(controller: self, tab: tab)
         menuTargets[tab.id] = target
         return target
+    }
+
+    /// Holds a group menu's target for the menu's lifetime.
+    func retainGroupMenuTarget(_ target: TabGroupMenuTarget) {
+        groupMenuTarget = target
     }
 
     // MARK: - Content
@@ -1220,6 +1392,7 @@ final class BrowserWindowController: NSWindowController {
             splitController = nil
             singlePane = nil
             if let tab = visible.first {
+                pane(for: tab).splitPosition = .single
                 contentController.showChild(pane(for: tab))
             }
             activeModel.showsIndicator = false
@@ -1253,14 +1426,18 @@ final class BrowserWindowController: NSWindowController {
         // into the layout on the next divider tick.
         split.onRatioChange = { [weak self] newRatio in
             guard let self, case .split = self.layout else { return }
+            let clamped = min(
+                max(newRatio, BrowserSplitViewController.minimumRatio),
+                BrowserSplitViewController.maximumRatio
+            )
             self.layout = .split(
                 leadingTabID: leading,
                 trailingTabID: trailing,
-                ratio: min(
-                    max(newRatio, BrowserSplitViewController.minimumRatio),
-                    BrowserSplitViewController.maximumRatio
-                )
+                ratio: clamped
             )
+            // The sticky copy follows the view, so a hidden-then-restored
+            // split comes back at the dragged ratio.
+            self.splitGroup = self.layout
             self.sessionDidChange()
         }
 
@@ -1271,6 +1448,10 @@ final class BrowserWindowController: NSWindowController {
         for pane in wanted where !split.paneControllers.contains(where: { $0 === pane }) {
             split.addPane(pane)
         }
+        // `wanted` follows `visible`, which is leading-then-trailing, so the
+        // panes read as one grouped surface instead of two cards.
+        wanted[0].splitPosition = .leading
+        wanted[1].splitPosition = .trailing
         contentController.showChild(split)
         activeModel.showsIndicator = true
         // Ratio can only be applied once the view has a width.
@@ -1315,5 +1496,40 @@ extension BrowserWindowController: TabBarViewDelegate {
 
     func tabBar(_ tabBar: TabBarView, didToggleMuteFor tab: BrowserTab) {
         tab.toggleMute()
+    }
+
+    /// The merged group cell was pressed: show the split, focused on the
+    /// already-active pane when it is a member, so the address bar shows
+    /// the page the user is looking at.
+    func tabBarDidSelectGroup(_ tabBar: TabBarView) {
+        guard let group = validSplitGroup(),
+              case .split(let leading, let trailing, _) = group
+        else { return }
+        let active = [leading, trailing].first { $0 == activeModel.activeTabID }
+            ?? leading
+        if let tab = tabs.first(where: { $0.id == active }) {
+            selectTab(tab)
+        }
+    }
+
+    func tabBarDidCloseGroup(_ tabBar: TabBarView) {
+        closeGroup()
+    }
+
+    func tabBarGroupMenu(_ tabBar: TabBarView) -> NSMenu? {
+        BrowserTabGroupMenu.menu(controller: self)
+    }
+
+    /// Moves the sticky group into a fresh window, keeping it grouped.
+    func moveGroupToNewWindow() {
+        guard let group = validSplitGroup(),
+              case .split(let leading, let trailing, _) = group,
+              let first = tabs.first(where: { $0.id == leading }),
+              let second = tabs.first(where: { $0.id == trailing })
+        else {
+            SystemBeep.play()
+            return
+        }
+        BrowserCoordinator.shared.detachGroup([first, second], from: self)
     }
 }

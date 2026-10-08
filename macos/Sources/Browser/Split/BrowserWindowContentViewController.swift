@@ -29,6 +29,10 @@ final class BrowserWindowContentViewController: NSViewController {
     /// dismissed.
     var onDropZoneChanged: ((SplitDropZone?) -> Void)?
     var onTabDropped: ((BrowserTab, SplitDropZone) -> Void)?
+    /// A whole split group dropped on the page area: both tabs move over
+    /// and re-form there. The zone is advisory only — two tabs cannot fill
+    /// one pane, so the pair lands as its own split.
+    var onTabGroupDropped: (([BrowserTab]) -> Void)?
     /// Reports the shield going in (`true`) or coming out (`false`).
     ///
     /// The window controller uses it to take its pages out of mouse interaction for
@@ -738,7 +742,7 @@ extension BrowserWindowContentViewController: NSDraggingDestination {
     }
 
     func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard TabDragPayload.tab(from: sender) != nil,
+        guard !TabDragPayload.tabs(from: sender).isEmpty,
               let zone = dropZone(for: sender)
         else {
             return []
@@ -756,17 +760,24 @@ extension BrowserWindowContentViewController: NSDraggingDestination {
     }
 
     func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        TabDragPayload.tab(from: sender) != nil && dropZone(for: sender) != nil
+        !TabDragPayload.tabs(from: sender).isEmpty && dropZone(for: sender) != nil
     }
 
     func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         defer { onDropZoneChanged?(nil) }
-        guard let tab = TabDragPayload.tab(from: sender),
-              let zone = dropZone(for: sender)
+        let dragged = TabDragPayload.tabs(from: sender)
+        guard !dragged.isEmpty,
+              dropZone(for: sender) != nil
         else {
             return false
         }
-        onTabDropped?(tab, zone)
+        if dragged.count == 2 {
+            onTabGroupDropped?(dragged)
+        } else if let tab = dragged.first, let zone = dropZone(for: sender) {
+            onTabDropped?(tab, zone)
+        } else {
+            return false
+        }
         return true
     }
 

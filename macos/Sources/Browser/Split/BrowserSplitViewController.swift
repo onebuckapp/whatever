@@ -66,7 +66,17 @@ final class BrowserSplitViewController: NSSplitViewController {
         let item = NSSplitViewItem(viewController: pane)
         item.canCollapse = false
         item.minimumThickness = Self.minimumPaneWidth
-        item.maximumThickness = .greatestFiniteMagnitude
+        // Finite on purpose: `.greatestFiniteMagnitude` exceeds AppKit's
+        // constraint-constant limits, logs, gets substituted, and lays out
+        // garbage. No window is ever this wide, so this is still no limit.
+        item.maximumThickness = 10_000
+        // NSSplitView positions arranged subviews with frames. A pane arriving
+        // from single-tab duty still carries `translates == false` from
+        // `showChild`, which flips the split into constraint-based layout and
+        // trips its internal assertions on the next resize. Hand frame control
+        // back here; leaving the split (direct hosting or parking) sets the
+        // flag the other way again.
+        pane.view.translatesAutoresizingMaskIntoConstraints = true
         addSplitViewItem(item)
         paneControllers.append(pane)
     }
@@ -112,8 +122,15 @@ final class BrowserSplitViewController: NSSplitViewController {
     }
 
     /// Clamps a divider position so neither side drops below the pane
-    /// minimum. Pure inputs by design, so the drag, programmatic, and
-    /// restore paths share one contract that runs without views.
+    /// minimum. Pure inputs by design, so the programmatic and restore paths
+    /// share one contract that runs without views. The live-drag path is
+    /// deliberately NOT clamped here: `constrainMinCoordinate` and
+    /// `constrainMaxCoordinate` are autolayout-incompatible delegate methods
+    /// (alongside `resizeSubviewsWithOldSize` and `shouldAdjustSizeOfSubview`),
+    /// and implementing any of them trips the split view's internal
+    /// assertions because this split view is itself pinned by Auto Layout.
+    /// Drags are clamped by the items' `minimumThickness` instead, which
+    /// AppKit turns into layout constraints — the compatible mechanism.
     static func clampedDividerPosition(
         _ proposed: CGFloat,
         dividerIndex: Int,
@@ -130,41 +147,6 @@ final class BrowserSplitViewController: NSSplitViewController {
 }
 
 extension BrowserSplitViewController {
-    /// Lowest divider position the drag path may settle on.
-    ///
-    /// `constrainSplitPosition` below only governs programmatic moves
-    /// (`setPosition`), while a live drag consults these min/max coordinates.
-    /// Without them a fast drag can push the divider past the trailing
-    /// pane's minimum and the pane collapses out from under its tab, which
-    /// reads as the right-hand page disappearing mid-resize.
-    override func splitView(
-        _ splitView: NSSplitView,
-        constrainMinCoordinate proposedMinimum: CGFloat,
-        ofSubviewAt dividerIndex: Int
-    ) -> CGFloat {
-        Self.clampedDividerPosition(
-            proposedMinimum,
-            dividerIndex: dividerIndex,
-            paneCount: splitView.arrangedSubviews.count,
-            totalWidth: splitView.bounds.width
-        )
-    }
-
-    /// Highest divider position the drag path may settle on. Mirror image
-    /// of the minimum above.
-    override func splitView(
-        _ splitView: NSSplitView,
-        constrainMaxCoordinate proposedMaximum: CGFloat,
-        ofSubviewAt dividerIndex: Int
-    ) -> CGFloat {
-        Self.clampedDividerPosition(
-            proposedMaximum,
-            dividerIndex: dividerIndex,
-            paneCount: splitView.arrangedSubviews.count,
-            totalWidth: splitView.bounds.width
-        )
-    }
-
     override func splitView(
         _ splitView: NSSplitView,
         constrainSplitPosition proposedPosition: CGFloat,

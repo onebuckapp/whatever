@@ -39,17 +39,23 @@ struct SessionSnapshot: Codable, Equatable {
         var tabs: [TabSnapshot]
         var selectedTabID: UUID?
         var layout: Layout
+        /// The sticky split group, when the window had one — shown or
+        /// hidden. Absent in documents written before groups existed, which
+        /// decode as no group.
+        var splitGroup: Layout?
 
         init(
             frame: Frame = .default,
             tabs: [TabSnapshot] = [],
             selectedTabID: UUID? = nil,
-            layout: Layout
+            layout: Layout,
+            splitGroup: Layout? = nil
         ) {
             self.frame = frame
             self.tabs = tabs
             self.selectedTabID = selectedTabID
             self.layout = layout
+            self.splitGroup = splitGroup
         }
 
         /// What the page area was showing: one tab, or two with a divider ratio.

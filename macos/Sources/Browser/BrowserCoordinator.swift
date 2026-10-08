@@ -148,11 +148,22 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                     ? .split(leading: leading, trailing: trailing, ratio: Double(ratio))
                     : .single(kept.contains(leading) ? leading : (tabs.first?.id ?? UUID()))
             }
+            // The sticky group rides along so a hidden split comes back as a
+            // group, not just as two tabs.
+            var splitGroup: SessionSnapshot.WindowSnapshot.Layout?
+            if let group = controller.splitGroup,
+               case .split(let leading, let trailing, let ratio) = group,
+               kept.contains(leading), kept.contains(trailing),
+               leading != trailing {
+                splitGroup = .split(
+                    leading: leading, trailing: trailing, ratio: Double(ratio))
+            }
             return SessionSnapshot.WindowSnapshot(
                 frame: .init(window.frame),
                 tabs: tabs,
                 selectedTabID: controller.selectedTabID.flatMap { kept.contains($0) ? $0 : nil },
-                layout: layout
+                layout: layout,
+                splitGroup: splitGroup
             )
         }
         return SessionSnapshot(windows: records)
@@ -397,6 +408,54 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         // down, only its membership of `source` changes.
         source.detachTab(tab)
         newWindow(containing: tab, atScreenPoint: point)
+    }
+
+    /// Moves a whole split group to an index in `destination`: a reorder
+    /// when the group is already there, a move from another window
+    /// otherwise. A cross-window move re-forms the group on arrival, so the
+    /// pair stays a pair; the source window closes itself if a move empties
+    /// it. The pair travels in pane order.
+    func moveTabs(
+        _ pair: [BrowserTab],
+        to index: Int,
+        in destination: BrowserWindowController
+    ) {
+        guard pair.count == 2 else { return }
+        let source = windows.first {
+            $0.tabs.contains { $0.id == pair[0].id }
+        }
+        guard let source else { return }
+        if source !== destination {
+            source.detachTab(pair[0])
+            source.detachTab(pair[1])
+            destination.addTab(pair[0], at: index, select: false)
+            destination.addTab(pair[1], at: index + 1, select: false)
+            // Both tabs are already home; this only restores the sticky
+            // view state, with the leading tab showing.
+            _ = destination.createSplit(
+                currentTab: pair[1], droppedTab: pair[0], zone: .leading)
+        } else {
+            source.moveTabPair(pair, to: index)
+        }
+    }
+
+    /// Moves a whole split group to a new window, keeping its web views
+    /// and re-forming the group there.
+    func detachGroup(
+        _ pair: [BrowserTab],
+        from source: BrowserWindowController,
+        atScreenPoint point: NSPoint? = nil
+    ) {
+        guard pair.count == 2,
+              source.tabs.contains(where: { $0.id == pair[0].id }),
+              source.tabs.contains(where: { $0.id == pair[1].id })
+        else { return }
+        source.detachTab(pair[0])
+        source.detachTab(pair[1])
+        let fresh = newWindow(containing: pair[0], atScreenPoint: point)
+        fresh.addTab(pair[1], select: false)
+        _ = fresh.createSplit(
+            currentTab: pair[1], droppedTab: pair[0], zone: .leading)
     }
 
     // MARK: - Private

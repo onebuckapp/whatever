@@ -8,6 +8,12 @@ protocol TabBarViewDelegate: AnyObject {
     func tabBar(_ tabBar: TabBarView, didToggleMuteFor tab: BrowserTab)
     /// A tab was dropped on this bar at the given insertion index.
     func tabBar(_ tabBar: TabBarView, didDropTab tab: BrowserTab, at index: Int)
+    /// The merged group cell was pressed: show the split.
+    func tabBarDidSelectGroup(_ tabBar: TabBarView)
+    /// The merged group cell's close button was pressed: close both members.
+    func tabBarDidCloseGroup(_ tabBar: TabBarView)
+    /// Context menu for the merged group cell.
+    func tabBarGroupMenu(_ tabBar: TabBarView) -> NSMenu?
 }
 
 /// Thin accent line drawn between tabs while a drag hovers the bar.
@@ -42,6 +48,12 @@ final class TabBarView: NSView {
 
     private(set) var tabs: [BrowserTab] = []
     private var selectedTabID: UUID?
+    /// The sticky split pair, in pane order. The bar renders it as one
+    /// merged cell only while the pair sits adjacent; anything else draws
+    /// two lone cells.
+    private var splitPair: (leading: UUID, trailing: UUID)?
+    /// The merged cell for the pair above, or nil when there is none.
+    private var groupCell: TabGroupCellView?
     private var itemViews: [UUID: TabBarItemView] = [:]
     private let insertionMarker = TabInsertionMarkerView()
 
@@ -88,9 +100,14 @@ final class TabBarView: NSView {
 
     // MARK: - Content
 
-    func setTabs(_ tabs: [BrowserTab], selectedTabID: UUID?) {
+    func setTabs(
+        _ tabs: [BrowserTab],
+        selectedTabID: UUID?,
+        splitPair: (leading: UUID, trailing: UUID)? = nil
+    ) {
         self.tabs = tabs
         self.selectedTabID = selectedTabID
+        self.splitPair = splitPair
 
         for tab in tabs where itemViews[tab.id] == nil {
             let item = makeItem(for: tab)
@@ -106,9 +123,83 @@ final class TabBarView: NSView {
         for tab in tabs {
             itemViews[tab.id]?.setSelected(tab.id == selectedTabID)
         }
+
+        // One merged cell for an adjacent pair, lone cells otherwise. The
+        // members' own cells leave the hierarchy while grouped and come
+        // back on dissolve.
+        if let joined = joinedPairState() {
+            let cell: TabGroupCellView
+            if let existing = groupCell {
+                cell = existing
+            } else {
+                cell = makeGroupCell(leading: joined.leading, trailing: joined.trailing)
+                groupCell = cell
+            }
+            cell.configure(leading: joined.leading, trailing: joined.trailing)
+            if cell.superview == nil {
+                addSubview(cell)
+            }
+            itemViews[joined.leading.id]?.removeFromSuperview()
+            itemViews[joined.trailing.id]?.removeFromSuperview()
+            for tab in tabs where tab.id != joined.leading.id && tab.id != joined.trailing.id {
+                if let item = itemViews[tab.id], item.superview == nil {
+                    addSubview(item)
+                }
+            }
+            cell.setSelected(
+                selectedTabID == joined.leading.id || selectedTabID == joined.trailing.id)
+        } else {
+            groupCell?.removeFromSuperview()
+            groupCell = nil
+            for tab in tabs {
+                if let item = itemViews[tab.id], item.superview == nil {
+                    addSubview(item)
+                }
+            }
+        }
+
         hideInsertionMarker()
         needsLayout = true
         superview?.needsLayout = true
+    }
+
+    /// The sticky pair with its tabs, only when it sits adjacent in pane
+    /// order and can render as one cell. The window pulls the pair together
+    /// on formation, so anything else means the order changed underneath
+    /// and the cells fall back to lone.
+    private func joinedPairState() -> (leading: BrowserTab, trailing: BrowserTab)? {
+        guard let pair = splitPair,
+              let leadingIndex = tabs.firstIndex(where: { $0.id == pair.leading }),
+              tabs.indices.contains(leadingIndex + 1),
+              tabs[leadingIndex + 1].id == pair.trailing,
+              let leading = tabs.first(where: { $0.id == pair.leading }),
+              let trailing = tabs.first(where: { $0.id == pair.trailing })
+        else { return nil }
+        return (leading, trailing)
+    }
+
+    /// Tabs as drawn: the grouped trailing member takes no cell of its own.
+    private func visualTabs() -> [BrowserTab] {
+        guard let joined = joinedPairState() else { return tabs }
+        return tabs.filter { $0.id != joined.trailing.id }
+    }
+
+    /// The view drawn for a visual tab: the merged cell at the pair's slot,
+    /// the lone cell everywhere else.
+    private func viewForVisualTab(_ tab: BrowserTab) -> NSView? {
+        if let joined = joinedPairState(), tab.id == joined.leading.id {
+            return groupCell
+        }
+        return itemViews[tab.id]
+    }
+
+    /// Width of a visual tab: both members' shares for the merged cell.
+    private func visualWidth(for tab: BrowserTab) -> CGFloat {
+        if let joined = joinedPairState(), tab.id == joined.leading.id,
+           let trailing = tabs.first(where: { $0.id == joined.trailing.id }) {
+            return width(for: tab) + width(for: trailing)
+        }
+        return width(for: tab)
     }
 
     /// Width the strip wants; the container scrolls when this exceeds
@@ -116,8 +207,8 @@ final class TabBarView: NSView {
     /// last cell.
     var preferredWidth: CGFloat {
         var total: CGFloat = 0
-        for tab in laidOutTabs {
-            total += width(for: tab) + 4
+        for tab in visualTabs() {
+            total += visualWidth(for: tab) + 4
         }
         total += 4 + BrowserToolbarButton.outerWidth
         return max(0, total + 12)
@@ -131,10 +222,10 @@ final class TabBarView: NSView {
         // page below; only the top keeps an inset.
         let tabHeight = max(0, bounds.height - 4)
         var x: CGFloat = 6
-        for tab in laidOutTabs {
-            guard let item = itemViews[tab.id] else { continue }
-            item.frame = NSRect(x: x, y: 4, width: width(for: tab), height: tabHeight)
-            x += item.frame.width + 4
+        for tab in visualTabs() {
+            guard let view = viewForVisualTab(tab) else { continue }
+            view.frame = NSRect(x: x, y: 4, width: visualWidth(for: tab), height: tabHeight)
+            x += view.frame.width + 4
         }
         // After the last cell, vertically centered on it. The button's own
         // constraints fix its size, so the frame only places it.
@@ -172,15 +263,38 @@ final class TabBarView: NSView {
     /// Index in `laidOutTabs` where the dragged tab should land, given
     /// the pointer position. Clamped so pinned tabs stay leading and
     /// normal tabs cannot move into the pinned region.
+    /// Index in `tabs` where the dragged tab should land, given
+    /// the pointer position. Clamped so pinned tabs stay leading and
+    /// normal tabs cannot move into the pinned region.
+    ///
+    /// Computed over the visual cells: a grouped trailing member takes no
+    /// cell, and a dragged group excludes both members. The visual position
+    /// maps back to a model index — the hidden trailing member sits
+    /// immediately after its leading tab, so "before the next visual tab"
+    /// already means "after the group".
     func insertionIndex(forDragged dragged: BrowserTab, at point: NSPoint) -> Int {
-        let ordered = laidOutTabs.filter { $0.id != dragged.id }
-        var index = ordered.count
-        for (offset, tab) in ordered.enumerated() {
-            guard let item = itemViews[tab.id] else { continue }
-            if point.x < item.frame.midX {
-                index = offset
+        let hidden: Set<UUID> = {
+            guard let joined = joinedPairState(),
+                  dragged.id == joined.leading.id || dragged.id == joined.trailing.id
+            else { return [dragged.id] }
+            return [joined.leading.id, joined.trailing.id]
+        }()
+        let orderedModel = tabs.filter { !hidden.contains($0.id) }
+        let visual = visualTabs().filter { !hidden.contains($0.id) }
+        var position = visual.count
+        for (offset, tab) in visual.enumerated() {
+            guard let view = viewForVisualTab(tab) else { continue }
+            if point.x < view.frame.midX {
+                position = offset
                 break
             }
+        }
+        let index: Int
+        if position >= visual.count {
+            index = orderedModel.count
+        } else {
+            index = orderedModel.firstIndex(where: { $0.id == visual[position].id })
+                ?? orderedModel.count
         }
 
         let pinnedCount = tabs.filter(\.presentation.isPinned).count
@@ -192,14 +306,30 @@ final class TabBarView: NSView {
 
     private func layoutInsertionMarker() {
         guard let index = insertionIndex else { return }
-        let ordered = laidOutTabs
         let x: CGFloat
-        if index >= ordered.count {
-            x = (itemViews[ordered.last?.id ?? UUID()]?.frame.maxX ?? 6) + 2
+        if index >= tabs.count {
+            if let last = visualTabs().last, let view = viewForVisualTab(last) {
+                x = view.frame.maxX + 2
+            } else {
+                x = 6 + 2
+            }
         } else if index == 0 {
             x = 4
         } else {
-            x = (itemViews[ordered[index - 1].id]?.frame.maxX ?? 6) + 2
+            // The model tab just before the insertion point; a hidden
+            // trailing member has no cell, so step back to the group cell,
+            // whose far edge is the group's far edge.
+            var step = index - 1
+            while step >= 0 && isHiddenGroupMember(tabs[step].id) {
+                step -= 1
+            }
+            let edge: CGFloat
+            if step >= 0, let view = viewForVisualTab(tabs[step]) {
+                edge = view.frame.maxX
+            } else {
+                edge = 6
+            }
+            x = edge + 2
         }
         insertionMarker.frame = NSRect(
             x: x,
@@ -207,6 +337,13 @@ final class TabBarView: NSView {
             width: 2,
             height: max(0, bounds.height - 4)
         )
+    }
+
+    /// Whether this tab is the grouped trailing member, which takes no
+    /// cell of its own.
+    private func isHiddenGroupMember(_ id: UUID) -> Bool {
+        guard let joined = joinedPairState() else { return false }
+        return id == joined.trailing.id
     }
 
     private func hideInsertionMarker() {
@@ -219,6 +356,27 @@ final class TabBarView: NSView {
     }
 
     // MARK: - Private
+
+    private func makeGroupCell(leading: BrowserTab, trailing: BrowserTab) -> TabGroupCellView {
+        let cell = TabGroupCellView(leading: leading, trailing: trailing)
+        cell.onPress = { [weak self] in
+            guard let self else { return }
+            self.delegate?.tabBarDidSelectGroup(self)
+        }
+        cell.onClose = { [weak self] in
+            guard let self else { return }
+            self.delegate?.tabBarDidCloseGroup(self)
+        }
+        cell.contextMenuProvider = { [weak self] in
+            guard let self else { return nil }
+            return self.delegate?.tabBarGroupMenu(self)
+        }
+        cell.onDragEnded = { [weak self] screenPoint in
+            guard let self else { return }
+            self.dragEndedGroup(atScreenPoint: screenPoint)
+        }
+        return cell
+    }
 
     private func makeItem(for tab: BrowserTab) -> TabBarItemView {
         let item = TabBarItemView(tab: tab)
@@ -256,6 +414,23 @@ final class TabBarView: NSView {
         guard !overWindow else { return }
         BrowserCoordinator.shared.dragEndedOutsideApp(tab, atScreenPoint: point)
     }
+
+    /// A group-cell drag that ended outside every window carries the whole
+    /// group into a new window, still grouped.
+    private func dragEndedGroup(atScreenPoint point: NSPoint) {
+        guard let joined = joinedPairState(),
+              let owner
+        else { return }
+        let overWindow = BrowserCoordinator.shared.windows.contains {
+            $0.window?.frame.contains(point) == true
+        }
+        guard !overWindow else { return }
+        BrowserCoordinator.shared.detachGroup(
+            [joined.leading, joined.trailing],
+            from: owner,
+            atScreenPoint: point
+        )
+    }
 }
 
 // MARK: - NSDraggingDestination
@@ -266,9 +441,10 @@ extension TabBarView {
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard let tab = TabDragPayload.tab(from: sender) else { return [] }
+        let dragged = TabDragPayload.tabs(from: sender)
+        guard let first = dragged.first else { return [] }
         let point = convert(sender.draggingLocation, from: nil)
-        let index = insertionIndex(forDragged: tab, at: point)
+        let index = insertionIndex(forDragged: first, at: point)
 
         if insertionIndex != index {
             insertionIndex = index
@@ -289,17 +465,23 @@ extension TabBarView {
     }
 
     override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        TabDragPayload.tab(from: sender) != nil
+        !TabDragPayload.tabs(from: sender).isEmpty
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         defer { hideInsertionMarker() }
-        guard let tab = TabDragPayload.tab(from: sender) else { return false }
-        let index = insertionIndex ?? insertionIndex(forDragged: tab, at: .zero)
+        let dragged = TabDragPayload.tabs(from: sender)
+        guard !dragged.isEmpty else { return false }
+        let index = insertionIndex ?? insertionIndex(forDragged: dragged[0], at: .zero)
         // A drop on this bar is either a same-window reorder or a move
-        // in from another window; both are the coordinator's job.
+        // in from another window; a pair travels as one unit either way.
+        // Both are the coordinator's job.
         if let owner {
-            BrowserCoordinator.shared.moveTab(tab, to: index, in: owner)
+            if dragged.count == 2 {
+                BrowserCoordinator.shared.moveTabs(dragged, to: index, in: owner)
+            } else if let tab = dragged.first {
+                BrowserCoordinator.shared.moveTab(tab, to: index, in: owner)
+            }
             return true
         }
         return false
