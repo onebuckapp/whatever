@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/onebuckapp/whatever/blob/main/.github/whatever-icon.png" width="128px" height="128px"><br>
+  <img src="https://github.com/onebuckapp/whatever/blob/main/.github/whatever-icon.png" width=“64px" height="64px"><br>
   This is Whatever – the perfect app for browsing the dead internet ☠️<br>
   Powered by WebKit &bullet; Written in Nim and Swift
 </p>
