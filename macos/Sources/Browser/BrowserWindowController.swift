@@ -56,6 +56,11 @@ final class BrowserWindow: NSWindow {
     /// Set while moving the buttons, so the frame changes that move causes do not
     /// re-enter the positioner and stack the offset on every pass.
     private var isNudgingButtons = false
+    /// Watches the title: selecting a tab retitles the window and page loads
+    /// retitle it again, and AppKit re-lays the three buttons on each change.
+    /// Without this the buttons sit at AppKit's own spot from the new tab
+    /// until something else (usually refocusing the window) triggers a pass.
+    private var titleObservation: NSKeyValueObservation?
 
     override init(contentRect contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
@@ -90,6 +95,12 @@ final class BrowserWindow: NSWindow {
                     self?.positionWindowButtonsOnceOnScreen()
                 }
             )
+        }
+        // Retitling re-lays the buttons too — selecting a tab, and every page
+        // title arriving after it — so the title is watched the same way.
+        // Held, not fire-and-forget: the observation dies with the token.
+        titleObservation = observe(\.title, options: [.new]) { [weak self] _, _ in
+            self?.positionWindowButtonsOnceOnScreen()
         }
     }
 
