@@ -839,7 +839,9 @@ final class BrowserWindowController: NSWindowController {
         if let pane = paneCache.removeValue(forKey: tab.id) {
             contentController.forgetChild(pane)
         }
-        tab.webView?.removeFromSuperview()
+        // Discarded, not merely unparented: the view dies here rather than
+        // whenever the tab deallocs, so a closed page stops at once.
+        tab.discardWebView()
         menuTargets.removeValue(forKey: tab.id)
 
         if tabs.isEmpty {

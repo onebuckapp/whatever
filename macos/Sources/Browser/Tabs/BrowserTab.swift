@@ -206,12 +206,23 @@ final class BrowserTab: NSObject {
     }
 
     /// Drops the view, keeping the history. Frees the page's processes.
+    ///
+    /// The dying view is navigated to blank first: releasing it lets the
+    /// process die whenever WebKit gets around to it, and a closed audible
+    /// tab keeps playing for a second or two on the way out. Destroying the
+    /// document stops every media element and audio context at commit,
+    /// while the history (which is what waking or reopening reads) is
+    /// untouched — the delegate is already gone, so the blank commits
+    /// silently.
     func discardWebView() {
         guard let old = webView else { return }
         // The bar keeps showing the page's title while the tab has no view:
         // the placeholder stands in until the rebuilt page reports its own.
         tabController.setPlaceholderTitle(tabController.title)
         old.stopLoading()
+        if old.url?.absoluteString != "about:blank" {
+            old.load(URLRequest(url: URL(string: "about:blank")!))
+        }
         old.navigationDelegate = nil
         old.removeFromSuperview()
         webView = nil
