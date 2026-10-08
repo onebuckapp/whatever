@@ -110,19 +110,72 @@ final class BrowserSplitViewController: NSSplitViewController {
     func resetToEqualWidths() {
         setRatio(Self.defaultRatio)
     }
+
+    /// Clamps a divider position so neither side drops below the pane
+    /// minimum. Pure inputs by design, so the drag, programmatic, and
+    /// restore paths share one contract that runs without views.
+    static func clampedDividerPosition(
+        _ proposed: CGFloat,
+        dividerIndex: Int,
+        paneCount: Int,
+        totalWidth: CGFloat
+    ) -> CGFloat {
+        let lowerBound = CGFloat(dividerIndex + 1) * minimumPaneWidth
+        let upperBound = totalWidth
+            - CGFloat(paneCount - dividerIndex - 1) * minimumPaneWidth
+        // A window narrower than two minimums has no feasible position;
+        // hold the leading side rather than letting the divider run away.
+        return min(max(proposed, lowerBound), max(lowerBound, upperBound))
+    }
 }
 
 extension BrowserSplitViewController {
+    /// Lowest divider position the drag path may settle on.
+    ///
+    /// `constrainSplitPosition` below only governs programmatic moves
+    /// (`setPosition`), while a live drag consults these min/max coordinates.
+    /// Without them a fast drag can push the divider past the trailing
+    /// pane's minimum and the pane collapses out from under its tab, which
+    /// reads as the right-hand page disappearing mid-resize.
+    override func splitView(
+        _ splitView: NSSplitView,
+        constrainMinCoordinate proposedMinimum: CGFloat,
+        ofSubviewAt dividerIndex: Int
+    ) -> CGFloat {
+        Self.clampedDividerPosition(
+            proposedMinimum,
+            dividerIndex: dividerIndex,
+            paneCount: splitView.arrangedSubviews.count,
+            totalWidth: splitView.bounds.width
+        )
+    }
+
+    /// Highest divider position the drag path may settle on. Mirror image
+    /// of the minimum above.
+    override func splitView(
+        _ splitView: NSSplitView,
+        constrainMaxCoordinate proposedMaximum: CGFloat,
+        ofSubviewAt dividerIndex: Int
+    ) -> CGFloat {
+        Self.clampedDividerPosition(
+            proposedMaximum,
+            dividerIndex: dividerIndex,
+            paneCount: splitView.arrangedSubviews.count,
+            totalWidth: splitView.bounds.width
+        )
+    }
+
     override func splitView(
         _ splitView: NSSplitView,
         constrainSplitPosition proposedPosition: CGFloat,
         ofSubviewAt dividerIndex: Int
     ) -> CGFloat {
-        let minimum = Self.minimumPaneWidth
-        let lowerBound = CGFloat(dividerIndex + 1) * minimum
-        let upperBound = splitView.bounds.width
-            - CGFloat(splitView.arrangedSubviews.count - dividerIndex - 1) * minimum
-        return min(max(proposedPosition, lowerBound), max(lowerBound, upperBound))
+        Self.clampedDividerPosition(
+            proposedPosition,
+            dividerIndex: dividerIndex,
+            paneCount: splitView.arrangedSubviews.count,
+            totalWidth: splitView.bounds.width
+        )
     }
 
     /// The divider hit area is deliberately wider than the hairline so

@@ -1231,18 +1231,22 @@ final class BrowserWindowController: NSWindowController {
             split = BrowserSplitViewController()
             splitController = split
             singlePane = nil
-            split.onRatioChange = { [weak self] newRatio in
-                guard let self, case .split = self.layout else { return }
-                self.layout = .split(
-                    leadingTabID: leading,
-                    trailingTabID: trailing,
-                    ratio: min(
-                        max(newRatio, BrowserSplitViewController.minimumRatio),
-                        BrowserSplitViewController.maximumRatio
-                    )
+        }
+        // Re-armed on every rebuild, not just creation: replacing a pane
+        // changes the pair while the controller persists, and a closure
+        // capturing the original pair would write the displaced tab back
+        // into the layout on the next divider tick.
+        split.onRatioChange = { [weak self] newRatio in
+            guard let self, case .split = self.layout else { return }
+            self.layout = .split(
+                leadingTabID: leading,
+                trailingTabID: trailing,
+                ratio: min(
+                    max(newRatio, BrowserSplitViewController.minimumRatio),
+                    BrowserSplitViewController.maximumRatio
                 )
-                self.sessionDidChange()
-            }
+            )
+            self.sessionDidChange()
         }
 
         let wanted = visible.map { pane(for: $0) }

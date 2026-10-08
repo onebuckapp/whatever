@@ -28,8 +28,12 @@ final class TabSleeper {
     func start() {
         guard timer == nil else { return }
         let timer = Timer(timeInterval: Self.sweepInterval, repeats: true) { [weak self] _ in
-            // Registered on the main run loop below.
-            MainActor.assumeIsolated {
+            // Hops instead of assuming: the callback carries no actor
+            // context, and assuming the main actor from a bare runloop
+            // source traps where the executor is not the main one (notably
+            // the test host, which launches the app delegate and so starts
+            // this timer, then fires it mid-suite).
+            Task { @MainActor in
                 self?.sweep()
             }
         }
