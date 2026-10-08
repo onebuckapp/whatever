@@ -71,6 +71,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select Xcode 16+
+        shell: bash
+        run: |
+          set -eu
+          # xcodegen emits a project in the Xcode 16 format (object version
+          # 77). macos-latest floats between images, so do not depend on its
+          # default Xcode; pick an installed Xcode 16+ explicitly.
+          latest="$(ls -d /Applications/Xcode_1[6-9]*.app /Applications/Xcode_[2-9]*.app 2>/dev/null || true | sort | tail -1)"
+          [[ -n "${latest}" ]] || { echo "ERROR: no Xcode 16+ found under /Applications"; ls -d /Applications/Xcode_*.app || true; exit 1; }
+          echo ">> selecting Xcode: ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
+
       - uses: nimbase/setup-nim-action@main
         with:
           nim-version: '2.2.x'
