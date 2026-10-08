@@ -27,9 +27,31 @@ enum SettingsDetailView {
 
 struct GeneralSettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
+    @StateObject private var defaultBrowser = DefaultBrowserSettings()
 
     var body: some View {
         SettingsDetailStack {
+            SettingsGroup(
+                title: "Default Browser",
+                footnote: "Links clicked in other apps open here."
+            ) {
+                SettingsButtonRow(
+                    title: defaultBrowser.isDefault
+                        ? "Whatever is your default browser"
+                        : "Whatever is not your default browser",
+                    subtitle: defaultBrowser.isDefault
+                        ? "This Mac already opens web links in Whatever."
+                        : "Claim http and https links from your current browser."
+                ) {
+                    if !defaultBrowser.isDefault {
+                        Button("Set Whatever as Default Browser") {
+                            Task { await defaultBrowser.makeDefault() }
+                        }
+                        .controlSize(.small)
+                    }
+                }
+            }
+
             SettingsGroup(
                 title: "Session",
                 footnote: "Restoring reopens the previous window's tabs."
@@ -60,6 +82,7 @@ struct GeneralSettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear { defaultBrowser.refresh() }
     }
 }
 

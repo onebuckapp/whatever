@@ -67,15 +67,26 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Claims http/https so the app appears in the system's Default
-        # Browser list. `Viewer` (not `Editor`): Whatever opens links, it
-        # does not own the schemes. Declared here for the same reason as the
-        # versions above: xcodegen rewrites the plist at `path` on generate.
+        # Browser list. Declared here (not hardcoded in the plist) because
+        # xcodegen rewrites the file at `path` on every `generate`.
         CFBundleURLTypes:
-          - CFBundleTypeRole: Viewer
-            CFBundleURLName: com.onebuckapp.whatever
+          - CFBundleURLName: Web site URL
             CFBundleURLSchemes:
               - http
               - https
+            LSHandlerRank: Default
+        # Registers HTML documents so macOS recognizes the app as a browser
+        # candidate in the default-browser picker. Viewer, not Editor:
+        # Whatever renders pages, it does not own the files.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: HTML Document
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - public.html
+          - CFBundleTypeName: XHTML Document
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - public.xhtml
         # Declares the bundled XPC service to launchd. Without it the service is
         # present on disk but unregistered, and an NSXPCConnection to it fails
         # with "failed at lookup with error 3 - No such process".
