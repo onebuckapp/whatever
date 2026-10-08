@@ -93,6 +93,18 @@ final class BackgroundMediaView: NSView {
     /// video poster. Nil until a file has been read.
     private var image: CGImage?
     private var imageToken: BackgroundImageStore.Token?
+    /// Pixel width the current still was decoded for. Zero before the first
+    /// decode, so the install-time request (which runs before layout, when
+    /// bounds are still zero) is recognised as undersized and redone once
+    /// the view knows its size.
+    private var decodedPixelSize = 0
+    /// Pixel width the in-flight request asked for, stored so the completion
+    /// can record what actually landed.
+    private var requestedPixelSize = 0
+    /// Decode sizes are rounded up to whole buckets, so a live resize
+    /// re-decodes a few times rather than once per pixel, and moving between
+    /// same-bucket sizes is a cache hit instead of a re-decode.
+    private static let decodeBucket: CGFloat = 512
     private let videoLayer = BackgroundVideoLayerView()
     /// Above `videoLayer`, so a tint tints the video too and not just the stills.
     private let overlayView = BackgroundOverlayView()
@@ -178,6 +190,23 @@ final class BackgroundMediaView: NSView {
     }
 
     // MARK: - Redraw triggers
+
+    override func layout() {
+        super.layout()
+        // The install-time decode runs before layout, while bounds are still
+        // zero, so without this the view keeps a postage-stamp bitmap
+        // stretched over the window for the rest of the launch. Upscale
+        // only: shrinking the window keeps the larger bitmap it already has.
+        guard neededPixelSize() > decodedPixelSize else { return }
+        switch configuration.kind {
+        case .image:
+            reloadMedia(path: configuration.path, isFatal: true)
+        case .video:
+            reloadMedia(path: configuration.video.posterPath, isFatal: false)
+        case .none, .solid, .gradient:
+            break
+        }
+    }
 
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
@@ -267,11 +296,14 @@ final class BackgroundMediaView: NSView {
         }
         // Bounded by the screen's pixel density: decoding a 6K wallpaper at full
         // size costs hundreds of megabytes to fill a window that can never show
-        // more than a couple of thousand pixels across.
-        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        // more than a couple of thousand pixels across. Zero before layout, in
+        // which case there is nothing to decode for yet; `layout` retries once
+        // the view knows its size.
+        let maxPixelSize = neededPixelSize()
+        guard maxPixelSize > 0 else { return }
         let token = imageStore.load(
             path: path,
-            maxPixelSize: Int((max(bounds.width, bounds.height) * scale).rounded(.up)),
+            maxPixelSize: maxPixelSize,
             effects: configuration.effects,
             completion: { [weak self] result in
                 MainActor.assumeIsolated {
@@ -282,6 +314,7 @@ final class BackgroundMediaView: NSView {
                     switch result.loaded {
                     case .success(let cgImage):
                         self.image = cgImage
+                        self.decodedPixelSize = self.requestedPixelSize
                         self.needsDisplay = true
                     case .failure(let error):
                         // Reported before anything is changed, so the pane can say
@@ -302,6 +335,17 @@ final class BackgroundMediaView: NSView {
             }
         )
         imageToken = token
+        requestedPixelSize = maxPixelSize
+    }
+
+    /// Window's larger dimension in pixels, rounded up to a whole decode
+    /// bucket. Zero while the view has no size, which is also the install
+    /// state before layout.
+    private func neededPixelSize() -> Int {
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        let raw = max(bounds.width, bounds.height) * scale
+        guard raw > 0 else { return 0 }
+        return Int((ceil(raw / Self.decodeBucket) * Self.decodeBucket).rounded())
     }
 
     private func updatePlayback() {
