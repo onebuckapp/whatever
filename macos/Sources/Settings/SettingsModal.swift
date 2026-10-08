@@ -87,6 +87,11 @@ private struct SettingsModalCard: View {
     /// the card's two large shadows turned out to be irrelevant to it, so the cost
     /// is entirely SwiftUI building the pane's subtree, paid again on every click.
     ///
+    /// Two things soften that first-build cost rather than just caching past it.
+    /// Panes render through a lazy stack, so a first paint builds only the
+    /// visible rows, and `prewarm` mounts the unvisited sections one per idle
+    /// slice while the modal is open, so most first visits are already toggles.
+    ///
     /// It only ever grows while the modal is open. A section is mounted the first
     /// time it is opened and every later visit is a visibility toggle, which also
     /// keeps each pane's `@State`, so History and Bookmarks do not refetch and
@@ -145,9 +150,34 @@ private struct SettingsModalCard: View {
         // stays centered.
         .padding(.vertical, 88)
         .onTapGesture {}
+        .task {
+            await prewarm()
+        }
         .onExitCommand {
             Task {
                 await PopupStack.dismissPopup(popupID, popupStackID: stackID)
+            }
+        }
+    }
+
+    /// Mounts unvisited panes during idle moments, so a first visit is a
+    /// visibility toggle like a return one.
+    ///
+    /// One section per slice with a pause between them, so the work never
+    /// lands as a lump while the user is reading or scrolling the open
+    /// pane. The task dies with the card, so closing the modal drops
+    /// whatever has not been mounted yet.
+    private func prewarm() async {
+        for entry in SettingsSection.allCases where !mounted.contains(entry) {
+            do {
+                try await Task.sleep(for: .milliseconds(400))
+            } catch {
+                return
+            }
+            await MainActor.run {
+                if !mounted.contains(entry) {
+                    mounted.append(entry)
+                }
             }
         }
     }

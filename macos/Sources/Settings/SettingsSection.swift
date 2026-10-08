@@ -365,12 +365,16 @@ enum SettingsFilter {
 /// can center itself in it, which it could not do inside a scroll view of the
 /// card's own: the scroll view that can scroll is the one that would have to pass
 /// the height down.
+///
+/// Lazy, so a pane's first paint builds only the visible rows: switching
+/// sections used to construct every group up front, including the ones below
+/// the fold, which is what made the first visit to a heavy pane feel stuck.
 struct SettingsDetailStack<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 14) {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
