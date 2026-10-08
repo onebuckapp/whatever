@@ -19,7 +19,7 @@ final class StoreClient {
 
     /// Mach service name: the XPC service bundle's identifier, which is what
     /// launchd registers a bundled service under.
-    private static let serviceName = "com.onebuckapps.whatever.store"
+    private static let serviceName = "com.onebuckapp.whatever.store"
 
     private var connection: NSXPCConnection?
 

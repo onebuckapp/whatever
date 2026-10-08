@@ -25,10 +25,10 @@ import Foundation
 final class StoreService: NSObject, NSXPCListenerDelegate {
     /// Where every core call runs, so the core never sees two callers at once
     /// and disk work stays off the service's main thread.
-    private static let coreQueue = DispatchQueue(label: "com.onebuckapps.whatever.store")
+    private static let coreQueue = DispatchQueue(label: "com.onebuckapp.whatever.store")
     /// Mach service name the app connects to. Kept in step with
     /// `StoreClient.serviceName` and the service bundle identifier.
-    static let serviceName = "com.onebuckapps.whatever.store"
+    static let serviceName = "com.onebuckapp.whatever.store"
     private var listener: NSXPCListener?
     /// Live app connections. The core's stores stay open while any exist.
     private var connections: [ObjectIdentifier: NSXPCConnection] = [:]

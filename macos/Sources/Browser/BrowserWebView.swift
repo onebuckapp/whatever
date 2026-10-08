@@ -8,7 +8,7 @@ import WebKit
 /// the menu WebKit actually displays.
 final class BrowserWebView: WKWebView {
     static let generateQRCodeItemID = NSUserInterfaceItemIdentifier(
-        rawValue: "com.onebuckapps.whatever.generateQRCode"
+        rawValue: "com.onebuckapp.whatever.generateQRCode"
     )
 
     /// Called when the injected page-menu item is chosen.

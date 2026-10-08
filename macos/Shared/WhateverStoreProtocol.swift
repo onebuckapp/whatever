@@ -260,7 +260,7 @@ public enum StoreStatus: Int32, Sendable {
 public struct StoreError: Error, LocalizedError, Sendable {
     /// `NSError` domain the store's failures arrive under, including once they
     /// have crossed XPC.
-    public static let domain = "com.onebuckapps.whatever.store"
+    public static let domain = "com.onebuckapp.whatever.store"
 
     public let status: StoreStatus
     public let detail: String?

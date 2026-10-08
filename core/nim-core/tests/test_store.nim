@@ -381,14 +381,14 @@ suite "store c abi":
 
   test "bookmarks round trip":
     let id = "bookmark-1"
-    let document = %*{"title": "Whatever", "url": "https://onebuckapps.dev", "order": 0}
+    let document = %*{"title": "Whatever", "url": "https://onebuck.app", "order": 0}
     check bookmarksClear() == Ok
     check bookmarkSet(id.cstring, ($document).cstring) == Ok
 
     let fetched = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
       bookmarkGet(id.cstring, buffer, capacity, needed))
     check fetched["title"].getStr == "Whatever"
-    check fetched["url"].getStr == "https://onebuckapps.dev"
+    check fetched["url"].getStr == "https://onebuck.app"
 
     let all = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
       bookmarkList(buffer, capacity, needed))

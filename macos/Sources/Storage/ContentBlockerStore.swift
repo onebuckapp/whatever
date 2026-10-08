@@ -20,7 +20,7 @@ final class ContentBlockerStore: ObservableObject {
     /// keeps a chunk safely below it.
     private static let rulesPerList = 40_000
 
-    private static let identifierPrefix = "com.onebuckapps.whatever.blocker"
+    private static let identifierPrefix = "com.onebuckapp.whatever.blocker"
 
     private static let snapshotResources = ["adaway-hosts", "whatever-extra"]
     private static let snapshotVersionResource = "snapshot-version"

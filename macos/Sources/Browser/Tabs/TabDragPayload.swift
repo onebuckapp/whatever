@@ -6,7 +6,7 @@ import AppKit
 /// recreated.
 enum TabDragPayload {
     static let type = NSPasteboard.PasteboardType(
-        rawValue: "com.onebuckapps.whatever.tab-id"
+        rawValue: "com.onebuckapp.whatever.tab-id"
     )
 
     static func pasteboard(for tab: BrowserTab) -> NSPasteboard {

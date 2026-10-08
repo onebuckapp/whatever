@@ -3,7 +3,7 @@
 name: Whatever
 
 options:
-  bundleIdPrefix: com.onebuckapps
+  bundleIdPrefix: com.onebuckapp
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -33,7 +33,7 @@ targets:
   Whatever:
     type: application
     platform: macOS
-    bundleId: com.onebuckapps.whatever
+    bundleId: com.onebuckapp.whatever
     dependencies:
       - package: MijickPopups
       - target: WhateverStore
@@ -70,10 +70,10 @@ targets:
       base:
         PRODUCT_NAME: Whatever
         # Stated explicitly because PRODUCT_NAME alone yields
-        # `com.onebuckapps.Whatever`, and launchd refuses to launch an embedded
+        # `com.onebuckapp.Whatever`, and launchd refuses to launch an embedded
         # XPC service whose bundle ID is not prefixed by the app's. The
         # WhateverStore ID below has to sit under whatever this resolves to.
-        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapp.whatever
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
 
@@ -85,7 +85,7 @@ targets:
   WhateverStore:
     type: xpc-service
     platform: macOS
-    bundleId: com.onebuckapps.whatever.store
+    bundleId: com.onebuckapp.whatever.store
     sources:
       # Service-only sources: the app reaches all of this over XPC, and
       # linking it into the app would give the app a second process trying to
@@ -121,7 +121,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: WhateverStore
-        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever.store
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapp.whatever.store
         # Nim backend (core/), linked only here. Its C ABI comes through the
         # same bridging header the app used to rely on.
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridge/BrowserCore-Bridging-Header.h
@@ -135,7 +135,7 @@ targets:
   WhateverTests:
     type: bundle.unit-test
     platform: macOS
-    bundleId: com.onebuckapps.whatever.tests
+    bundleId: com.onebuckapp.whatever.tests
     sources:
       - path: Tests
     dependencies:
@@ -143,5 +143,5 @@ targets:
     settings:
       base:
         PRODUCT_NAME: WhateverTests
-        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapps.whatever.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.onebuckapp.whatever.tests
         GENERATE_INFOPLIST_FILE: YES
