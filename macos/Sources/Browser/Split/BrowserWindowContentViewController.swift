@@ -191,6 +191,13 @@ final class BrowserWindowContentViewController: NSViewController {
             self?.releaseShield(id: "feed-reader")
         }
         feedReaderPresenter = presenter
+        // Shield first: the popup host is added afterwards, so it lands above
+        // the shield and stays interactive while the page underneath goes
+        // inert. A host under the shield still shows, but every click on the
+        // card lands on the shield instead.
+        claimShield(id: "feed-reader", dismissOnPress: true) { [weak self] in
+            self?.dismissFeedReader()
+        }
         presenter.present(
             candidates: candidates,
             pageURL: tab.displayURL,
@@ -201,10 +208,11 @@ final class BrowserWindowContentViewController: NSViewController {
                 self?.onOpenFeedArticle?(url, newTab)
             }
         )
-        if presenter.isPresented {
-            claimShield(id: "feed-reader", dismissOnPress: true) { [weak self] in
-                self?.dismissFeedReader()
-            }
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            feedReaderPresenter = nil
+            releaseShield(id: "feed-reader")
         }
     }
 
@@ -244,12 +252,18 @@ final class BrowserWindowContentViewController: NSViewController {
         } onManage: { [weak self] in
             self?.presentSettings(section: .contentBlocker)
         }
-        presenter.present(host: host)
         adBlockPresenter = presenter
-        if presenter.isPresented {
-            claimShield(id: "adblock", dismissOnPress: true) { [weak self] in
-                self?.dismissAdBlockPopup()
-            }
+        // Shield first, for the same reason as the reader: the host lands
+        // above it and stays interactive.
+        claimShield(id: "adblock", dismissOnPress: true) { [weak self] in
+            self?.dismissAdBlockPopup()
+        }
+        presenter.present(host: host)
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            adBlockPresenter = nil
+            releaseShield(id: "adblock")
         }
     }
 

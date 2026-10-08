@@ -8,8 +8,11 @@ import SwiftUI
 /// Same shape as the QR presenter: the hosting view fills the pane's page
 /// container so the popup centers on the webpage, and dismissal — tap
 /// outside, Escape, close, or a new presentation — always tears down in the
-/// same order. The store is fresh per presentation, so reopening never shows
-/// the previous directory's stale rows.
+/// same order. `container` is the window content view rather than the pane:
+/// the host must sit above the modal shield, which covers the whole content
+/// view, while `area` keeps it sized and centered on the page. The store is
+/// fresh per presentation, so reopening never shows the previous
+/// directory's stale rows.
 @MainActor
 final class FileBrowserPresenter {
     private weak var container: NSView?

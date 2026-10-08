@@ -7,8 +7,11 @@ import SwiftUI
 ///
 /// The hosting view fills the pane's page container, so the library centers
 /// the popup on the webpage and its tap-outside handling covers the page.
-/// The presenter owns dismissal for tab switches and layout changes, while
-/// Mijick-driven dismissal reports back through the coordinator.
+/// `container` is the window content view rather than the pane: the host must
+/// sit above the modal shield, which covers the whole content view, while
+/// `area` keeps it sized and centered on the page. The presenter owns
+/// dismissal for tab switches and layout changes, while Mijick-driven
+/// dismissal reports back through the coordinator.
 @MainActor
 final class QRPopupPresenter {
     private weak var container: NSView?

@@ -659,6 +659,11 @@ final class BrowserWindowController: NSWindowController {
         }
 
         if let pane = paneCache.removeValue(forKey: tab.id) {
+            // Pane popups live at window level above the shield, so unlike
+            // the page they do not go away with the pane on their own.
+            pane.dismissQRCode()
+            pane.dismissFileBrowser()
+            pane.dismissDownloads()
             contentController.forgetChild(pane)
         }
         // The view moves with the tab, so it is only unparented here.

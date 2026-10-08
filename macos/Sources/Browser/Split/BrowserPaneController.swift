@@ -160,6 +160,17 @@ final class BrowserPaneController: NSViewController {
         }
     }
 
+    /// Where pane popup hosts live: the window content view, not this pane.
+    ///
+    /// Hosts must sit above the modal shield, which covers the whole content
+    /// view, so a host inside the pane would leave its card visible but
+    /// unclickable, every press landing on the shield instead. They are still
+    /// constrained to this pane's page area, so each card centers on its own
+    /// page. Nil while the pane is detached, when there is no window whose
+    /// shield the card would need cover from.
+    private var popupContainer: NSView? {
+        view.window?.contentView
+    }
 
     /// Shows the QR card over this pane's page. The symbol is encoded by the
     /// Nim backend and rendered from its SVG document; the presenter owns
@@ -171,14 +182,14 @@ final class BrowserPaneController: NSViewController {
             SystemBeep.play()
             return
         }
-        guard let pageContainer else { return }
+        guard let pageContainer, let popupContainer else { return }
         // Mijick ignores a repeated presentation of the same popup type, so
         // an already-visible card is simply left alone.
         if let qrPopupPresenter, qrPopupPresenter.isPresented {
             return
         }
         let presenter = QRPopupPresenter(
-            container: view,
+            container: popupContainer,
             area: pageContainer,
             onDidDismiss: { [weak self] in
                 self?.qrPopupPresenter = nil
@@ -206,13 +217,13 @@ final class BrowserPaneController: NSViewController {
     /// only files chosen there become real navigations, so directory
     /// browsing leaves no history behind.
     func presentFileBrowser(url: URL) {
-        guard let pageContainer else { return }
+        guard let pageContainer, let popupContainer else { return }
         // Reopening on an already-visible popup reloads it in place rather
         // than stacking a second card: the path belongs to this press.
         if let fileBrowserPresenter, fileBrowserPresenter.isPresented {
             dismissFileBrowser()
         }
-        let presenter = FileBrowserPresenter(container: view, area: pageContainer) { [weak self] in
+        let presenter = FileBrowserPresenter(container: popupContainer, area: pageContainer) { [weak self] in
             self?.fileBrowserPresenter = nil
             self?.releasePopupShield(id: "file-browser")
         }
@@ -247,13 +258,13 @@ final class BrowserPaneController: NSViewController {
     /// navigates this pane's tab to the source, which routes back through
     /// the download policy and records a fresh row.
     func presentDownloads() {
-        guard let pageContainer else { return }
+        guard let pageContainer, let popupContainer else { return }
         // Like the file browser: reopening reloads in place rather than
         // stacking a second card.
         if let downloadsPresenter, downloadsPresenter.isPresented {
             dismissDownloads()
         }
-        let presenter = DownloadsPresenter(container: view, area: pageContainer) { [weak self] in
+        let presenter = DownloadsPresenter(container: popupContainer, area: pageContainer) { [weak self] in
             self?.downloadsPresenter = nil
             self?.releasePopupShield(id: "downloads")
         }
