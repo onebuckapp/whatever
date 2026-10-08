@@ -312,9 +312,25 @@ enum CrawlStripRenderer {
     /// the pass width so any repeat resolves. Returns nil past the strip end
     /// or in the delimiter gaps.
     static func headline(at stripX: CGFloat, strip: CrawlStrip) -> CrawlHeadline? {
-        guard stripX >= 0, stripX < strip.size.width else { return nil }
-        let local = stripX.truncatingRemainder(dividingBy: strip.passWidth)
-        for item in strip.items where local >= item.frame.minX && local < item.frame.maxX {
+        headline(
+            at: stripX, items: strip.items,
+            passWidth: strip.passWidth, spanWidth: strip.size.width
+        )
+    }
+
+    /// The tiled lookup: items and the wrap period are shared across tiles,
+    /// but the span is the whole tiled width, not one tile's. Looking up
+    /// past the first tile against that tile's own width would reject every
+    /// click it contains.
+    static func headline(
+        at stripX: CGFloat,
+        items: [CrawlStripItem],
+        passWidth: CGFloat,
+        spanWidth: CGFloat
+    ) -> CrawlHeadline? {
+        guard stripX >= 0, stripX < spanWidth, passWidth > 0 else { return nil }
+        let local = stripX.truncatingRemainder(dividingBy: passWidth)
+        for item in items where local >= item.frame.minX && local < item.frame.maxX {
             return item.headline
         }
         return nil

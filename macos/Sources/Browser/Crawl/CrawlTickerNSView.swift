@@ -601,8 +601,10 @@ final class CrawlTickerNSView: NSView {
         guard let strip else { return }
         let current = stripLayers.first?.presentation()?.position.x ?? offsetX
         let stripX = (point.x - Self.horizontalInset) - current
-        guard let headline = CrawlStripRenderer.headline(at: stripX, strip: strip),
-              let url = URL(string: headline.url)
+        guard let headline = CrawlStripRenderer.headline(
+            at: stripX, items: strip.items,
+            passWidth: strip.passWidth, spanWidth: totalTilesWidth()
+        ), let url = URL(string: headline.url)
         else { return }
         onOpen?(url)
     }

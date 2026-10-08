@@ -345,8 +345,7 @@ struct CrawlTickerRenderTests {
     }
 
     @Test("a giant strip tiles instead of dropping scale")
-    func giantStripTiles() {
-        // Fifty max-length titles at 16pt: far past any texture limit. The
+    func giantStripTiles() {        // Fifty max-length titles at 16pt: far past any texture limit. The
         // old code answered this by re-rendering at 1x (permanent blur);
         // tiles keep full resolution at any font size.
         let headlines = (0..<50).map { i in
@@ -380,6 +379,48 @@ struct CrawlTickerRenderTests {
         #expect(
             total >= 800 + tiles[0].passWidth - 1,
             "tiled span does not cover the bar plus a wrap pass"
+        )
+    }
+
+    @Test("clicks past the first tile still map to headlines")
+    func clicksPastFirstTile() {
+        // Regression: the lookup guarded against the first tile's width, so
+        // every click past it resolved to nothing and headlines past the
+        // first tile never opened.
+        let headlines = (0..<50).map { i in
+            CrawlHeadline(
+                articleID: i, site: "website.com",
+                title: String(repeating: "Long headline text ", count: 8),
+                url: "https://website.com/\(i)", feedURL: "https://website.com/feed",
+                publishedAt: i
+            )
+        }
+        guard let tiles = CrawlStripRenderer.renderTiles(
+            headlines: headlines, fontSize: 16,
+            favicons: [:], scale: 2, coverWidth: 800, separator: "|"
+        ), tiles.count > 1 else {
+            Issue.record("giant strip did not tile")
+            return
+        }
+        let first = tiles[0]
+        let total = tiles.reduce(0) { $0 + $1.size.width }
+        // Deep past the first tile but inside the span: must resolve.
+        let deepX = first.size.width + first.passWidth / 2
+        #expect(deepX < total, "test setup does not reach past the first tile")
+        #expect(
+            CrawlStripRenderer.headline(
+                at: deepX, items: first.items,
+                passWidth: first.passWidth, spanWidth: total
+            ) != nil,
+            "click past the first tile resolved to nothing"
+        )
+        // Past the whole span: still nothing.
+        #expect(
+            CrawlStripRenderer.headline(
+                at: total + 10, items: first.items,
+                passWidth: first.passWidth, spanWidth: total
+            ) == nil,
+            "click past the strip resolved to a headline"
         )
     }
 }
