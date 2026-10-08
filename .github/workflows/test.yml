@@ -1,30 +1,121 @@
-# name: test
-# on:
-#   push:
-#     paths-ignore:
-#       - LICENSE
-#       - README.*
-#       - examples
-#       - .github/workflows
-#   pull_request:
-#     paths-ignore:
-#       - LICENSE
-#       - README.*
-#       - examples
-#       - .github/workflows
-# jobs:
-#   test:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         nim-version:
-#           - 'stable'
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: jiro4989/setup-nim-action@v1
-#         with:
-#           nim-version: ${{ matrix.nim-version }}
-#           repo-token: ${{ secrets.GITHUB_TOKEN }}
-#       - run: nimble install -Y
-#       - run: nim c -r src/${{ github.event.repository.name }}.nim
-#       - run: nimble test
+name: test
+on:
+  push:
+    paths-ignore:
+      - LICENSE
+      - README.*
+      - ROADMAP.*
+  pull_request:
+    paths-ignore:
+      - LICENSE
+      - README.*
+      - ROADMAP.*
+jobs:
+  nim:
+    name: nim core tests
+    runs-on: macos-latest
+    # The package lives in core/nim-core, not at the repo root, so the
+    # reusable nimbase test workflow (which runs `clue test` at the root
+    # with no working-directory input) cannot be used here. This job inlines
+    # its equivalent steps (setup Nim, install clue) scoped to the package
+    # directory instead. No OpenSSL step: the core does no TLS (no
+    # httpclient/net imports anywhere; networking lives in the Swift side).
+    # If that reusable ever gains a working-directory input, prefer it over
+    # this.
+    defaults:
+      run:
+        working-directory: core/nim-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nimbase/setup-nim-action@main
+        with:
+          nim-version: '2.2.x'
+
+      - name: Install clue
+        shell: bash
+        run: |
+          set -eu
+          arch="${{ runner.arch }}"
+          case "${arch}" in
+            X64)   asset="clue_macos-x86_64" ;;
+            ARM64) asset="clue_macos-arm64" ;;
+            *)     echo "ERROR: unsupported macOS arch: ${arch}"; exit 1 ;;
+          esac
+          url="https://github.com/openpeeps/clue/releases/latest/download/${asset}.tar.gz"
+          echo ">> downloading ${url}"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL "${url}" -o "${work}/clue.tar.gz"
+          tar xzf "${work}/clue.tar.gz" -C "${work}"
+          bin="$(find "${work}" -type f -name 'clue' | head -n 1)"
+          [[ -n "${bin}" ]] || { echo "ERROR: clue binary not found in archive"; exit 1; }
+          chmod +x "${bin}"
+          mkdir -p "$HOME/.clue/bin"
+          install -m 0755 "${bin}" "$HOME/.clue/bin/clue"
+          echo "$HOME/.clue/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        shell: bash
+        run: clue install --depsOnly
+
+      - name: Test
+        shell: bash
+        # Same flags as `make -C core test`: the suites must run under the
+        # memory manager that ships (ARC), or they are not testing the core.
+        run: clue test --threads:on --mm:arc -d:boogieNoCrashHandlers
+
+  swift:
+    name: swift app tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nimbase/setup-nim-action@main
+        with:
+          nim-version: '2.2.x'
+
+      - name: Install clue
+        shell: bash
+        run: |
+          set -eu
+          arch="${{ runner.arch }}"
+          case "${arch}" in
+            X64)   asset="clue_macos-x86_64" ;;
+            ARM64) asset="clue_macos-arm64" ;;
+            *)     echo "ERROR: unsupported macOS arch: ${arch}"; exit 1 ;;
+          esac
+          url="https://github.com/openpeeps/clue/releases/latest/download/${asset}.tar.gz"
+          echo ">> downloading ${url}"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL "${url}" -o "${work}/clue.tar.gz"
+          tar xzf "${work}/clue.tar.gz" -C "${work}"
+          bin="$(find "${work}" -type f -name 'clue' | head -n 1)"
+          [[ -n "${bin}" ]] || { echo "ERROR: clue binary not found in archive"; exit 1; }
+          chmod +x "${bin}"
+          mkdir -p "$HOME/.clue/bin"
+          install -m 0755 "${bin}" "$HOME/.clue/bin/clue"
+          echo "$HOME/.clue/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: core/nim-core
+        run: clue install --depsOnly
+
+      - name: Install xcodegen
+        shell: bash
+        run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+
+      - name: Build the Nim core
+        shell: bash
+        run: make core
+
+      - name: Test
+        shell: bash
+        working-directory: macos
+        run: |
+          set -eu
+          make generate
+          xcodebuild test -project Whatever.xcodeproj -scheme Whatever \
+            -destination 'platform=macOS'
