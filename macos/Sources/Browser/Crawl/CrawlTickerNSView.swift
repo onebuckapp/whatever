@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// Input bundle for the crawl ticker view. `fontSize` is already scaled for
 /// Dynamic Type by the SwiftUI wrapper; everything here is in points.
@@ -65,6 +66,9 @@ final class CrawlTickerNSView: NSView {
     /// Model offset: the strip layer's left edge in container coordinates.
     /// Always inside one wrap segment once a strip exists.
     private var offsetX: CGFloat = 0
+    /// Roundness subscription: slider drags change no inputs, so without
+    /// this nothing relaid the pill out and the setting looked dead.
+    private var radiusCancellable: AnyCancellable?
     /// Last halt state applied through `setHalted`, so the wrapper only
     /// drives transitions instead of re-pausing every update.
     private(set) var isHalted = false
@@ -110,6 +114,13 @@ final class CrawlTickerNSView: NSView {
         maskLayer.startPoint = CGPoint(x: 0, y: 0.5)
         maskLayer.endPoint = CGPoint(x: 1, y: 0.5)
         rootLayer.addSublayer(containerLayer)
+        // Roundness changes no inputs, so the pill only follows them through
+        // a layout pass of its own.
+        radiusCancellable = SettingsStore.shared.$settings
+            .map(\.appearance.crawlCornerRadius)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.needsLayout = true }
     }
 
     /// One scrolling texture layer: the bitmap at its tile offset, anchored
@@ -477,6 +488,13 @@ final class CrawlTickerNSView: NSView {
         // unaffected.
         rootLayer.frame = snapped(bounds)
         backgroundLayer.frame = snapped(bounds)
+        // Roundness from Settings, capped at half the bar height. Read here
+        // rather than subscribed: every settings tick already funnels through
+        // `update(with:)`, and layout runs before each paint anyway.
+        backgroundLayer.cornerRadius = min(
+            max(CGFloat(SettingsStore.shared.settings.appearance.crawlCornerRadius), 0),
+            bounds.height > 0 ? bounds.height / 2 : .greatestFiniteMagnitude
+        )
         updateBackground()
         containerLayer.frame = snapped(bounds.insetBy(dx: Self.horizontalInset, dy: 0))
         maskLayer.frame = containerLayer.bounds

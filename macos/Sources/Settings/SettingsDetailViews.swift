@@ -81,13 +81,13 @@ struct AppearanceSettingsView: View {
                 }
                 if matches(
                     "Window Background",
-                    "background wallpaper backdrop image video fill"
+                    "background wallpaper backdrop image video fill page corners rounded"
                 ) {
                     BackgroundSettingsGroups()
                 }
                 if matches(
                     "Inactive Tabs Current Tab",
-                    "tab tabs theme inactive current foreground text color colour"
+                    "tab tabs theme inactive current foreground text color colour corner corners rounded"
                 ) {
                     TabThemeSettingsGroups()
                 }

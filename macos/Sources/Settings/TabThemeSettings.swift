@@ -23,6 +23,18 @@ struct TabThemeSettingsGroups: View {
             footnote: "Background and text for the selected tab.",
             theme: store.binding(\.appearance.activeTabTheme)
         )
+        SettingsGroup(
+            title: "Tab Corners",
+            footnote: "Roundness of every tab cell, active and inactive alike. Follows live as it changes."
+        ) {
+            SettingsSliderRow(
+                title: "Corner Radius",
+                value: store.binding(\.appearance.tabCornerRadius),
+                range: AppSettings.AppearanceSettings.tabCornerRadiusRange,
+                step: 0.5,
+                format: { String(format: "%.1f pt", $0) }
+            )
+        }
     }
 }
 

@@ -70,9 +70,23 @@ struct AppSettings: Codable, Equatable {
         var tabTheme = TabThemeConfiguration()
         /// The selected tab cell, configured separately.
         var activeTabTheme = TabThemeConfiguration()
+        /// Corner roundness in points for tab cells, the headline crawl bar,
+        /// and the page. Drawn capped at half the view height where a cap
+        /// applies, so no setting can invert the arcs.
+        var tabCornerRadius = 8.0
+        var crawlCornerRadius = 8.0
+        /// Bottom corners only: the page meets the tab bar squarely at the top.
+        var pageCornerRadius = 10.0
+
+        /// Slider bounds. Tab and crawl tops sit below half their bar
+        /// heights, so the maximum stays shy of a full pill.
+        static let tabCornerRadiusRange = 0.0...12.0
+        static let crawlCornerRadiusRange = 0.0...12.0
+        static let pageCornerRadiusRange = 0.0...20.0
 
         enum CodingKeys: String, CodingKey {
             case noise, background, tabTheme, activeTabTheme
+            case tabCornerRadius, crawlCornerRadius, pageCornerRadius
         }
 
         init() {}
@@ -93,6 +107,9 @@ struct AppSettings: Codable, Equatable {
                 ?? TabThemeConfiguration()
             activeTabTheme = try container.decodeIfPresent(TabThemeConfiguration.self, forKey: .activeTabTheme)
                 ?? TabThemeConfiguration()
+            tabCornerRadius = try container.decodeIfPresent(Double.self, forKey: .tabCornerRadius) ?? 8.0
+            crawlCornerRadius = try container.decodeIfPresent(Double.self, forKey: .crawlCornerRadius) ?? 8.0
+            pageCornerRadius = try container.decodeIfPresent(Double.self, forKey: .pageCornerRadius) ?? 10.0
         }
 
         /// Codable mirror of `NoiseOverlayConfiguration`. `NSColor` is not

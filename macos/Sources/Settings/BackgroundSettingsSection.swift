@@ -95,6 +95,15 @@ struct BackgroundSettingsGroups: View {
                         .controlSize(.small)
                 }
             }
+
+            // The page's own bottom corners, which frame the background.
+            SettingsSliderRow(
+                title: "Page Corners",
+                value: store.binding(\.appearance.pageCornerRadius),
+                range: AppSettings.AppearanceSettings.pageCornerRadiusRange,
+                step: 0.5,
+                format: { String(format: "%.1f pt", $0) }
+            )
         }
     }
 

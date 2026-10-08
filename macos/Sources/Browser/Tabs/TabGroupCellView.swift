@@ -277,12 +277,16 @@ final class TabGroupCellView: NSView {
         // every other cell the shared one. `removeDuplicates` keeps slider
         // drags in Settings from rebuilding media layers per tick.
         SettingsStore.shared.$settings
-            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme) }
+            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.applyTheme() }
+            .sink { [weak self] _ in
+                self?.applyTheme()
+                self?.applyCornerRadius()
+            }
             .store(in: &cancellables)
         applyTheme()
+        applyCornerRadius()
     }
 
     deinit {
@@ -297,6 +301,23 @@ final class TabGroupCellView: NSView {
 
     @objc private func closeTapped() {
         onClose?()
+    }
+
+    /// Corner roundness from Settings, shared with lone cells. Capped at
+    /// half the cell height wherever it is used.
+    private var cornerRadius: CGFloat = 8
+
+    private func applyCornerRadius() {
+        cornerRadius = CGFloat(
+            SettingsStore.shared.settings.appearance.tabCornerRadius)
+        // Layout too, like the lone cell: fills take their corners there.
+        needsLayout = true
+        needsDisplay = true
+    }
+
+    private func resolvedCornerRadius() -> CGFloat {
+        guard bounds.height > 0 else { return max(cornerRadius, 0) }
+        return min(max(cornerRadius, 0), bounds.height / 2)
     }
 
     private func updateAppearance() {
@@ -440,7 +461,8 @@ final class TabGroupCellView: NSView {
             let maxY = round(rect.maxY * scale) / scale
             rect = NSRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
         }
-        let path = SpotlightField.topSidesPath(in: rect, topRadius: 8 - 0.5)
+        let path = SpotlightField.topSidesPath(
+            in: rect, topRadius: max(resolvedCornerRadius() - 0.5, 0))
         NSColor.separatorColor.setStroke()
         path.lineWidth = 1
         path.stroke()
@@ -448,6 +470,9 @@ final class TabGroupCellView: NSView {
 
     override func layout() {
         super.layout()
+        let radius = resolvedCornerRadius()
+        layer?.cornerRadius = radius
+        backgroundView.layer?.cornerRadius = radius
         backgroundView.frame = bounds
         // The media fills the cell at any size; gradient geometry is unit
         // space, so only the frame needs tracking.

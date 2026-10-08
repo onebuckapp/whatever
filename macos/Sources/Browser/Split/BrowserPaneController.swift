@@ -12,6 +12,7 @@ final class BrowserPaneController: NSViewController {
     let tab: BrowserTab
     private let activeModel: ActivePaneModel
     private var activeCancellable: AnyCancellable?
+    private var radiusCancellable: AnyCancellable?
     private var pageContainer: NSView?
     private var pageBottomConstraint: NSLayoutConstraint?
     private var pageLeadingConstraint: NSLayoutConstraint?
@@ -101,6 +102,19 @@ final class BrowserPaneController: NSViewController {
         updateBorder(activeID: activeModel.activeTabID, showsIndicator: activeModel.showsIndicator)
         applySplitPosition()
         installClickToFocus()
+        applyPageCornerRadius()
+        // Bottom-corner roundness from Settings. No half-height cap: the
+        // page is orders of magnitude larger than any sane radius.
+        radiusCancellable = SettingsStore.shared.$settings
+            .map(\.appearance.pageCornerRadius)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyPageCornerRadius() }
+    }
+
+    private func applyPageCornerRadius() {
+        pageContainer?.layer?.cornerRadius = CGFloat(max(
+            SettingsStore.shared.settings.appearance.pageCornerRadius, 0))
     }
 
     /// Lays the page out for the current split position: flush inner sides

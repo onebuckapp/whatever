@@ -127,6 +127,13 @@ struct RSSFeedsSettingsView: View {
                     step: 0.05,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
+                SettingsSliderRow(
+                    title: "Corner Radius",
+                    value: settings.binding(\.appearance.crawlCornerRadius),
+                    range: AppSettings.AppearanceSettings.crawlCornerRadiusRange,
+                    step: 0.5,
+                    format: { String(format: "%.1f pt", $0) }
+                )
                 SettingsTextRow(
                     title: "Separator",
                     subtitle: "1–2 characters shown between headlines.",
