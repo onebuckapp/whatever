@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/onebuckapp/whatever/blob/main/.github/whatever-icon.png" width=“64px" height="64px"><br>
+  <img src="https://github.com/onebuckapp/whatever/blob/main/.github/app_icon_128.png" width=“64px" height="64px"><br>
   This is Whatever – the perfect app for browsing the dead internet ☠️<br>
   Powered by WebKit &bullet; Written in Nim and Swift
 </p>
@@ -42,7 +42,6 @@
   - Image or Video
 - Beautiful Settings modal (General, Appearance, Web, Blocker, Bookmarks, Feeds, History, Search, Downloads)
 - Bookmarks and searchable History
-
 - Written in Nim language and Swift
 - Open Source | `GPLv3` License
 
