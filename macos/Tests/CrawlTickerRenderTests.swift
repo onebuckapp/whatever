@@ -216,7 +216,7 @@ struct CrawlTickerRenderTests {
         #expect(strip.size.height < 40, "strip taller than the bar")
     }
 
-    @Test("exactly one linear loop animation advances with layer time")
+    @Test("exactly one stepped loop animation advances with layer time")
     @MainActor
     func loopAnimationMoves() {
         let (view, _) = makeWindowedView()
@@ -229,9 +229,14 @@ struct CrawlTickerRenderTests {
         #expect(animation.repeatCount == .infinity, "loop does not repeat forever")
         #expect(animation.autoreverses, "loop wraps instead of bouncing at the ends")
         #expect(
-            animation.timingFunction == CAMediaTimingFunction(name: .linear),
-            "loop is not linear: speed would breathe"
+            animation.calculationMode == .discrete,
+            "loop interpolates: the texture would resample every frame"
         )
+        // Stepped in half-point increments with the endpoints exact, so the
+        // sweep covers the same span at the same speed, quantized.
+        let values = animation.values as? [CGFloat] ?? []
+        #expect(values.count >= 2, "loop has no sweep values")
+        #expect(values.first == 0, "loop does not start at the leading edge")
         guard let strip = view.stripForTesting else {
             Issue.record("view rendered no strip")
             return
@@ -247,7 +252,8 @@ struct CrawlTickerRenderTests {
         )
         // Scrub the layer timeline 0.4s: at 60pt/s right-to-left the strip
         // must sit 24pt into the sweep. No view code runs per frame — the
-        // offset is pure interpolation, which is the whole performance bet.
+        // offset comes from the animation timeline, which is the whole
+        // performance bet.
         let moved = view.stepLoopForTesting(seconds: 0.4)
         #expect(moved != nil, "loop did not install an animatable presentation")
         #expect(abs((moved ?? 0) - (-24)) < 1, "loop offset after 0.4s is \(String(describing: moved)), want -24")
@@ -288,7 +294,7 @@ struct CrawlTickerRenderTests {
         // Resuming continues from the frozen spot instead of jumping.
         view.startLoop(fromStart: false)
         #expect(view.isLooping, "resume did not reinstall the loop")
-        let resumed = view.loopAnimationForTesting?.fromValue as? CGFloat
+        let resumed = view.loopAnimationForTesting?.values?.first as? CGFloat
         #expect(resumed == frozen, "resume restarted from \(String(describing: resumed)) instead of \(frozen)")
     }
 
@@ -308,6 +314,72 @@ struct CrawlTickerRenderTests {
         #expect(
             view.currentOffsetForTesting < 0,
             "refresh jumped back to the leading edge"
+        )
+    }
+
+    @Test("item frames sit on whole backing pixels")
+    func framesSnapToPixels() {        // Every glyph and icon origin is an integer pixel offset: fractional
+        // origins rasterize straddling pixels and read as blur. Frames are in
+        // points, so scaled back up they must be integral.
+        guard let strip = render(sampleHeadlines()) else {
+            Issue.record("no strip rendered")
+            return
+        }
+        let scale = strip.scale
+        for item in strip.items {
+            let minX = item.frame.minX * scale
+            let width = item.frame.width * scale
+            #expect(
+                abs(minX.rounded() - minX) < 0.001,
+                "item starts at fractional pixel \(minX)"
+            )
+            #expect(
+                abs(width.rounded() - width) < 0.001,
+                "item spans fractional pixels \(width)"
+            )
+        }
+        #expect(
+            abs((strip.passWidth * scale).rounded() - strip.passWidth * scale) < 0.001,
+            "pass width is fractional pixels"
+        )
+    }
+
+    @Test("a giant strip tiles instead of dropping scale")
+    func giantStripTiles() {
+        // Fifty max-length titles at 16pt: far past any texture limit. The
+        // old code answered this by re-rendering at 1x (permanent blur);
+        // tiles keep full resolution at any font size.
+        let headlines = (0..<50).map { i in
+            CrawlHeadline(
+                articleID: i, site: "website.com",
+                title: String(repeating: "Long headline text ", count: 8),
+                url: "https://website.com/\(i)", feedURL: "https://website.com/feed",
+                publishedAt: i
+            )
+        }
+        guard let tiles = CrawlStripRenderer.renderTiles(
+            headlines: headlines, fontSize: 16,
+            favicons: [:], scale: 2, coverWidth: 800, separator: "|"
+        ) else {
+            Issue.record("giant strip rendered nothing")
+            return
+        }
+        #expect(tiles.count > 1, "giant strip came back as one tile")
+        var total: CGFloat = 0
+        for tile in tiles {
+            #expect(tile.scale == 2, "tile dropped its backing scale")
+            #expect(
+                tile.bitmap.pixelsWide <= 16384,
+                "tile is \(tile.bitmap.pixelsWide)px wide: past texture limits"
+            )
+            #expect(tile.offset == total, "tiles are not contiguous")
+            total += tile.size.width
+            #expect(tile.items.count == headlines.count, "tile lost the shared items")
+            #expect(tile.passWidth == tiles[0].passWidth, "tiles disagree on the wrap period")
+        }
+        #expect(
+            total >= 800 + tiles[0].passWidth - 1,
+            "tiled span does not cover the bar plus a wrap pass"
         )
     }
 }

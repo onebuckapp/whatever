@@ -30,6 +30,9 @@ struct CrawlStrip {
     /// Full bitmap size in points.
     let size: CGSize
     let scale: CGFloat
+    /// This tile's left edge in strip points: 0 for a whole strip, the
+    /// prefix width before it for a tile.
+    let offset: CGFloat
 }
 
 /// Renders headline strips into cached bitmaps. Pure and synchronous: no
@@ -43,17 +46,23 @@ enum CrawlStripRenderer {
     static let iconSize: CGFloat = 14
     /// Gap between the site marker (icon or name) and the title.
     static let siteTitleGap: CGFloat = 4
-    /// Upper bound on the bitmap width in points. A full 50-headline strip of
-    /// long titles can exceed this; beyond it the scale drops to 1x, and only
-    /// in the unreachable extreme are trailing passes cut (coverage is still
-    /// guaranteed for any real window).
-    static let maxStripPoints: CGFloat = 16384
+    /// Upper bound on one tile's width in points. A strip wider than this is
+    /// cut into tiles rather than shrunk: shrinking would drop the backing
+    /// scale and read as blur, while tiles keep full resolution at any font
+    /// size. Sized so a tile never exceeds common GPU texture limits
+    /// (8192pt at 2x is 16384px).
+    static let maxTilePoints: CGFloat = 8192
 
     /// Renders `headlines` into a strip covering at least `coverWidth` points
     /// (the visible width plus one pass for the wrap), repeating the item
     /// sequence as needed. Returns nil for empty headlines or degenerate
     /// metrics. All layout is single-line by construction: nothing wraps, so
     /// nothing can squeeze.
+    ///
+    /// Small strips come back as one tile; anything wider than
+    /// `maxTilePoints` is cut into tiles that share the same items,
+    /// pass width, and scale, so a 16pt strip stays at full resolution
+    /// instead of dropping a scale.
     static func render(
         headlines: [CrawlHeadline],
         fontSize: CGFloat,
@@ -62,8 +71,95 @@ enum CrawlStripRenderer {
         coverWidth: CGFloat,
         separator: String = CrawlContent.defaultSeparator
     ) -> CrawlStrip? {
+        renderTiles(
+            headlines: headlines, fontSize: fontSize,
+            favicons: favicons, scale: scale, coverWidth: coverWidth,
+            separator: separator
+        )?.first
+    }
+
+    /// The tiled render behind `render`: one bitmap per tile, each no wider
+    /// than `maxTilePoints`, all sharing the first pass's items.
+    static func renderTiles(
+        headlines: [CrawlHeadline],
+        fontSize: CGFloat,
+        favicons: [String: NSImage],
+        scale: CGFloat,
+        coverWidth: CGFloat,
+        separator: String = CrawlContent.defaultSeparator
+    ) -> [CrawlStrip]? {
+        guard let measured = measure(
+            headlines: headlines, fontSize: fontSize,
+            favicons: favicons, scale: scale, separator: separator
+        ) else { return nil }
+        // Repeat passes until the visible width plus one wrap pass is
+        // covered.
+        let passes = max(1, Int(ceil(
+            (coverWidth * measured.scale + measured.passWidthPx) / measured.passWidthPx
+        )))
+        let totalPx = CGFloat(passes) * measured.passWidthPx
+        let tileCapPx = maxTilePoints * measured.scale
+        var tiles: [CrawlStrip] = []
+        var x: CGFloat = 0
+        while x < totalPx {
+            let widthPx = min(tileCapPx, totalPx - x)
+            guard let rep = drawTile(
+                measured, favicons: favicons,
+                passes: passes, xRangePx: x..<(x + widthPx)
+            ) else { return nil }
+            tiles.append(CrawlStrip(
+                bitmap: rep,
+                items: measured.passItems,
+                passWidth: measured.passWidthPx * measured.toPoints,
+                size: CGSize(
+                    width: widthPx * measured.toPoints,
+                    height: ceil(measured.stripPxH) * measured.toPoints
+                ),
+                scale: measured.scale,
+                offset: x * measured.toPoints
+            ))
+            x += widthPx
+        }
+        return tiles.isEmpty ? nil : tiles
+    }
+
+    /// One measured headline: pixel widths plus its stride.
+    private struct MeasuredItem {
+        let headline: CrawlHeadline
+        let siteWidth: CGFloat
+        let titleWidth: CGFloat
+        let hasIcon: Bool
+        let advance: CGFloat
+    }
+
+    /// Everything a tile draw needs, measured once for the whole strip.
+    private struct MeasuredStrip {
+        let items: [MeasuredItem]
+        /// First pass's items in points, shared by every tile: hit-testing
+        /// wraps by the pass width, so tiles carry no items of their own.
+        let passItems: [CrawlStripItem]
+        let passWidthPx: CGFloat
+        let stripPxH: CGFloat
+        let scale: CGFloat
+        let toPoints: CGFloat
+        let titleAttrs: [NSAttributedString.Key: Any]
+        let secondaryAttrs: [NSAttributedString.Key: Any]
+        let delimiter: NSString
+        let delimiterWidth: CGFloat
+        let gapPx: CGFloat
+        let iconPx: CGFloat
+    }
+
+    private static func measure(
+        headlines: [CrawlHeadline],
+        fontSize: CGFloat,
+        favicons: [String: NSImage],
+        scale: CGFloat,
+        separator: String
+    ) -> MeasuredStrip? {
         guard !headlines.isEmpty, fontSize > 0, scale > 0 else { return nil }
         let renderScale = scale
+        let toPoints: CGFloat = 1 / renderScale
         let font = NSFont.systemFont(ofSize: fontSize * renderScale)
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .font: font, .foregroundColor: NSColor.labelColor,
@@ -78,26 +174,25 @@ enum CrawlStripRenderer {
         let iconPx = iconSize * renderScale
         let stripPxH = max(lineHeight, ceil(iconPx))
         let delimiter = CrawlContent.delimiter(separator: separator) as NSString
-        let delimiterWidth = delimiter.size(withAttributes: secondaryAttrs).width
+        // Ceiled: advances stay on whole pixels (see below), and the same
+        // value drives both measurement and drawing.
+        let delimiterWidth = ceil(delimiter.size(withAttributes: secondaryAttrs).width)
 
-        struct MeasuredItem {
-            let headline: CrawlHeadline
-            let siteWidth: CGFloat
-            let titleWidth: CGFloat
-            let hasIcon: Bool
-            let advance: CGFloat
-        }
         let gapPx = siteTitleGap * renderScale
+        // Every width ceiled to whole pixels. The draw loop advances its
+        // cursor by these same values, so every glyph and icon origin lands
+        // on a pixel boundary; fractional origins rasterize straddling
+        // pixels and read as blur. Costs at most a pixel of air per item.
         let items: [MeasuredItem] = headlines.map { headline in
             let icon = favicons[headline.feedURL]
             let hasIcon = icon != nil
             let siteWidth: CGFloat
             if !hasIcon, !headline.site.isEmpty {
-                siteWidth = ((headline.site + ": ") as NSString).size(withAttributes: secondaryAttrs).width
+                siteWidth = ceil(((headline.site + ": ") as NSString).size(withAttributes: secondaryAttrs).width)
             } else {
                 siteWidth = 0
             }
-            let titleWidth = (headline.title as NSString).size(withAttributes: titleAttrs).width
+            let titleWidth = ceil((headline.title as NSString).size(withAttributes: titleAttrs).width)
             let marker = hasIcon ? iconPx + gapPx : (siteWidth > 0 ? siteWidth + gapPx : 0)
             return MeasuredItem(
                 headline: headline, siteWidth: siteWidth,
@@ -108,88 +203,109 @@ enum CrawlStripRenderer {
         let passWidthPx = items.reduce(0) { $0 + $1.advance }
         guard passWidthPx > 0 else { return nil }
 
-        // Repeat passes until the visible width plus one wrap pass is
-        // covered. Fewer passes than the old copy budget: one wide bitmap,
-        // not hundreds of views.
-        var passes = max(1, Int(ceil((coverWidth * renderScale + passWidthPx) / passWidthPx)))
-        let maxPxW = maxStripPoints * renderScale
-        if CGFloat(passes) * passWidthPx > maxPxW {
-            if passWidthPx > maxPxW, renderScale > 1 {
-                // Giant strip (dozens of max-length titles): halve the
-                // backing scale rather than allocating a 30MB texture. Only
-                // affects strips far wider than any window.
-                return render(
-                    headlines: headlines, fontSize: fontSize,
-                    favicons: favicons, scale: 1, coverWidth: coverWidth,
-                    separator: separator
+        // First pass's frames in points, from the same advances the draw
+        // loop walks, so measurement and ink never disagree.
+        var cursor: CGFloat = 0
+        var passItems: [CrawlStripItem] = []
+        passItems.reserveCapacity(headlines.count)
+        for item in items {
+            let itemStart = cursor
+            let marker = item.hasIcon
+                ? iconPx + gapPx
+                : (item.siteWidth > 0 ? item.siteWidth + gapPx : 0)
+            cursor += marker
+            let contentWidth = cursor + item.titleWidth - itemStart
+            passItems.append(CrawlStripItem(
+                headline: item.headline,
+                frame: CGRect(
+                    x: itemStart * toPoints, y: 0,
+                    width: contentWidth * toPoints,
+                    height: stripPxH * toPoints
                 )
-            }
-            passes = max(1, Int(maxPxW / passWidthPx))
+            ))
+            cursor += item.titleWidth + delimiterWidth
         }
-        let bitmapPxW = ceil(CGFloat(passes) * passWidthPx)
-        let bitmapPxH = ceil(stripPxH)
 
+        return MeasuredStrip(
+            items: items, passItems: passItems,
+            passWidthPx: passWidthPx, stripPxH: stripPxH,
+            scale: renderScale, toPoints: toPoints,
+            titleAttrs: titleAttrs, secondaryAttrs: secondaryAttrs,
+            delimiter: delimiter, delimiterWidth: delimiterWidth,
+            gapPx: gapPx, iconPx: iconPx
+        )
+    }
+
+    /// Draws one tile: the pixel range `xRangePx` of the `passes`-pass strip.
+    /// The context is translated so drawing uses global strip coordinates
+    /// and clips to the tile; items fully outside are skipped, never
+    /// partially drawn, so seams carry no double ink.
+    private static func drawTile(
+        _ measured: MeasuredStrip,
+        favicons: [String: NSImage],
+        passes: Int,
+        xRangePx: Range<CGFloat>
+    ) -> NSBitmapImageRep? {
+        let widthPx = ceil(xRangePx.upperBound - xRangePx.lowerBound)
+        let heightPx = ceil(measured.stripPxH)
+        guard widthPx > 0, heightPx > 0 else { return nil }
         guard let rep = NSBitmapImageRep(
             bitmapDataPlanes: nil,
-            pixelsWide: Int(bitmapPxW), pixelsHigh: Int(bitmapPxH),
+            pixelsWide: Int(widthPx), pixelsHigh: Int(heightPx),
             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
             colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: 0, bitsPerPixel: 0
         ) else { return nil }
         guard let context = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
+        // Offscreen contexts do not inherit the window's font smoothing: text
+        // would rasterize with hard 1-bit edges. Grayscale antialiasing is
+        // the best an offscreen bitmap gets (there is no LCD geometry for
+        // subpixel smoothing), and it is what makes the strip read as text
+        // rather than pixels.
+        context.cgContext.setShouldAntialias(true)
+        context.cgContext.setAllowsAntialiasing(true)
+        context.cgContext.setShouldSmoothFonts(true)
+        context.cgContext.setAllowsFontSmoothing(true)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
+        context.cgContext.translateBy(x: -xRangePx.lowerBound, y: 0)
 
-        var stripItems: [CrawlStripItem] = []
-        stripItems.reserveCapacity(headlines.count)
         var cursor: CGFloat = 0
-        let toPoints: CGFloat = 1 / renderScale
-        for pass in 0..<passes {
-            for item in items {
+        // Vertical origins snapped like the horizontal ones: an odd strip
+        // height would otherwise centre every row on a half pixel.
+        let centeredY: (CGFloat) -> CGFloat = { h in round((measured.stripPxH - h) / 2) }
+        for _ in 0..<passes {
+            for item in measured.items {
                 let itemStart = cursor
+                let itemEnd = itemStart + item.advance
+                defer { cursor = itemEnd }
+                guard itemEnd > xRangePx.lowerBound, itemStart < xRangePx.upperBound else { continue }
                 if item.hasIcon, let icon = favicons[item.headline.feedURL] {
-                    let side = iconPx
+                    let side = measured.iconPx
                     icon.draw(
-                        in: NSRect(x: cursor, y: (stripPxH - side) / 2, width: side, height: side),
+                        in: NSRect(x: cursor, y: centeredY(side), width: side, height: side),
                         from: NSRect(origin: .zero, size: icon.size),
                         operation: .sourceOver, fraction: 1.0,
                         respectFlipped: true, hints: nil
                     )
-                    cursor += side + siteTitleGap * renderScale
+                    cursor += side + measured.gapPx
                 } else if item.siteWidth > 0 {
                     let site = ((item.headline.site + ": ") as NSString)
-                    let h = site.size(withAttributes: secondaryAttrs).height
-                    site.draw(at: NSPoint(x: cursor, y: (stripPxH - h) / 2), withAttributes: secondaryAttrs)
-                    cursor += item.siteWidth + siteTitleGap * renderScale
+                    let h = site.size(withAttributes: measured.secondaryAttrs).height
+                    site.draw(at: NSPoint(x: cursor, y: centeredY(h)), withAttributes: measured.secondaryAttrs)
+                    cursor += item.siteWidth + measured.gapPx
                 }
                 let title = item.headline.title as NSString
-                let titleH = title.size(withAttributes: titleAttrs).height
-                title.draw(at: NSPoint(x: cursor, y: (stripPxH - titleH) / 2), withAttributes: titleAttrs)
-                let contentWidth = cursor + item.titleWidth - itemStart
-                if pass == 0 {
-                    stripItems.append(CrawlStripItem(
-                        headline: item.headline,
-                        frame: CGRect(
-                            x: itemStart * toPoints, y: 0,
-                            width: contentWidth * toPoints,
-                            height: stripPxH * toPoints
-                        )
-                    ))
-                }
+                let titleH = title.size(withAttributes: measured.titleAttrs).height
+                title.draw(at: NSPoint(x: cursor, y: centeredY(titleH)), withAttributes: measured.titleAttrs)
                 cursor += item.titleWidth
-                let delimH = delimiter.size(withAttributes: secondaryAttrs).height
-                delimiter.draw(at: NSPoint(x: cursor, y: (stripPxH - delimH) / 2), withAttributes: secondaryAttrs)
-                cursor += delimiterWidth
+                let delimH = measured.delimiter.size(withAttributes: measured.secondaryAttrs).height
+                measured.delimiter.draw(at: NSPoint(x: cursor, y: centeredY(delimH)), withAttributes: measured.secondaryAttrs)
+                cursor += measured.delimiterWidth
             }
         }
         NSGraphicsContext.restoreGraphicsState()
 
-        return CrawlStrip(
-            bitmap: rep,
-            items: stripItems,
-            passWidth: passWidthPx * toPoints,
-            size: CGSize(width: bitmapPxW * toPoints, height: stripPxH * toPoints),
-            scale: renderScale
-        )
+        return rep
     }
 
     /// Maps a strip-local x (points) onto the headline under it, wrapping by

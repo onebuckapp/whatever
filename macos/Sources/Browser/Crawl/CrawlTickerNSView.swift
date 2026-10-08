@@ -16,7 +16,8 @@ struct CrawlTickerInputs {
 /// The scrolling headline strip, layer-hosted.
 ///
 /// The strip bitmap comes from `CrawlStripRenderer` and is drawn exactly once
-/// per content change. Scrolling is one infinite `CABasicAnimation` on a
+/// per content change. Scrolling is one infinite stepped keyframe animation
+/// on a
 /// single layer's `position.x`, so the per-frame work is a texture shift done
 /// by the render server: ~0% CPU, versus ~40% for the old hundreds-of-live-
 /// views SwiftUI strip this replaces.
@@ -30,13 +31,14 @@ final class CrawlTickerNSView: NSView {
     /// Horizontal inset of the scrolling content, matching the old row's
     /// `.padding(.horizontal, 12)`.
     static let horizontalInset: CGFloat = 12
-    /// Backing scale of the strip bitmap. Fixed at 2x: the bitmap always
-    /// carries twice the displayed points, then renders at half size, so text
-    /// stays Retina-sharp no matter which screen the window is on — or
-    /// whether the view even has a window yet at first render. Downsampling
-    /// on 1x displays stays sharp; memory stays bounded by the renderer's
-    /// point-width cap.
-    static let stripScale: CGFloat = 2
+    /// Backing scale of the strip bitmap. Follows the window: Retina gets a
+    /// 2x bitmap, a 1x display gets a native 1x one. A fixed 2x everywhere
+    /// would force the compositor to downsample on 1x screens, which reads
+    /// as permanent blur no raster grid can fix. Windowless (tests, first
+    /// render before attach) falls back to 2.
+    private var currentScale: CGFloat {
+        max(1, window?.backingScaleFactor ?? 2)
+    }
     private static let loopKey = "crawlLoop"
 
     var onOpen: ((URL) -> Void)?
@@ -52,7 +54,14 @@ final class CrawlTickerNSView: NSView {
         fontSize: 12, backgroundOpacity: 0.85, favicons: [:],
         separator: CrawlContent.defaultSeparator
     )
-    private var strip: CrawlStrip?
+    private var strip: CrawlStrip? { tiles.first }
+    /// One bitmap per tile, each no wider than the renderer's tile cap, laid
+    /// edge to edge. A giant strip at a large font is many textures, never
+    /// one shrunk bitmap.
+    private var tiles: [CrawlStrip] = []
+    /// One layer per tile above, kept in lockstep: same sweep values shifted
+    /// by each tile's offset.
+    private var stripLayers: [CALayer] = []
     /// Model offset: the strip layer's left edge in container coordinates.
     /// Always inside one wrap segment once a strip exists.
     private var offsetX: CGFloat = 0
@@ -72,7 +81,6 @@ final class CrawlTickerNSView: NSView {
     private let backgroundLayer = CALayer()
     private let containerLayer = CALayer()
     private let maskLayer = CAGradientLayer()
-    private let stripLayer = CALayer()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -80,14 +88,14 @@ final class CrawlTickerNSView: NSView {
         // Every pixel is managed CALayers below.
         layer = rootLayer
         wantsLayer = true
-        // Fixed 2x on every layer: layer-hosting views get no automatic
-        // contentsScale management, and anything rasterized at 1x (the pill,
-        // its border, the strip) would upscale softly on Retina.
-        rootLayer.contentsScale = Self.stripScale
-        backgroundLayer.contentsScale = Self.stripScale
-        containerLayer.contentsScale = Self.stripScale
-        maskLayer.contentsScale = Self.stripScale
-        stripLayer.contentsScale = Self.stripScale
+        // Layer-hosting views get no automatic contentsScale management, and
+        // anything rasterized at the wrong scale (the pill, its border, the
+        // strip) would resample softly. Windowless for now, so the 2x
+        // fallback; attaching corrects through `refreshScale`.
+        rootLayer.contentsScale = currentScale
+        backgroundLayer.contentsScale = currentScale
+        containerLayer.contentsScale = currentScale
+        maskLayer.contentsScale = currentScale
         backgroundLayer.cornerRadius = 8
         backgroundLayer.borderWidth = 1
         rootLayer.addSublayer(backgroundLayer)
@@ -102,8 +110,16 @@ final class CrawlTickerNSView: NSView {
         maskLayer.startPoint = CGPoint(x: 0, y: 0.5)
         maskLayer.endPoint = CGPoint(x: 1, y: 0.5)
         rootLayer.addSublayer(containerLayer)
-        stripLayer.anchorPoint = CGPoint(x: 0, y: 0.5)
-        containerLayer.addSublayer(stripLayer)
+    }
+
+    /// One scrolling texture layer: the bitmap at its tile offset, anchored
+    /// by its left edge so positions read as left edges everywhere.
+    private func makeStripLayer() -> CALayer {
+        let layer = CALayer()
+        layer.contentsScale = currentScale
+        layer.anchorPoint = CGPoint(x: 0, y: 0.5)
+        containerLayer.addSublayer(layer)
+        return layer
     }
 
     @available(*, unavailable)
@@ -116,7 +132,8 @@ final class CrawlTickerNSView: NSView {
     /// Pushes fresh inputs. Re-renders only when the strip content (or the
     /// appearance its colors bake in) actually changed, and restarts the loop
     /// only when the loop inputs changed; opacity only touches the background
-    /// pill. Backing scale never invalidates: the bitmap is always 2x.
+    /// pill. A scale change re-renders through the backing-properties hook
+    /// below, not here.
     func update(with newInputs: CrawlTickerInputs) {
         let old = inputs
         inputs = newInputs
@@ -162,27 +179,28 @@ final class CrawlTickerNSView: NSView {
         // strip resumes from the same story, not the same pixels.
         let wasAnimating = isLooping
         let fraction = loopFraction
-        var rendered: CrawlStrip?
+        var rendered: [CrawlStrip]?
         appearance.performAsCurrentDrawingAppearance {
-            rendered = CrawlStripRenderer.render(
+            rendered = CrawlStripRenderer.renderTiles(
                 headlines: inputs.headlines,
                 fontSize: inputs.fontSize,
                 favicons: inputs.favicons,
-                scale: Self.stripScale,
+                scale: currentScale,
                 coverWidth: max(1, containerLayer.bounds.width),
                 separator: inputs.separator
             )
         }
-        strip = rendered
-        guard let strip else {
-            stripLayer.contents = nil
-            stripLayer.removeAnimation(forKey: Self.loopKey)
+        tiles = rendered ?? []
+        syncStripLayers()
+        guard !tiles.isEmpty else {
             needsDisplay = false
             return
         }
-        stripLayer.contents = strip.cgImage
-        stripLayer.contentsScale = strip.scale
-        stripLayer.bounds = CGRect(origin: .zero, size: strip.size)
+        for (layer, tile) in zip(stripLayers, tiles) {
+            layer.contents = tile.cgImage
+            layer.contentsScale = tile.scale
+            layer.bounds = CGRect(origin: .zero, size: tile.size)
+        }
         offsetX = endPreservingFraction(fraction, travel: currentTravel())
         layoutStrip()
         window?.invalidateCursorRects(for: self)
@@ -196,22 +214,39 @@ final class CrawlTickerNSView: NSView {
         invalidateAccessibility()
     }
 
+    /// One texture layer per tile, reusing layers across re-renders. Surplus
+    /// layers leave the hierarchy; a fresh render never rebuilds what it can
+    /// refill.
+    private func syncStripLayers() {
+        while stripLayers.count < tiles.count {
+            stripLayers.append(makeStripLayer())
+        }
+        while stripLayers.count > tiles.count {
+            stripLayers.removeLast().removeFromSuperlayer()
+        }
+        for layer in stripLayers {
+            layer.removeAnimation(forKey: Self.loopKey)
+        }
+    }
+
     // MARK: - Loop
 
     /// Whether the infinite scroll animation is currently installed.
-    var isLooping: Bool { stripLayer.animation(forKey: Self.loopKey) != nil }
+    var isLooping: Bool {
+        stripLayers.first?.animation(forKey: Self.loopKey) != nil
+    }
 
     // MARK: - Test hooks
 
     /// Model offset (strip layer's left edge in container coordinates).
     var currentOffsetForTesting: CGFloat { offsetX }
     var stripForTesting: CrawlStrip? { strip }
-    var loopAnimationForTesting: CABasicAnimation? {
-        stripLayer.animation(forKey: Self.loopKey) as? CABasicAnimation
+    var loopAnimationForTesting: CAKeyframeAnimation? {
+        stripLayers.first?.animation(forKey: Self.loopKey) as? CAKeyframeAnimation
     }
     /// Strip layer center in container coordinates. The y half must sit at
     /// the container mid-height: vertical centering by construction.
-    var stripCenterForTesting: CGPoint { stripLayer.position }
+    var stripCenterForTesting: CGPoint { stripLayers.first?.position ?? .zero }
 
     /// Steps the loop forward by `seconds` and returns the resulting
     /// presented offset. Re-installs a copy of the in-flight animation with
@@ -219,12 +254,19 @@ final class CrawlTickerNSView: NSView {
     /// along, no wall-clock needed (headless sessions have no render server
     /// ticking). Test-only; leaves the stepped loop in place.
     func stepLoopForTesting(seconds: TimeInterval) -> CGFloat? {
-        guard let animation = stripLayer.animation(forKey: Self.loopKey)?.copy() as? CABasicAnimation
+        guard let first = stripLayers.first,
+              first.animation(forKey: Self.loopKey) != nil
         else { return nil }
-        animation.beginTime = CACurrentMediaTime() - seconds
-        stripLayer.add(animation, forKey: Self.loopKey)
+        // Rewind each layer's own animation: values carry per-tile offsets
+        // and must not be swapped between layers.
+        for layer in stripLayers {
+            guard let animation = layer.animation(forKey: Self.loopKey)?.copy() as? CAKeyframeAnimation
+            else { return nil }
+            animation.beginTime = CACurrentMediaTime() - seconds
+            layer.add(animation, forKey: Self.loopKey)
+        }
         CATransaction.flush()
-        return stripLayer.presentation()?.position.x
+        return first.presentation()?.position.x
     }
 
     /// Starts (or restarts) the loop. From the leading edge by default; from
@@ -236,7 +278,9 @@ final class CrawlTickerNSView: NSView {
         guard travel > 0 else {
             // The whole strip fits on screen: park at the leading edge with
             // no animation. Coverage is total by construction, never gappy.
-            stripLayer.removeAnimation(forKey: Self.loopKey)
+            for layer in stripLayers {
+                layer.removeAnimation(forKey: Self.loopKey)
+            }
             offsetX = travelStart(travel)
             snapModel()
             return
@@ -273,20 +317,42 @@ final class CrawlTickerNSView: NSView {
 
     /// The infinite bounce: sweeps the full span, then reverses at each end
     /// instead of wrapping, so the bar is never half-empty.
+    ///
+    /// The sweep is stepped in half-point increments (one backing pixel)
+    /// with discrete calculation: the render server holds each value
+    /// instead of interpolating, so the texture is never sampled between
+    /// pixels mid-flight. A continuous interpolation would resample every
+    /// frame and read as permanent motion blur, which no raster grid can
+    /// fix.
     private func installPingPong(from: CGFloat, to: CGFloat, speed: Double) {
-        guard strip != nil else { return }
+        guard !tiles.isEmpty else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        stripLayer.position.x = from
+        for (layer, tile) in zip(stripLayers, tiles) {
+            layer.position.x = from + tile.offset
+        }
         CATransaction.commit()
-        let animation = CABasicAnimation(keyPath: "position.x")
-        animation.fromValue = from
-        animation.toValue = to
-        animation.duration = TimeInterval(abs(to - from) / speed)
-        animation.timingFunction = CAMediaTimingFunction(name: .linear)
-        animation.autoreverses = true
-        animation.repeatCount = .infinity
-        stripLayer.add(animation, forKey: Self.loopKey)
+        for (layer, tile) in zip(stripLayers, tiles) {
+            let animation = CAKeyframeAnimation(keyPath: "position.x")
+            animation.values = steppedValues(
+                from: from + tile.offset, to: to + tile.offset)
+            animation.calculationMode = .discrete
+            animation.duration = TimeInterval(abs(to - from) / speed)
+            animation.autoreverses = true
+            animation.repeatCount = .infinity
+            layer.add(animation, forKey: Self.loopKey)
+        }
+    }
+
+    /// Sweep values snapped to the pixel grid, stepping one backing pixel
+    /// at a time. Consecutive duplicates after snapping are harmless: the
+    /// hold just lasts one step longer.
+    private func steppedValues(from: CGFloat, to: CGFloat) -> [CGFloat] {
+        let pixel = 1 / currentScale
+        let steps = max(1, Int(ceil(abs(to - from) / pixel)))
+        return (0...steps).map { i in
+            snap(from + (to - from) * CGFloat(i) / CGFloat(steps))
+        }
     }
 
     /// One sweep, then `completion`. The end state holds instead of snapping
@@ -297,36 +363,54 @@ final class CrawlTickerNSView: NSView {
     ) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        stripLayer.position.x = from
+        for (layer, tile) in zip(stripLayers, tiles) {
+            layer.position.x = from + tile.offset
+        }
         CATransaction.commit()
-        let animation = CABasicAnimation(keyPath: "position.x")
-        animation.fromValue = from
-        animation.toValue = to
-        animation.duration = TimeInterval(abs(to - from) / speed)
-        animation.timingFunction = CAMediaTimingFunction(name: .linear)
-        animation.isRemovedOnCompletion = false
-        animation.fillMode = .forwards
-        CATransaction.begin()
-        CATransaction.setCompletionBlock(completion)
-        stripLayer.add(animation, forKey: Self.loopKey)
-        CATransaction.commit()
+        // The handoff completion fires once: it belongs to the lead tile,
+        // whose sweep the model follows.
+        var isFirst = true
+        for (layer, tile) in zip(stripLayers, tiles) {
+            let animation = CAKeyframeAnimation(keyPath: "position.x")
+            animation.values = steppedValues(
+                from: from + tile.offset, to: to + tile.offset)
+            animation.calculationMode = .discrete
+            animation.duration = TimeInterval(abs(to - from) / speed)
+            animation.isRemovedOnCompletion = false
+            animation.fillMode = .forwards
+            if isFirst {
+                isFirst = false
+                CATransaction.begin()
+                CATransaction.setCompletionBlock(completion)
+                layer.add(animation, forKey: Self.loopKey)
+                CATransaction.commit()
+            } else {
+                layer.add(animation, forKey: Self.loopKey)
+            }
+        }
     }
 
     /// Freezes the loop, keeping the current spot in the model so a later
     /// resume continues instead of jumping.
     func pauseLoop() {
         resumeToken += 1
-        if let presentation = stripLayer.presentation() {
-            offsetX = presentation.position.x
+        if let presentation = stripLayers.first?.presentation() {
+            // Snapped: the model only ever feeds pixel-grid values, so a
+            // resume starts exactly where the pause parked.
+            offsetX = snap(presentation.position.x)
         }
-        stripLayer.removeAnimation(forKey: Self.loopKey)
+        for layer in stripLayers {
+            layer.removeAnimation(forKey: Self.loopKey)
+        }
         snapModel()
     }
 
     private func snapModel() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        stripLayer.position.x = offsetX
+        for (layer, tile) in zip(stripLayers, tiles) {
+            layer.position.x = offsetX + tile.offset
+        }
         CATransaction.commit()
     }
 
@@ -342,7 +426,8 @@ final class CrawlTickerNSView: NSView {
     /// loop progress across re-renders and resizes.
     private var loopFraction: Double {
         guard loopTravel > 0 else { return 0 }
-        let current = isLooping ? (stripLayer.presentation()?.position.x ?? offsetX) : offsetX
+        let lead = stripLayers.first?.presentation()?.position.x ?? offsetX
+        let current = isLooping ? lead : offsetX
         let start = travelStart(loopTravel)
         let done: CGFloat
         if inputs.direction == .rightToLeft {
@@ -355,11 +440,16 @@ final class CrawlTickerNSView: NSView {
 
     private func containerWidth() -> CGFloat { containerLayer.bounds.width }
 
-    /// Sweep span: bitmap width minus visible width. Zero means the whole
-    /// strip fits on screen and nothing moves.
+    /// Sweep span: all tiles edge to edge minus the visible width. Zero
+    /// means the whole strip fits on screen and nothing moves.
     private func currentTravel() -> CGFloat {
-        guard let strip else { return 0 }
-        return max(0, strip.size.width - containerWidth())
+        max(0, totalTilesWidth() - containerWidth())
+    }
+
+    /// The tiles laid edge to edge, in points.
+    private func totalTilesWidth() -> CGFloat {
+        guard let last = tiles.last else { return 0 }
+        return last.offset + last.size.width
     }
 
     private func travelStart(_ travel: CGFloat) -> CGFloat {
@@ -381,14 +471,14 @@ final class CrawlTickerNSView: NSView {
 
     override func layout() {
         super.layout()
-        // Snap frames to the 2x pixel grid: a layer sitting on a fractional
-        // boundary resamples everything it carries, which reads as blur.
-        // Widths keep their 0.5pt values (pixel-aligned at 2x); only
-        // quarter-point dust is removed, so coverage math is unaffected.
-        rootLayer.frame = Self.snapped(bounds)
-        backgroundLayer.frame = Self.snapped(bounds)
+        // Snap frames to the backing pixel grid: a layer sitting on a
+        // fractional boundary resamples everything it carries, which reads
+        // as blur. Only sub-pixel dust is removed, so coverage math is
+        // unaffected.
+        rootLayer.frame = snapped(bounds)
+        backgroundLayer.frame = snapped(bounds)
         updateBackground()
-        containerLayer.frame = Self.snapped(bounds.insetBy(dx: Self.horizontalInset, dy: 0))
+        containerLayer.frame = snapped(bounds.insetBy(dx: Self.horizontalInset, dy: 0))
         maskLayer.frame = containerLayer.bounds
         // A wider window may outgrow the bitmap's spare pass; shrinking never
         // does. Content changes re-render through `update(with:)`.
@@ -412,36 +502,36 @@ final class CrawlTickerNSView: NSView {
         ensureLoopState()
     }
 
-    /// The bitmap covers the visible width plus one wrap pass; only growing
+    /// The tiles cover the visible width plus one wrap pass; only growing
     /// past that spare triggers a re-render.
     private var coversVisibleWidth: Bool {
         guard let strip else { return false }
-        return containerLayer.bounds.width + strip.passWidth <= strip.size.width + 0.5
+        return containerLayer.bounds.width + strip.passWidth <= totalTilesWidth() + 0.5
     }
 
-    /// Positions the strip layer: vertically centered in the bar (by
-    /// construction, not font metrics) at the model offset. The y lands on
-    /// the pixel grid so the texture never resamples statically; x stays
-    /// fractional by design — that is the smooth scroll.
+    /// Positions the tile layers: vertically centered in the bar (by
+    /// construction, not font metrics) at the model offset plus each tile's
+    /// own offset. The y lands on the pixel grid so no texture resamples
+    /// statically; x steps on the grid through the loop animation.
     private func layoutStrip() {
-        guard let strip else { return }
+        guard !tiles.isEmpty else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        stripLayer.position = CGPoint(
-            x: offsetX,
-            y: Self.snap(containerLayer.bounds.height / 2)
-        )
-        stripLayer.bounds = CGRect(origin: .zero, size: strip.size)
+        let y = snap(containerLayer.bounds.height / 2)
+        for (layer, tile) in zip(stripLayers, tiles) {
+            layer.position = CGPoint(x: offsetX + tile.offset, y: y)
+            layer.bounds = CGRect(origin: .zero, size: tile.size)
+        }
         CATransaction.commit()
     }
 
-    /// Rounds a point value to the 2x pixel grid.
-    static func snap(_ value: CGFloat) -> CGFloat {
-        (value * stripScale).rounded() / stripScale
+    /// Rounds a point value to the backing pixel grid.
+    private func snap(_ value: CGFloat) -> CGFloat {
+        (value * currentScale).rounded() / currentScale
     }
 
-    /// Snaps a rect's origin and size to the 2x pixel grid.
-    static func snapped(_ rect: CGRect) -> CGRect {
+    /// Snaps a rect's origin and size to the backing pixel grid.
+    private func snapped(_ rect: CGRect) -> CGRect {
         CGRect(
             x: snap(rect.origin.x), y: snap(rect.origin.y),
             width: snap(rect.width), height: snap(rect.height)
@@ -469,8 +559,34 @@ final class CrawlTickerNSView: NSView {
         // while detached starts ticking, so enabling the bar scrolls
         // automatically with no settings nudge.
         if window != nil {
+            refreshScale()
             ensureLoopState()
         }
+    }
+
+    /// The window moved across displays or the display scale changed: adopt
+    /// the new backing scale on every layer and re-render the strip for it.
+    /// A bitmap baked for another scale would upscale or downsample here,
+    /// which reads as blur.
+    private var lastScale: CGFloat = 2
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        refreshScale()
+    }
+
+    private func refreshScale() {
+        let scale = currentScale
+        rootLayer.contentsScale = scale
+        backgroundLayer.contentsScale = scale
+        containerLayer.contentsScale = scale
+        maskLayer.contentsScale = scale
+        for layer in stripLayers {
+            layer.contentsScale = scale
+        }
+        guard scale != lastScale else { return }
+        lastScale = scale
+        renderStrip()
     }
 
     private func faviconsEqual(_ a: [String: NSImage], _ b: [String: NSImage]) -> Bool {
@@ -483,7 +599,7 @@ final class CrawlTickerNSView: NSView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         guard let strip else { return }
-        let current = stripLayer.presentation()?.position.x ?? offsetX
+        let current = stripLayers.first?.presentation()?.position.x ?? offsetX
         let stripX = (point.x - Self.horizontalInset) - current
         guard let headline = CrawlStripRenderer.headline(at: stripX, strip: strip),
               let url = URL(string: headline.url)
@@ -508,7 +624,7 @@ final class CrawlTickerNSView: NSView {
 
     override func accessibilityChildren() -> [Any]? {
         guard let strip, let window else { return nil }
-        let current = stripLayer.presentation()?.position.x ?? offsetX
+        let current = stripLayers.first?.presentation()?.position.x ?? offsetX
         let stripY = (containerLayer.bounds.height - strip.size.height) / 2
         return strip.items.compactMap { item -> NSAccessibilityElement? in
             var rect = item.frame
