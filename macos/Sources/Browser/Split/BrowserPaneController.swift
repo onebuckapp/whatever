@@ -21,6 +21,7 @@ final class BrowserPaneController: NSViewController {
     private var fileBrowserPresenter: FileBrowserPresenter?
     private var downloadsPresenter: DownloadsPresenter?
     private var findController: FindController?
+    private var linkHoverBubble: LinkHoverBubble?
     private var clickMonitor: Any?
 
     /// Where this pane sits: alone, or flush against its sibling in a split.
@@ -187,8 +188,8 @@ final class BrowserPaneController: NSViewController {
         // The menu items live on the view, so a rebuilt view needs rewiring;
         // reassigning the same closures onto the hosted view is harmless.
         if let browserView = webView as? BrowserWebView {
-            browserView.onGenerateQRCode = { [weak self] in
-                self?.presentPageQRCode()
+            browserView.onGenerateQRCode = { [weak self] url in
+                self?.presentMenuQRCode(link: url)
             }
             browserView.onOpenLinkInNewTab = { [weak self] url in
                 self?.openLinkInNewTab(url)
@@ -196,6 +197,16 @@ final class BrowserPaneController: NSViewController {
             browserView.onOpenLinkInNewWindow = { [weak self] url in
                 self?.openLinkInNewWindow(url)
             }
+            browserView.onLinkHover = { [weak self] url in
+                if let url {
+                    self?.showLinkHover(url)
+                } else {
+                    self?.hideLinkHover()
+                }
+            }
+            // A new (or re-shown) page carries no hover: a stale bubble would
+            // name a link nobody is pointing at.
+            hideLinkHover()
         }
         guard webView.superview !== pageContainer else { return }
         // This pane is also the `WKUIDelegate`. WebKit holds it weakly, and a
@@ -432,7 +443,43 @@ final class BrowserPaneController: NSViewController {
         findController?.step(delta)
     }
 
+    // MARK: - Link hover bubble
+
+    /// Shows the hovered link's address in the floating bubble, creating it
+    /// on first use. The bubble overlays the page's bottom-left corner
+    /// rather than pushing the page up, and it never takes clicks.
+    private func showLinkHover(_ url: URL) {
+        guard let pageContainer else { return }
+        if linkHoverBubble == nil {
+            let bubble = LinkHoverBubble()
+            bubble.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(bubble)
+            NSLayoutConstraint.activate([
+                bubble.leadingAnchor.constraint(equalTo: pageContainer.leadingAnchor, constant: 8),
+                bubble.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -10),
+                bubble.widthAnchor.constraint(
+                    lessThanOrEqualTo: pageContainer.widthAnchor, multiplier: 0.62),
+            ])
+            linkHoverBubble = bubble
+        }
+        linkHoverBubble?.show(url)
+    }
+
+    private func hideLinkHover() {
+        linkHoverBubble?.hide()
+    }
+
     // MARK: - Page context menu
+
+    /// QR for the context menu: the right-clicked link when the menu was
+    /// opened on one, otherwise the page on screen.
+    private func presentMenuQRCode(link: URL?) {
+        if let link {
+            presentQRCode(text: link.absoluteString)
+        } else {
+            presentPageQRCode()
+        }
+    }
 
     /// Uses the page the user is looking at, not the tab's last committed
     /// navigation, so the code matches what is on screen.
