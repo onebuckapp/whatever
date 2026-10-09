@@ -180,7 +180,7 @@ final class BrowserWindow: NSWindow {
             for constraint in view.constraints where constraint.firstAttribute == .width {
                 if constraint.constant > width {
                     lines.append(
-                        "\(type(of: view)) width-constraint=\(constraint.constant) priority=\(constraint.priority.rawValue)"
+                        "\(type(of: view)) owned-width-constraint: \(constraint)"
                     )
                 }
             }
@@ -462,7 +462,15 @@ final class BrowserWindowController: NSWindowController {
         }
 
         if record.frame.isUsable {
-            window.setFrame(record.frame.rect, display: true)
+            // The stored frame is capped to the visible screen before use: a
+            // frame saved while the window was transiently oversized (the old
+            // chrome-width ratchet) comes back every launch otherwise, and
+            // AppKit's own clamp-on-show leaves the content misaligned.
+            let visible = window.screen?.visibleFrame
+                ?? NSScreen.main?.visibleFrame
+                ?? .zero
+            let capped = record.frame.widthCapped(to: visible.width)
+            window.setFrame(capped.rect, display: true)
         }
     }
 

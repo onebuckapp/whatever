@@ -161,6 +161,17 @@ final class SpotlightField: NSView {
         field.font = .systemFont(ofSize: 14)
         field.placeholderString = "Search or enter address"
         field.delegate = self
+        // The window-sizing trap: AppKit grows a window to satisfy content
+        // whose compression resistance is above `NSLayoutPriorityWindowSizeStayPut`
+        // (500), and an NSTextField's default is 750. In "fill available
+        // width" mode the address container has no width cap of its own, so a
+        // long URL dragged the entire window wider on every layout pass that
+        // ran while it was showing (the random 3k-wide window on long-URL
+        // pages like YouTube). Below the threshold the field truncates — it
+        // already truncates its last visible line — instead of resizing the
+        // window, and the required edge pins still give it all the room the
+        // bar has.
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         addSubview(field)
 
         NSLayoutConstraint.activate([

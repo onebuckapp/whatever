@@ -67,8 +67,7 @@ struct AddressBarLayoutTests {
 
     @Test("centred mode keeps a fixed field in the middle")
     @MainActor
-    func centredMode() {
-        let strip = makeStrip()
+    func centredMode() {        let strip = makeStrip()
         layout(strip.toolbar, width: 1200)
         #expect(abs(strip.stack.frame.width - 460) < 1, "stack is \(strip.stack.frame.width)pt, want 460")
         #expect(abs(strip.stack.frame.midX - 600) < 1, "stack not centred")
@@ -219,5 +218,19 @@ struct AddressBarLayoutTests {
                 "dropdown with results \(dropdown.frame) lost the field width")
         #expect(abs(field.frame.width - 862) < 0.5,
                 "results resized the field: \(field.frame)")
+    }
+
+    @Test("address field yields before the window does")
+    @MainActor
+    func fieldCompressionBelowWindowStayPut() {
+        let field = SpotlightField(frame: .zero)
+        let resistance = field.textField
+            .contentCompressionResistancePriority(for: .horizontal).rawValue
+        // AppKit grows a window to fit content whose compression resistance
+        // exceeds `NSLayoutPriorityWindowSizeStayPut` (500). The field at its
+        // 750 default dragged the whole window wider in fill-width mode when
+        // a long URL was showing; it must stay below the threshold and
+        // truncate instead.
+        #expect(resistance < 500, "field compression resistance \(resistance) can size the window")
     }
 }
