@@ -138,11 +138,14 @@ final class BrowserToolbarView: NSView {
     /// The strip stands in for the titlebar, because a full-size content view sits
     /// above the titlebar and receives the click first. Without this the window
     /// could only be moved by its edges.
+    ///
+    /// Drag only, deliberately no double-click zoom: this strip is controls
+    /// with gaps, not a titlebar, so a double-click landing on a gap almost
+    /// never means "zoom". It used to honour the titlebar-click preference
+    /// here, and the window jumping to full width read as resizing itself
+    /// while the user was just clicking around. Zoom stays on the green
+    /// button and the Window menu, where it is deliberate.
     override func mouseDown(with event: NSEvent) {
-        if event.clickCount == 2 {
-            performTitlebarDoubleClick()
-            return
-        }
         window?.performDrag(with: event)
     }
 
@@ -150,15 +153,5 @@ final class BrowserToolbarView: NSView {
     /// AppKit's own titlebar handling, which this view is standing in for.
     override var mouseDownCanMoveWindow: Bool {
         false
-    }
-
-    /// Honours the system preference rather than always zooming, because that is
-    /// what the titlebar this replaces would have done.
-    private func performTitlebarDoubleClick() {
-        switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
-        case "Minimize": window?.miniaturize(nil)
-        case "None": break
-        default: window?.performZoom(nil)
-        }
     }
 }
