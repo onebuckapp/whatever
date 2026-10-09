@@ -51,7 +51,9 @@
 - Open Source | `GPLv3` License
 
 ### About
-Whatever treats the browser as a quiet room rather than a billboard: pages render fast behind a blocker that compiles its lists on your machine, your tabs come back where you left them, and your library — bookmarks, feeds, history, downloads — sits in local databases instead of someone else's cloud. No accounts, no sync servers. Just you, the page, and whatever you were looking for.
+**Whatever is the browser for the dead internet: fast pages, zero noise, yours alone.** Popular browsers sell your attention: feeds full of ads, trackers on every click, your tabs and history synced to somebody's cloud. Whatever goes the other way. Pages render on WebKit behind a blocker that compiles 13,000+ rules on your own machine. Your tabs come back where you left them. Your bookmarks, feeds, history, and downloads live in on-device databases — no accounts, no sync servers, ever.
+
+It also happens to be beautiful: a start page and window you theme yourself, a headline crawl for your RSS, film grain over the whole web if you want it, and a Spotlight-grade address bar that keeps up with you.
 
 ### 🗺 Roadmap
 Where this goes next — tab groups and workspaces, profiles, a reader mode, a local password manager, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
