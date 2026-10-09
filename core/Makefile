@@ -4,6 +4,7 @@ LIB := build/libbrowsercore.a
 HEADER := include/browsercore.h
 NIM_SOURCES := nim-core/browsercore.nim nim-core/api/abi.nim nim-core/api/qr_api.nim \
 	nim-core/api/settings_api.nim nim-core/api/bookmark_api.nim \
+	nim-core/api/password_api.nim nim-core/api/password_common.nim \
 	nim-core/api/history_api.nim nim-core/api/session_api.nim \
 	nim-core/api/feed_api.nim nim-core/api/filter_api.nim \
 	nim-core/api/find_api.nim nim-core/api/downloads_api.nim \

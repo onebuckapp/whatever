@@ -45,6 +45,11 @@ const
   ErrEncoder* = 4'i32
   ErrNotFound* = 5'i32
   ErrLocked* = 6'i32
+  ## A master password that does not open the vault. Separate from
+  ## `ErrLocked` (a held file lock, or a vault that was never unlocked)
+  ## because the UI answers it with "wrong password, try again" rather than
+  ## a failure state.
+  ErrWrongPassword* = 8'i32
   ## The payload does not fit the symbol at any error-correction level. Kept
   ## out of the low ordinals so it cannot be confused with the codes above: the
   ## QR surface and the store surface share one set of codes precisely because

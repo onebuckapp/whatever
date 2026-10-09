@@ -50,6 +50,9 @@ type
     ## `bookmarks` is a value type and `docstore` is not concurrency-safe, so
     ## every access goes through this handle on the service's own queue.
     bookmarks*: DocumentStore
+    ## The password vault: one encrypted JSON document under a fixed key.
+    ## Same value-type rules as `bookmarks`.
+    passwords*: DocumentStore
     history*: Store
     sessions*: Store
     feeds*: Store
@@ -109,6 +112,12 @@ proc openDatabase*(root: string = defaultRoot()): Database =
       checkpointEveryOps = 256'u32,
       walFlushEveryOps = 1'u32
     ),
+    passwords: openDocumentStore(
+      root / "passwords",
+      name = "passwords",
+      checkpointEveryOps = 256'u32,
+      walFlushEveryOps = 1'u32
+    ),
     history: newStore(
       root / "history",
       smDisk,
@@ -150,6 +159,7 @@ proc shutdown*(db: var Database) =
   ## expected to be on its way out.
   db.settings.close()
   db.bookmarks.close()
+  db.passwords.close()
   db.history.close()
   db.sessions.close()
   db.feeds.close()

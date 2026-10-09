@@ -41,7 +41,7 @@ suite "shared abi":
     ## these ever collide again, a two-phase size query reads as a hard failure
     ## and the payload is never written.
     let shared = [abi.Ok, abi.ErrBadInput, abi.ErrBufferTooSmall, abi.ErrStorage, abi.ErrEncoder,
-                  abi.ErrNotFound, abi.ErrLocked, abi.ErrPayloadTooLong]
+                  abi.ErrNotFound, abi.ErrLocked, abi.ErrPayloadTooLong, abi.ErrWrongPassword]
     for a in shared:
       for b in shared:
         check (a == b) or (a != b)

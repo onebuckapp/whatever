@@ -63,7 +63,8 @@ enum {
     BC_ERR_STORAGE = 3,        /* the store raised; see bc_last_error */
     BC_ERR_ENCODER = 4,        /* QR encoder refused to produce a symbol */
     BC_ERR_NOT_FOUND = 5,      /* no such row or key */
-    BC_ERR_LOCKED = 6          /* another process holds the store's lock */
+    BC_ERR_LOCKED = 6,         /* another process holds the store's lock */
+    BC_ERR_WRONG_PASSWORD = 8  /* a master password that does not open the vault */
 };
 
 /* Registers the calling thread with Nim's runtime and forces module
@@ -153,6 +154,56 @@ int32_t bc_bookmark_delete(const char *id);
 
 /* Removes every bookmark. */
 int32_t bc_bookmarks_clear(void);
+
+/* --------------------------------------------------------------- passwords */
+
+/* The vault is one encrypted JSON document in the `passwords` store. The
+ * core owns the whole vault engine (Argon2id + XChaCha20-Poly1305 via
+ * nimcypher, strength via blackpaper); Swift only renders and ships bytes.
+ * The session key lives here while unlocked. Every listing follows the same
+ * two-phase buffer protocol as bc_settings_get. */
+
+/* `{"state":"unset"|"locked"|"unlocked"}`. "unset" means no vault exists yet. */
+int32_t bc_password_status(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Creates the vault with `master` as its password (8+ characters) and leaves
+ * it unlocked. `hint` is an optional reminder, stored in plaintext outside
+ * the seal so it can be shown while locked; it must not equal the password
+ * and may be NULL for none. BC_ERR_BAD_INPUT when a vault already exists. */
+int32_t bc_password_setup(const char *master, const char *hint);
+
+/* Opens the vault. BC_ERR_NOT_FOUND when no vault exists yet,
+ * BC_ERR_WRONG_PASSWORD when the password does not open it. */
+int32_t bc_password_unlock(const char *master);
+
+/* Wipes the session key and plaintext. Always succeeds. */
+int32_t bc_password_lock(void);
+
+/* The decrypted vault JSON. BC_ERR_LOCKED while the vault is locked. */
+int32_t bc_password_vault_get(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Replaces the vault with `document`, which must be a JSON object, re-sealed
+ * under a fresh nonce. BC_ERR_LOCKED while the vault is locked. */
+int32_t bc_password_vault_set(const char *document);
+
+/* Removes the vault document and locks. Deliberately unauthenticated, like
+ * "remove all" everywhere else. */
+int32_t bc_password_vault_delete(void);
+
+/* `{"hint": "..."}` — "" when none was kept. Readable while locked.
+ * BC_ERR_NOT_FOUND when no vault exists yet. */
+int32_t bc_password_hint_get(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Replaces the vault's plaintext hint, re-sealed under a fresh nonce. Empty
+ * (or NULL) clears it. Requires the vault to be unlocked: a hint writable
+ * while locked would let anyone with store access plant a phishing hint.
+ * BC_ERR_LOCKED while locked. */
+int32_t bc_password_hint_set(const char *hint);
+
+/* Scores `password` as `{"strength","score","reason"}`: strength is one of
+ * "weak", "medium" or "strong". Works locked; an empty password scores weak. */
+int32_t bc_password_strength(const char *password, char *buffer, int32_t capacity,
+                             int32_t *needed);
 
 /* ----------------------------------------------------------------- history */
 

@@ -24,11 +24,12 @@
 # `WHATEVER_STORE_ROOT` points the store at a scratch directory; the handles
 # open on the first export call, so it has to be set before any test runs.
 
-import std/[envvars, os, sequtils, strutils, times, unittest]
+import std/[envvars, options, os, sequtils, strutils, times, unittest]
 
 import openparser/json
+import boogie/stores/docstore
 
-import ../api/[abi, bookmark_api, history_api, session_api, settings_api]
+import ../api/[abi, bookmark_api, history_api, password_api, session_api, settings_api]
 
 type
   JsonCall = proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32
@@ -471,6 +472,144 @@ suite "store c abi":
     let remaining = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
       bookmarkList(buffer, capacity, needed))
     check remaining.len == 0
+
+  test "password vault starts unset":
+    check passwordVaultDelete() == Ok
+    check passwordLock() == Ok
+    let status = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check status["state"].getStr == "unset"
+
+  test "password setup validates its input":
+    check passwordSetup("short".cstring, nil) == ErrBadInput
+    check passwordSetup(nil, nil) == ErrBadInput
+
+  test "password vault lifecycle":
+    check passwordVaultDelete() == Ok
+    check passwordSetup("correct horse battery staple".cstring, nil) == Ok
+    let status = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check status["state"].getStr == "unlocked"
+    let empty = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordVaultGet(buffer, capacity, needed))
+    check empty["sites"].len == 0
+
+    let vault = %*{"sites": [{
+      "id": "s1",
+      "name": "Example",
+      "url": "https://example.com",
+      "credentials": [{
+        "id": "c1",
+        "username": "user@example.com",
+        "password": "s3cret!"
+      }]
+    }]}
+    check passwordVaultSet(($vault).cstring) == Ok
+    let fetched = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordVaultGet(buffer, capacity, needed))
+    check fetched["sites"].len == 1
+    check fetched["sites"][0]["credentials"][0]["username"].getStr == "user@example.com"
+
+    check passwordLock() == Ok
+    let locked = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check locked["state"].getStr == "locked"
+    check passwordUnlock("wrong password".cstring) == ErrWrongPassword
+    check passwordUnlock("correct horse battery staple".cstring) == Ok
+    let reopened = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordVaultGet(buffer, capacity, needed))
+    check reopened["sites"].len == 1
+    check passwordVaultDelete() == Ok
+    let gone = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check gone["state"].getStr == "unset"
+
+  test "password setup refuses a second vault":
+    check passwordVaultDelete() == Ok
+    check passwordSetup("first master password".cstring, nil) == Ok
+    check passwordSetup("second master password".cstring, nil) == ErrBadInput
+    check passwordVaultDelete() == Ok
+
+  test "password vault set validates while unlocked":
+    check passwordVaultDelete() == Ok
+    check passwordSetup("another master password".cstring, nil) == Ok
+    check passwordVaultSet("\"scalar\"".cstring) == ErrBadInput
+    check passwordVaultSet(nil) == ErrBadInput
+    check passwordLock() == Ok
+    check passwordVaultSet("{\"sites\": []}".cstring) == ErrLocked
+    check passwordVaultDelete() == Ok
+
+  test "a tampered vault does not unlock":
+    check passwordVaultDelete() == Ok
+    check passwordSetup("tamper test password".cstring, nil) == Ok
+    check passwordLock() == Ok
+    # Flip one ciphertext character in the stored envelope, behind the API's
+    # back: the MAC must fail and the unlock must read as a wrong password.
+    var db = storeRef()
+    var passwords = db.passwords
+    let stored = passwords.get("vault")
+    check stored.isSome
+    var envelope = stored.get
+    var cipher = envelope["sealed"]["ciphertext"].getStr
+    check cipher.len > 0
+    cipher[0] = if cipher[0] == 'A': 'B' else: 'A'
+    envelope["sealed"]["ciphertext"] = %cipher
+    passwords.upsert("vault", envelope)
+    check passwordUnlock("tamper test password".cstring) == ErrWrongPassword
+    check passwordVaultDelete() == Ok
+
+  test "password hint round-trips, readable while locked":
+    check passwordVaultDelete() == Ok
+    check passwordSetup("hinted master password".cstring, "first pet".cstring) == Ok
+    check passwordLock() == Ok
+    let hint = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordHintGet(buffer, capacity, needed))
+    check hint["hint"].getStr == "first pet"
+    # Unlock still works, and the hint survives vault writes.
+    check passwordUnlock("hinted master password".cstring) == Ok
+    check passwordVaultSet("{\"sites\": []}".cstring) == Ok
+    let hintAfter = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordHintGet(buffer, capacity, needed))
+    check hintAfter["hint"].getStr == "first pet"
+    check passwordVaultDelete() == Ok
+
+  test "password hint needs the vault, and is not the password":
+    check passwordVaultDelete() == Ok
+    check passwordHintGet(nil, 0, nil) == ErrNotFound
+    check passwordSetup("abcdefgh".cstring, "abcdefgh".cstring) == ErrBadInput
+    check passwordSetup("abcdefgh".cstring, nil) == Ok
+    let noHint = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordHintGet(buffer, capacity, needed))
+    check noHint["hint"].getStr == ""
+    check passwordLock() == Ok
+    check passwordHintSet("locked write".cstring) == ErrLocked
+    check passwordUnlock("abcdefgh".cstring) == Ok
+    check passwordHintSet("new hint".cstring) == Ok
+    let updated = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordHintGet(buffer, capacity, needed))
+    check updated["hint"].getStr == "new hint"
+    check passwordHintSet(nil) == Ok
+    let cleared = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordHintGet(buffer, capacity, needed))
+    check cleared["hint"].getStr == ""
+    # The vault content survived the hint rewrites.
+    let vault = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordVaultGet(buffer, capacity, needed))
+    check vault["sites"].len == 0
+    check passwordVaultDelete() == Ok
+
+  test "password strength labels the obvious cases":
+    let weak = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordScore("12345678".cstring, buffer, capacity, needed))
+    check weak["strength"].getStr == "weak"
+    let medium = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordScore("qx!zt!kv".cstring, buffer, capacity, needed))
+    check medium["strength"].getStr == "medium"
+    let strong = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordScore("xQ9#mZ2$vL8@kP4!".cstring, buffer, capacity, needed))
+    check strong["strength"].getStr == "strong"
+    check strong["score"].getFloat > 0
+    check passwordScore(nil, nil, 0, nil) == ErrBadInput
 
   test "session round trip, and save replaces rather than accumulates":
     let snapshot = %*{

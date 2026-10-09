@@ -39,6 +39,7 @@
 import ./api/qr_api
 import ./api/settings_api
 import ./api/bookmark_api
+import ./api/password_api
 import ./api/history_api
 import ./api/session_api
 import ./api/feed_api
@@ -49,6 +50,7 @@ import ./api/downloads_api
 export qr_api
 export settings_api
 export bookmark_api
+export password_api
 export history_api
 export session_api
 export feed_api
