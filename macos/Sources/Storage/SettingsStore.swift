@@ -40,9 +40,10 @@ struct AppSettings: Codable, Equatable {
     var adblock = AdBlockSettings()
     var feeds = FeedSettings()
     var addressBar = AddressBarSettings()
+    var bookmarks = BookmarkSettings()
 
     enum CodingKeys: String, CodingKey {
-        case general, appearance, web, search, adblock, feeds, addressBar
+        case general, appearance, web, search, adblock, feeds, addressBar, bookmarks
     }
 
     init() {}
@@ -62,6 +63,8 @@ struct AppSettings: Codable, Equatable {
             ?? FeedSettings()
         addressBar = try container.decodeIfPresent(AddressBarSettings.self, forKey: .addressBar)
             ?? AddressBarSettings()
+        bookmarks = try container.decodeIfPresent(BookmarkSettings.self, forKey: .bookmarks)
+            ?? BookmarkSettings()
     }
 
     /// Startup and history defaults.
@@ -424,6 +427,14 @@ struct AppSettings: Codable, Equatable {
         /// Normalized on read (see `CrawlContent`), so older or hand-edited
         /// documents can never wedge the strip on an empty separator.
         var crawlSeparator: String = "|"
+    }
+
+    /// Bookmarks bar tunables.
+    struct BookmarkSettings: Codable, Equatable {
+        /// Whether the bookmarks bar is shown between the toolbar and the
+        /// tab strip. Hidden by default; when enabled it shows even with no
+        /// bookmarks, so the bar's own context menu can create the first one.
+        var showBar = false
     }
 
     /// Scroll direction of the headline crawl bar.
