@@ -17,7 +17,6 @@
 
 import AppKit
 import Combine
-import SwiftUI
 
 /// Owns the crawl bar's hosted view and its place in the window.
 ///
@@ -46,9 +45,9 @@ final class CrawlBarController {
     var onOpenArticle: ((URL) -> Void)?
 
     /// Whether the bar is currently parented in the window.
-    var isVisible: Bool { hostingView?.superview != nil }
+    var isVisible: Bool { tickerView?.superview != nil }
     /// The bar view, for sibling ordering. Nil until first shown.
-    var barView: NSView? { hostingView }
+    var barView: NSView? { tickerView }
     /// Height the bar currently occupies, including its bottom margin.
     var occupiedHeight: CGFloat {
         guard isVisible else { return 0 }
@@ -56,7 +55,16 @@ final class CrawlBarController {
     }
 
     private weak var container: NSView?
-    private var hostingView: NSHostingView<CrawlTickerView>?
+    /// The ticker, hosted directly rather than through SwiftUI.
+    ///
+    /// This used to be an `NSHostingView<CrawlTickerView>` and that hosting
+    /// is the window-resize bug: SwiftUI's internal platform-host wrapper
+    /// keeps a *required* frame width (`NSAutoresizingMaskLayoutConstraint`
+    /// on `PlatformViewHost<PlatformViewRepresentableAdaptor<CrawlTickerView>>`),
+    /// and AppKit grows the window to satisfy it. The ticker is plain AppKit
+    /// already, so hosting it directly leaves only our own pins in charge of
+    /// width and the failure mode cannot exist.
+    private var tickerView: CrawlTickerNSView?
     private var heightConstraint: NSLayoutConstraint?
     /// Edge pins for the bar, re-activated on every add: AppKit drops a
     /// removed view's constraints from its old superview, so re-adding
@@ -84,6 +92,8 @@ final class CrawlBarController {
     }
 
     private var lastPush: PushSignature?
+    /// Foreground-return observer; see `init`.
+    private var foregroundObserver: Any?
 
     private static let sideMargin: CGFloat = 6
     private static let bottomMargin: CGFloat = 6
@@ -106,15 +116,35 @@ final class CrawlBarController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
+        // Returning to the foreground restarts the loop from the leading
+        // edge, which also recovers the loop if it ever missed its start.
+        // (The SwiftUI wrapper this replaced watched scene phase for the
+        // same reason.)
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, let ticker = self.tickerView, !ticker.isHalted else { return }
+                ticker.startLoop(fromStart: true)
+            }
+        }
         refresh()
+    }
+
+    deinit {
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
     }
 
     /// Moves the bar above the page without disturbing the grain overlay's
     /// front-most seat. Called after any sibling shuffle (tab switches,
     /// popup hosts) that may have covered it.
     func bringToFront() {
-        guard let container, let hostingView, hostingView.superview === container else { return }
-        container.addSubview(hostingView, positioned: .above, relativeTo: nil)
+        guard let container, let tickerView, tickerView.superview === container else { return }
+        container.addSubview(tickerView, positioned: .above, relativeTo: nil)
     }
 
     private func refresh() {
@@ -123,14 +153,14 @@ final class CrawlBarController {
         let enabled = forceEnabledForTesting ?? feeds.crawlEnabled
         let shouldShow = enabled && !store.headlines.isEmpty
         if shouldShow {
-            if hostingView == nil {
+            if tickerView == nil {
                 install(feeds: feeds)
             }
             heightConstraint?.constant = barHeight
             // Value inputs: push the latest headlines and settings into the
-            // hosted view, but only when something actually changed. The
-            // onOpen closure is fresh every time by construction and is not
-            // part of the comparison.
+            // ticker, but only when something actually changed. The onOpen
+            // closure is fresh every time by construction and is not part of
+            // the comparison.
             let signature = PushSignature(
                 headlines: store.headlines,
                 speed: feeds.crawlSpeed,
@@ -142,7 +172,7 @@ final class CrawlBarController {
             )
             if lastPush.map({ $0 != signature }) ?? true {
                 lastPush = signature
-                hostingView?.rootView = makeRoot(feeds: feeds)
+                push(feeds: feeds)
             }
         } else {
             lastPush = nil
@@ -150,8 +180,8 @@ final class CrawlBarController {
         // Reconcile against where the view actually is: `install()` parents
         // it as a side effect, so testing `isVisible` after the fact is the
         // only transition check that cannot miss the first show.
-        if shouldShow, !isVisible, let container, let hostingView {
-            container.addSubview(hostingView)
+        if shouldShow, !isVisible, let container, let tickerView {
+            container.addSubview(tickerView)
             NSLayoutConstraint.activate(barConstraints)
             bringToFront()
         } else if !shouldShow, isVisible {
@@ -172,26 +202,21 @@ final class CrawlBarController {
 
     /// Hides the bar in two phases: first the strip's animation is cancelled
     /// explicitly, then — on the next runloop turn, after the freeze commits —
-    /// the hosting view leaves the hierarchy. Tearing down a live
-    /// repeat-forever animation together with its layers blanked sibling
-    /// content until the next full re-layout; this ordering never does both
-    /// at once. If the bar is wanted again before the deferred detach runs,
-    /// the detach is skipped and the fresh show path (with `haltLoop` false)
-    /// restarts the loop.
+    /// the bar leaves the hierarchy. Tearing down a live repeat-forever
+    /// animation together with its layers blanked sibling content until the
+    /// next full re-layout; this ordering never does both at once. If the bar
+    /// is wanted again before the deferred detach runs, the detach is skipped
+    /// and the fresh show path un-halts and restarts the loop.
     private func freezeAndDetach() {
-        guard let hostingView else { return }
-        var frozen = makeRoot(feeds: SettingsStore.shared.settings.feeds)
-        frozen.haltLoop = true
-        // Bypass coalescing: the halt flag is intentionally not part of the
-        // push signature, so a frozen frame always commits.
-        hostingView.rootView = frozen
+        guard let tickerView else { return }
+        tickerView.setHalted(true)
         lastPush = nil
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let feeds = SettingsStore.shared.settings.feeds
             let enabled = self.forceEnabledForTesting ?? feeds.crawlEnabled
             guard !enabled || self.store.headlines.isEmpty else { return }
-            self.hostingView?.removeFromSuperview()
+            self.tickerView?.removeFromSuperview()
             let nowVisible = self.isVisible
             if nowVisible != self.lastReportedVisible {
                 self.lastReportedVisible = nowVisible
@@ -199,17 +224,40 @@ final class CrawlBarController {
             }
         }
     }
-    private func makeRoot(feeds: AppSettings.FeedSettings) -> CrawlTickerView {
-        CrawlTickerView(
+    /// The inputs the ticker renders from. `fontSize` carries the user's
+    /// text-size scale, read at push time; the settings tick that changes
+    /// the stored size also re-pushes.
+    private func makeInputs(feeds: AppSettings.FeedSettings) -> CrawlTickerInputs {
+        CrawlTickerInputs(
             headlines: store.headlines,
             speed: feeds.crawlSpeed,
             direction: feeds.crawlDirection,
-            fontSize: feeds.crawlFontSize,
+            fontSize: feeds.crawlFontSize * Self.typeScale,
             backgroundOpacity: feeds.crawlBackgroundOpacity,
-            separator: feeds.crawlSeparator,
             favicons: store.faviconImages,
-            onOpen: { [weak self] url in self?.openHeadline(url) }
+            separator: feeds.crawlSeparator
         )
+    }
+
+    /// Room for the user's text size, the way the SwiftUI wrapper's
+    /// `@ScaledMetric` did before the ticker was hosted directly.
+    /// `preferredFont(forTextStyle: .body)` tracks the accessibility text
+    /// size; at the default it equals `systemFontSize`, so the scale is 1.
+    private static var typeScale: CGFloat {
+        CGFloat(NSFont.preferredFont(forTextStyle: .body).pointSize / max(1, NSFont.systemFontSize))
+    }
+
+    /// Pushes fresh inputs into the ticker and makes sure a halted ticker
+    /// (hidden, then wanted again) resumes. The un-halt is guarded: an
+    /// unconditional `setHalted(false)` would restart the loop on every
+    /// push, including favicon arrivals that only change a few icons.
+    private func push(feeds: AppSettings.FeedSettings) {
+        guard let tickerView else { return }
+        tickerView.onOpen = { [weak self] url in self?.openHeadline(url) }
+        if tickerView.isHalted {
+            tickerView.setHalted(false)
+        }
+        tickerView.update(with: makeInputs(feeds: feeds))
     }
 
     /// A ticker tap always reads the item: it leaves the unread-only bar at
@@ -223,28 +271,23 @@ final class CrawlBarController {
     }
 
     private func install(feeds: AppSettings.FeedSettings) {
-        let hosted = NSHostingView(rootView: makeRoot(feeds: feeds))
-        // No layer meddling: the hosting view draws nothing of its own, and
-        // the SwiftUI bar paints its own rounded fill, so the corners stay
+        let ticker = CrawlTickerNSView()
+        // Layer-managed and drew-nothing-of-its-own, like its predecessor:
+        // the pill comes from its own background layer, so the corners stay
         // transparent onto the page beneath.
-        hosted.translatesAutoresizingMaskIntoConstraints = false
-        // Content must never size the bar: the ticker's ideal width follows
-        // its headlines, and a long loop reaching the window through the edge
-        // pins would grow the window to fit the text. Demoted, so the pins
-        // always win and the strip clips instead — the same demand the
-        // spotlight dropdown demotes for the same reason.
-        hosted.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        hosted.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        ticker.translatesAutoresizingMaskIntoConstraints = false
+        ticker.onOpen = { [weak self] url in self?.openHeadline(url) }
+        ticker.update(with: makeInputs(feeds: feeds))
         guard let container else { return }
-        container.addSubview(hosted)
-        heightConstraint = hosted.heightAnchor.constraint(equalToConstant: barHeight)
+        container.addSubview(ticker)
+        heightConstraint = ticker.heightAnchor.constraint(equalToConstant: barHeight)
         barConstraints = [
-            hosted.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: Self.sideMargin),
-            hosted.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -Self.sideMargin),
-            hosted.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -Self.bottomMargin),
+            ticker.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: Self.sideMargin),
+            ticker.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -Self.sideMargin),
+            ticker.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -Self.bottomMargin),
             heightConstraint!,
         ]
         NSLayoutConstraint.activate(barConstraints)
-        hostingView = hosted
+        tickerView = ticker
     }
 }

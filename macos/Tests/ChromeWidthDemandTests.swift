@@ -16,14 +16,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import AppKit
-import SwiftUI
 import Testing
 @testable import Whatever
 
 /// The window must never grow to fit its chrome: the tab strip lays itself
-/// out by hand, and the ticker's ideal width follows its headlines, so any
-/// autoresizing snapshot or unsuppressed content demand ratchets the window
-/// wider on pages with long titles — and it can never shrink back.
+/// out by hand, and the crawl ticker is pinned directly with no content-sized
+/// hosting wrapper, so no chrome view may carry a required width demand wider
+/// than the window. The growth was real — SwiftUI's representable platform
+/// host kept a required frame-width (`NSAutoresizingMaskLayoutConstraint` on
+/// `PlatformViewHost<PlatformViewRepresentableAdaptor<CrawlTickerView>>`)
+/// that AppKit satisfied by growing the window — which is why the ticker must
+/// stay hosted directly.
 @MainActor
 struct ChromeWidthDemandTests {
     @Test("strip and its scroll view stay out of Auto Layout's hands")
@@ -35,36 +38,82 @@ struct ChromeWidthDemandTests {
         #expect(scrollers[0].translatesAutoresizingMaskIntoConstraints == false)
     }
 
-    @Test("ticker content never sizes the bar")
-    func tickerDemoted() async throws {
+    @Test("crawl bar hosts the ticker directly, no SwiftUI in between")
+    func tickerHostedDirectly() async throws {
         // Held for the test's life: the controller keeps its container
         // weakly, and a temporary would vanish before installing.
-        let container = NSView()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 1490, height: 900))
         let controller = CrawlBarController(container: container)
         controller.forceEnabledForTesting = true
-        controller.store.replaceHeadlinesForTesting([
+        controller.store.replaceHeadlinesForTesting(sampleHeadlines())
+        // The headlines publisher hops the main queue before the controller
+        // refreshes and installs the bar.
+        try await Task.sleep(nanoseconds: 300_000_000)
+        #expect(controller.barView is CrawlTickerNSView)
+        #expect(findHostingView(in: container) == nil)
+    }
+
+    @Test("crawl bar never demands more than its container")
+    func crawlNeverOutgrowsContainer() async throws {
+        // Held for the test's life: the controller keeps its container
+        // weakly, and a temporary would vanish before installing.
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 1490, height: 900))
+        let controller = CrawlBarController(container: container)
+        controller.forceEnabledForTesting = true
+        // A pass of long titles wide enough that one full bitmap pass
+        // (~3.5k pt) dwarfs the container: exactly the real-world shape
+        // that grew the window to bitmap width.
+        let headlines = (0..<15).map { i in
+            CrawlHeadline(
+                articleID: Int64(i), site: "website\(i).com",
+                title: "Headline \(i): " + String(repeating: "breaking story text ", count: 6),
+                url: "https://website\(i).com/a\(i)",
+                feedURL: "https://website\(i).com/feed",
+                isSaved: false, publishedAt: Int64(100 - i)
+            )
+        }
+        controller.store.replaceHeadlinesForTesting(headlines)
+        // The headlines publisher hops the main queue before the controller
+        // refreshes, installs, and renders the strip.
+        try await Task.sleep(nanoseconds: 400_000_000)
+        container.layoutSubtreeIfNeeded()
+
+        guard let ticker = controller.barView else {
+            Issue.record("crawl bar never installed its ticker")
+            return
+        }
+        // The ticker must sit inside its pins, not at bitmap width.
+        #expect(
+            ticker.frame.width <= 1490,
+            "crawl ticker is \(ticker.frame.width) wide in a 1490 container")
+        // And widening it must not stick as a demand: after a transient
+        // resize the bar is free to shrink again, which is exactly what the
+        // SwiftUI host's required frame-width broke.
+        container.setFrameSize(NSSize(width: 2400, height: 900))
+        container.layoutSubtreeIfNeeded()
+        container.setFrameSize(NSSize(width: 1490, height: 900))
+        container.layoutSubtreeIfNeeded()
+        #expect(
+            ticker.frame.width <= 1490,
+            "crawl ticker kept \(ticker.frame.width) after the container shrank")
+    }
+
+    private func sampleHeadlines() -> [CrawlHeadline] {
+        [
             CrawlHeadline(
                 articleID: 1, site: "website.com", title: "Lorem ipsum dolor sit amet",
                 url: "https://website.com/a", feedURL: "https://website.com/feed",
                 isSaved: false, publishedAt: 2
             ),
-        ])
-        // The headlines publisher hops through the main queue before the
-        // controller refreshes and installs the bar.
-        try await Task.sleep(nanoseconds: 300_000_000)
-        guard let host = findTickerHost(in: controller.barView) else {
-            Issue.record("crawl bar never installed its hosting view")
-            return
-        }
-        #expect(host.contentHuggingPriority(for: .horizontal) == .defaultLow)
-        #expect(host.contentCompressionResistancePriority(for: .horizontal) == .defaultLow)
+        ]
     }
 
-    private func findTickerHost(in view: NSView?) -> NSView? {
-        guard let view else { return nil }
-        if view is NSHostingView<CrawlTickerView> { return view }
+    /// By name rather than by type: the point is "no SwiftUI hosting at all
+    /// in this subtree", which should outlive any particular generic.
+    private func findHostingView(in view: NSView) -> NSView? {
+        if String(describing: type(of: view)).contains("NSHostingView") { return view }
         for subview in view.subviews {
-            if let found = findTickerHost(in: subview) { return found }
+            if let found = findHostingView(in: subview) { return found }
         }
         return nil
     }
