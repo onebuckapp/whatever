@@ -1,0 +1,12 @@
+Whatever bundled wordlist: provenance and licensing.
+
+WHAT IS BUNDLED
+- eff-large.txt: the EFF large wordlist for random passphrases (7776 words,
+  one per line as "<dice-number>\t<word>"), retrieved 2026-10-09 from
+  https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
+  and shipped byte-identical. It backs the password generator's words mode:
+  each word carries ~12.9 bits, so 4 words hold ~52 bits and 6 hold ~77.
+
+LICENSE (eff-large.txt)
+The EFF wordlist is released under CC Attribution 3.0
+(https://creativecommons.org/licenses/by/3.0/). Attribution is given here.
