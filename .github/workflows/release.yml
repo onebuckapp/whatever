@@ -119,6 +119,48 @@ jobs:
           name: whatever-dmg-macos-${{ matrix.arch }}
           path: '*.dmg'
 
+      - name: Build the app (Debug)
+        shell: bash
+        run: make macos
+
+      - name: Package the Debug app
+        shell: bash
+        run: |
+          set -eu
+          # A debuggable sibling of the release DMG: unoptimized, with the
+          # DEBUG-only diagnostics compiled in. Ships both as its own zip and
+          # its own DMG (not inside the release DMG) so each stays
+          # independently downloadable, and the bundle inside is renamed so
+          # both copies can live side by side in /Applications without
+          # overwriting each other.
+          app="macos/Build/Build/Products/Debug/Whatever.app"
+          [[ -d "${app}" ]] || { echo "ERROR: app not found: ${app}"; exit 1; }
+          tag="${GITHUB_REF_NAME//\//-}"
+          zip="Whatever_${tag}_macos-${{ matrix.arch }}-debug.zip"
+          dmg="Whatever_${tag}_macos-${{ matrix.arch }}-debug.dmg"
+          rm -rf debug-staging "${zip}"
+          mkdir -p debug-staging
+          cp -R "${app}" "debug-staging/Whatever Debug.app"
+          # ditto, not zip: it keeps the bundle's symlinks and resource
+          # forks intact, which plain zip does not.
+          ditto -c -k --sequesterRsrc --keepParent \
+            "debug-staging/Whatever Debug.app" "${zip}"
+          rm -rf dmg-staging-debug "${dmg}"
+          mkdir -p dmg-staging-debug
+          cp -R "debug-staging/Whatever Debug.app" dmg-staging-debug/
+          cp README.md LICENSE dmg-staging-debug/
+          ln -s /Applications dmg-staging-debug/Applications
+          hdiutil create -volname "Whatever Debug" -srcfolder dmg-staging-debug \
+            -ov -format UDZO "${dmg}"
+          rm -rf debug-staging dmg-staging-debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whatever-debug-macos-${{ matrix.arch }}
+          path: |
+            *-debug.zip
+            *-debug.dmg
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -136,6 +178,12 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: whatever-debug-*
+          path: dist
+          merge-multiple: true
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -144,9 +192,9 @@ jobs:
           set -eu
           shopt -s nullglob
           tag="${{ github.ref_name }}"
-          assets=(dist/*.dmg)
+          assets=(dist/*.dmg dist/*.zip)
           if (( ${#assets[@]} == 0 )); then
-            echo "ERROR: no DMGs found in dist/"
+            echo "ERROR: no DMGs or zips found in dist/"
             exit 1
           fi
           echo ">> Releasing ${tag}: ${assets[*]}"
