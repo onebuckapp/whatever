@@ -45,7 +45,12 @@ enum LinkHover {
                 if (from === to) return;
                 report(to ? to.href : null);
             }, true);
-            document.documentElement.addEventListener("mouseleave", () => report(null));
+            // `documentElement` is still null at document start: without `?.`
+            // this line throws, the mouseleave notice never attaches, and a
+            // pointer leaving the window from inside a link leaves a stale
+            // bubble behind. The mouseover/mouseout pair above already ran,
+            // so hover itself survives either way.
+            document.documentElement?.addEventListener("mouseleave", () => report(null));
         })();
         """
     }
