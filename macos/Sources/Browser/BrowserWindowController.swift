@@ -565,11 +565,22 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onAdBlock = { [weak self] in
             self?.presentAdBlockPopup()
         }
+        toolbarController.onBookmark = { [weak self] mode in
+            self?.contentController.presentBookmarkEditor(mode: mode)
+        }
         toolbarController.onFeed = { [weak self] candidates in
             self?.presentFeedReader(candidates: candidates)
         }
         contentController.onOpenFeedArticle = { [weak self] url, newTab in
             self?.openFeedArticle(url, inNewTab: newTab)
+        }
+        contentController.onOpenBookmarkURL = { [weak self] url, newTab in
+            guard let self else { return }
+            if newTab {
+                BrowserCoordinator.shared.newTab(url: url, in: self)
+            } else {
+                self.openAddress(url)
+            }
         }
         // A modal card takes the mouse away from the pages for its duration.
         contentController.onShieldChanged = { [weak self] shielded in

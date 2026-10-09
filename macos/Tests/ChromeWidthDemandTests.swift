@@ -98,6 +98,44 @@ struct ChromeWidthDemandTests {
             "crawl ticker kept \(ticker.frame.width) after the container shrank")
     }
 
+    @Test("bookmarks bar never demands more than its container")
+    func bookmarkBarNeverOutgrowsContainer() {
+        // Held for the test's life: the controller keeps its container
+        // weakly, and a temporary would vanish before installing.
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 1490, height: 900))
+        let store = BookmarkStore()
+        store.persistEnabled = false
+        // Long titles wide enough that the full row dwarfs the container.
+        store.replaceNodesForTesting((0..<30).map { i in
+            BookmarkNode(
+                id: "b\(i)",
+                kind: .link,
+                title: "A very long bookmark title number \(i)",
+                url: "https://example.com/\(i)"
+            )
+        })
+        let controller = BookmarkBarController(container: container, store: store)
+        controller.forceEnabledForTesting = true
+        container.layoutSubtreeIfNeeded()
+
+        let bar = controller.view
+        #expect(
+            bar.frame.width <= 1490,
+            "bookmarks bar is \(bar.frame.width) wide in a 1490 container")
+        #expect(controller.view.isOverflowVisibleForTesting, "overflow chevron never appeared")
+        // And widening must not stick as a demand: after a transient resize
+        // the bar is free to shrink again.
+        container.setFrameSize(NSSize(width: 2400, height: 900))
+        container.layoutSubtreeIfNeeded()
+        container.setFrameSize(NSSize(width: 200, height: 900))
+        container.layoutSubtreeIfNeeded()
+        #expect(
+            bar.frame.width <= 200,
+            "bookmarks bar kept \(bar.frame.width) after the container shrank")
+        // The row itself may exceed the bar; it must be clipped, not forced.
+        #expect(controller.view.itemsWidthForTesting > 200)
+    }
+
     private func sampleHeadlines() -> [CrawlHeadline] {
         [
             CrawlHeadline(

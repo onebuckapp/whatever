@@ -35,10 +35,14 @@ final class BrowserWindowContentViewController: NSViewController {
     private var noiseSettingsPresenter: NoiseOverlaySettingsPresenter?
     private var settingsPresenter: SettingsModalPresenter?
     private var adBlockPresenter: AdBlockPopupPresenter?
+    private var bookmarkEditorPresenter: BookmarkEditorPresenter?
     private var feedReaderPresenter: FeedReaderPresenter?
     /// Internal for layout tests, which drive visibility through the
     /// controller's testing seams.
     var crawlBarController: CrawlBarController?
+    /// The bookmarks strip between the toolbar and the tab bar. Internal for
+    /// layout tests, like the crawl bar's seam.
+    var bookmarkBarController: BookmarkBarController?
     private var shield: ModalEventShieldView?
 
     /// Set by the window controller. `onDropZoneChanged` receives nil
@@ -60,6 +64,9 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Opens a feed article from the reader. `true` means a new tab; false
     /// means the selected tab.
     var onOpenFeedArticle: ((URL, Bool) -> Void)?
+    /// Opens a bookmarked URL. `true` means a new tab; false means the
+    /// selected tab.
+    var onOpenBookmarkURL: ((URL, Bool) -> Void)?
 
     let tabBar = TabBarContainerView(newTabAction: {})
     /// Constraints pinning each child to the page area, one set per child.
@@ -103,14 +110,29 @@ final class BrowserWindowContentViewController: NSViewController {
         guard isViewLoaded, toolbarView == nil else { return }
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolbar, positioned: .below, relativeTo: tabBar)
-        NSLayoutConstraint.activate([
-            toolbar.topAnchor.constraint(equalTo: view.topAnchor),
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
+        // The tab bar hangs off the bookmarks bar, which hangs off the
+        // toolbar; the bookmarks bar collapses to zero height when hidden,
+        // so the chain holds whether or not it is showing.
+        if let bookmarkBarView = bookmarkBarController?.view {
+            NSLayoutConstraint.activate([
+                toolbar.topAnchor.constraint(equalTo: view.topAnchor),
+                toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
 
-            tabBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
-        ])
+                bookmarkBarView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+                tabBar.topAnchor.constraint(equalTo: bookmarkBarView.bottomAnchor),
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                toolbar.topAnchor.constraint(equalTo: view.topAnchor),
+                toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
+
+                tabBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            ])
+        }
         toolbarView = toolbar
     }
 
@@ -291,6 +313,43 @@ final class BrowserWindowContentViewController: NSViewController {
     func dismissAdBlockPopup() {
         adBlockPresenter?.dismiss()
         adBlockPresenter = nil
+    }
+
+    /// Opens the bookmark editor card for `mode`, or closes it when already
+    /// open.
+    ///
+    /// Shielded like every other card, with click semantics rather than
+    /// press semantics: the card holds text fields, so a selection drag that
+    /// ends outside it must not dismiss the card (same rule as settings).
+    func presentBookmarkEditor(mode: BookmarkEditorMode) {
+        guard isViewLoaded else { return }
+        if bookmarkEditorPresenter != nil {
+            dismissBookmarkEditor()
+            // Fall through and reopen: the mode belongs to this press, not
+            // to whatever the previous card was showing.
+        }
+        let presenter = BookmarkEditorPresenter(container: view) { [weak self] in
+            self?.bookmarkEditorPresenter = nil
+            self?.releaseShield(id: "bookmark-editor")
+        }
+        bookmarkEditorPresenter = presenter
+        claimShield(id: "bookmark-editor", dismissOnPress: false) { [weak self] in
+            Task { @MainActor in
+                self?.dismissBookmarkEditor()
+            }
+        }
+        presenter.present(mode: mode)
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            bookmarkEditorPresenter = nil
+            releaseShield(id: "bookmark-editor")
+        }
+    }
+
+    func dismissBookmarkEditor() {
+        bookmarkEditorPresenter?.dismiss()
+        bookmarkEditorPresenter = nil
     }
 
     private func dismissNoiseSettings() {
@@ -475,6 +534,21 @@ final class BrowserWindowContentViewController: NSViewController {
                 lessThanOrEqualTo: view.widthAnchor
             ),
         ])
+
+        // The bookmarks strip: always parented, between the toolbar and the
+        // tab bar (see `installToolbar`). Hidden and zero-height until the
+        // setting asks for it, so nothing shifts by default.
+        let bookmarkBar = BookmarkBarController(container: view)
+        bookmarkBar.onOpen = { [weak self] url, newTab in
+            self?.onOpenBookmarkURL?(url, newTab)
+        }
+        bookmarkBar.onPresentEditor = { [weak self] mode in
+            self?.presentBookmarkEditor(mode: mode)
+        }
+        bookmarkBar.onOpenSettings = { [weak self] in
+            self?.presentSettings(section: .bookmarks)
+        }
+        bookmarkBarController = bookmarkBar
 
         // Subtle grain above the tab bar and page area. It is a sibling
         // of the content (never an ancestor), so scrolling does not move

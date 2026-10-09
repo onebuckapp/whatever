@@ -64,6 +64,12 @@ struct WhateverApp: App {
                     BrowserCoordinator.shared.keyController?.reloadPageFromOrigin()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
+                Divider()
+                Toggle(
+                    "Show Bookmarks Bar",
+                    isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
+                )
+                .keyboardShortcut("b", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings\u{2026}") {

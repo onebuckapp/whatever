@@ -45,6 +45,7 @@ final class BrowserToolbarController: NSObject {
     private let backButton = BrowserToolbarButton()
     private let forwardButton = BrowserToolbarButton()
     private let reloadButton = BrowserToolbarButton()
+    private let bookmarkButton = BrowserToolbarButton()
 
     private weak var controller: BrowserWindowController?
     private var cancellables = Set<AnyCancellable>()
@@ -72,6 +73,9 @@ final class BrowserToolbarController: NSObject {
     var onBookmarks: (() -> Void)?
     /// Opens the per-site content-blocker card for the current tab.
     var onAdBlock: (() -> Void)?
+    /// Opens the bookmark editor for the current page: add when the page is
+    /// not saved yet, edit when it is.
+    var onBookmark: ((BookmarkEditorMode) -> Void)?
     /// Offers the selected tab's advertised feeds. Empty when hidden.
     var onFeed: (([FeedCandidate]) -> Void)?
 
@@ -82,7 +86,7 @@ final class BrowserToolbarController: NSObject {
         // can be handed them here; their targets, images and delegate need `self`
         // and are set just after.
         let toolbar = BrowserToolbarView(
-            leading: [backButton, forwardButton, reloadButton],
+            leading: [backButton, forwardButton, reloadButton, bookmarkButton],
             center: centerStack,
             trailing: [adblockButton, bookmarksButton, downloadsButton, settingsButton]
         )
@@ -103,6 +107,12 @@ final class BrowserToolbarController: NSObject {
             .sink { [weak self] _ in self?.applyAddressBarStyle() }
             .store(in: &chromeCancellables)
         applyAddressBarStyle()
+        // The star follows the bookmarks themselves, not the tab: a save
+        // from any window (or the bar's own menus) flips it everywhere.
+        BookmarkStore.shared.$nodes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncBookmarkButton() }
+            .store(in: &chromeCancellables)
         // Wired here rather than in the spotlight's own init because it needs `self`.
         spotlight.onEditingChanged = { [weak self] isEditing in
             self?.isEditingAddress = isEditing
@@ -226,6 +236,7 @@ final class BrowserToolbarController: NSObject {
             spotlight.isSecure = true
             syncFeedButton()
             syncAdBlockButton()
+            syncBookmarkButton()
             return
         }
 
@@ -260,6 +271,7 @@ final class BrowserToolbarController: NSObject {
         }
         syncFeedButton()
         syncAdBlockButton()
+        syncBookmarkButton()
     }
 
     /// Shows the feed control exactly when the selected tab advertises feeds.
@@ -306,6 +318,19 @@ final class BrowserToolbarController: NSObject {
             : "Content Blocker — paused on this site"
     }
 
+    /// The star: filled while the current page is bookmarked, hollow when
+    /// not, disabled where there is no user-facing address to save.
+    private func syncBookmarkButton() {
+        let url = tab?.displayURL
+        let saved = url.map { !$0.isAddresslessPage && BookmarkStore.shared.isBookmarked($0) } ?? false
+        let symbol = saved ? "star.fill" : "star"
+        let help = saved ? "Edit Bookmark" : "Add Bookmark"
+        bookmarkButton.isEnabled = url.map { !$0.isAddresslessPage } ?? false
+        bookmarkButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
+            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        bookmarkButton.toolTip = help
+    }
+
     // MARK: - Actions
 
     @objc private func goBack() {
@@ -348,12 +373,28 @@ final class BrowserToolbarController: NSObject {
         onFeed?(candidates)
     }
 
+    /// The star's action: edit the existing bookmark when the page is
+    /// already saved, offer to add it otherwise. Prefilled from the page so
+    /// the common case is one press plus Save.
+    @objc private func toggleBookmark() {
+        guard let url = tab?.displayURL, !url.isAddresslessPage else { return }
+        onBookmark?(
+            BookmarkEditor.starMode(
+                for: url,
+                title: tab?.tabController.title ?? "",
+                in: BookmarkStore.shared
+            )
+        )
+    }
+
     // MARK: - Setup
 
     private func configureButtons() {
         configure(backButton, symbol: "chevron.left", help: "Back", action: #selector(goBack))
         configure(forwardButton, symbol: "chevron.right", help: "Forward", action: #selector(goForward))
         configure(reloadButton, symbol: "arrow.clockwise", help: "Reload", action: #selector(toggleReload))
+        configure(bookmarkButton, symbol: "star", help: "Add Bookmark", action: #selector(toggleBookmark))
+        syncBookmarkButton()
         configureFeedButton()
 
         configure(settingsButton, symbol: "gearshape", help: "Settings", action: #selector(openSettings))
