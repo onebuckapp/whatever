@@ -45,14 +45,36 @@ final class LinkHoverBubble: NSView {
         nil
     }
 
-    func show(_ url: URL) {
-        label.stringValue = url.absoluteString
+    func show(_ url: URL, onPage pageURL: URL?) {
+        label.stringValue = Self.displayText(link: url, onPage: pageURL)
         // Already up: just the text changes, so a stream of hovers never
         // restarts the fade.
         guard !isShowing else { return }
         isShowing = true
         isHidden = false
         animator().alphaValue = 1
+    }
+
+    /// The bubble text: the full address, with a ↗ suffix for links leaving
+    /// the current site.
+    static func displayText(link: URL, onPage pageURL: URL?) -> String {
+        isExternal(link: link, onPage: pageURL)
+            ? "\(link.absoluteString) ↗" : link.absoluteString
+    }
+
+    /// Whether `link` leaves the site `pageURL` is on. Hosts compare
+    /// case-insensitively with a leading `www.` ignored, so
+    /// `www.example.com` links on `example.com` stay unmarked. A link with
+    /// no host (mailto:, tel:) counts as leaving.
+    static func isExternal(link: URL, onPage pageURL: URL?) -> Bool {
+        guard let pageHost = pageURL?.host else { return true }
+        guard let linkHost = link.host else { return true }
+        return stripped(linkHost) != stripped(pageHost)
+    }
+
+    private static func stripped(_ host: String) -> String {
+        let lower = host.lowercased()
+        return lower.hasPrefix("www.") ? String(lower.dropFirst(4)) : lower
     }
 
     /// The address currently displayed, for tests.

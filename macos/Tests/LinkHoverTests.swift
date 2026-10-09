@@ -48,7 +48,7 @@ struct LinkHoverTests {
     func bubbleShowsAndHides() {
         let bubble = LinkHoverBubble()
         #expect(bubble.isShowing == false)
-        bubble.show(URL(string: "https://example.com/some/long/path")!)
+        bubble.show(URL(string: "https://example.com/some/long/path")!, onPage: URL(string: "https://example.com/")!)
         #expect(bubble.isShowing == true)
         #expect(bubble.displayedAddress == "https://example.com/some/long/path")
         bubble.hide()
@@ -59,10 +59,40 @@ struct LinkHoverTests {
     @MainActor
     func bubbleRetargetsWhileUp() {
         let bubble = LinkHoverBubble()
-        bubble.show(URL(string: "https://a.example")!)
-        bubble.show(URL(string: "https://b.example/other")!)
+        bubble.show(URL(string: "https://a.example")!, onPage: nil)
+        bubble.show(URL(string: "https://b.example/other")!, onPage: nil)
         #expect(bubble.isShowing == true)
-        #expect(bubble.displayedAddress == "https://b.example/other")
+        #expect(bubble.displayedAddress == "https://b.example/other ↗")
+    }
+
+    @Test("external links gain the arrow, internal ones do not")
+    func externalArrow() {
+        let page = URL(string: "https://example.com/article")!
+        #expect(LinkHoverBubble.displayText(
+            link: URL(string: "https://example.com/other")!, onPage: page)
+            == "https://example.com/other")
+        #expect(LinkHoverBubble.displayText(
+            link: URL(string: "https://elsewhere.com/x")!, onPage: page)
+            == "https://elsewhere.com/x ↗")
+    }
+
+    @Test("www counts as the same site, case ignored, hostless leaves")
+    func externalEdgeCases() {
+        #expect(LinkHoverBubble.isExternal(
+            link: URL(string: "https://www.example.com/x")!,
+            onPage: URL(string: "https://example.com/")!) == false)
+        #expect(LinkHoverBubble.isExternal(
+            link: URL(string: "https://EXAMPLE.com/x")!,
+            onPage: URL(string: "https://example.com/")!) == false)
+        #expect(LinkHoverBubble.isExternal(
+            link: URL(string: "https://sub.example.com/x")!,
+            onPage: URL(string: "https://example.com/")!) == true)
+        #expect(LinkHoverBubble.isExternal(
+            link: URL(string: "mailto:a@example.com")!,
+            onPage: URL(string: "https://example.com/")!) == true)
+        #expect(LinkHoverBubble.isExternal(
+            link: URL(string: "https://example.com/x")!,
+            onPage: nil) == true)
     }
 
     @Test("hiding a hidden bubble is a no-op")

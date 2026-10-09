@@ -462,7 +462,7 @@ final class BrowserPaneController: NSViewController {
             ])
             linkHoverBubble = bubble
         }
-        linkHoverBubble?.show(url)
+        linkHoverBubble?.show(url, onPage: tab.webView?.url)
     }
 
     private func hideLinkHover() {
