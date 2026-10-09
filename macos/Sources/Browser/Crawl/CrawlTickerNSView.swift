@@ -502,8 +502,12 @@ final class CrawlTickerNSView: NSView {
         // Snap frames to the backing pixel grid: a layer sitting on a
         // fractional boundary resamples everything it carries, which reads
         // as blur. Only sub-pixel dust is removed, so coverage math is
-        // unaffected.
-        rootLayer.frame = snapped(bounds)
+        // unaffected. The *root* layer is deliberately left alone: it is the
+        // view's own layer, a layer's `frame` is in its superlayer's
+        // coordinates, and assigning bounds as a frame teleported the whole
+        // tree to the parent's origin — the bar rendered flush to the
+        // window's bottom-left corner instead of at its (6,6) pins. AppKit
+        // keeps the root layer's geometry in sync with the view.
         backgroundLayer.frame = snapped(bounds)
         // Roundness from Settings, capped at half the bar height. Read here
         // rather than subscribed: every settings tick already funnels through
@@ -517,9 +521,16 @@ final class CrawlTickerNSView: NSView {
         maskLayer.frame = containerLayer.bounds
         // A wider window may outgrow the bitmap's spare pass; shrinking never
         // does. Content changes re-render through `update(with:)`.
-        if !coversVisibleWidth, strip != nil {
+        //
+        // During a live drag neither the re-render nor the re-anchor runs:
+        // swapping the bitmap and restarting the sweep per tick reads as
+        // flicker, and the spare pass covers the gap meanwhile. The pass
+        // after the drag ends (`viewDidEndLiveResize` schedules it) catches
+        // up once, with `inLiveResize` false.
+        let resizing = window?.inLiveResize == true
+        if !coversVisibleWidth, strip != nil, !resizing {
             renderStrip()
-        } else {
+        } else if !resizing {
             // A resized bar changes the sweep span: carry progress onto the
             // fresh span instead of turning around at a stale edge (or past
             // the bitmap, which would flash empty). Height-only changes keep
@@ -533,8 +544,17 @@ final class CrawlTickerNSView: NSView {
                 }
             }
             layoutStrip()
+        } else {
+            layoutStrip()
         }
         ensureLoopState()
+    }
+
+    override func viewDidEndLiveResize() {
+        super.viewDidEndLiveResize()
+        // Run the deferred catch-up: re-render if the drag outgrew the
+        // bitmap, re-anchor the sweep to the settled span.
+        needsLayout = true
     }
 
     /// The tiles cover the visible width plus one wrap pass; only growing
