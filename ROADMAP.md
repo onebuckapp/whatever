@@ -7,9 +7,6 @@ before starting what's new.
 
 ## Finishing what's started
 
-- **Bookmarks (in progress).** Basic saving and the settings pane exist, but
-  the feature is not done: folders, editing and organizing, a bookmarks bar,
-  and importing from Safari / Chrome / Firefox are all still missing.
 - **History.** Searchable history works; still to come are full-text search,
   smart folders (e.g. "this week"), and bulk cleanup tools.
 - **Downloads.** The history popup, retry, and badge are in; missing are
