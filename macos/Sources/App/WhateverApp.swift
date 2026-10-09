@@ -116,6 +116,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if changed.contains("appearance") {
                 BrowserCoordinator.shared.applyLiveBackgroundSettings()
             }
+            if changed.contains("search") {
+                BrowserCoordinator.shared.applyLiveSearchLinkGuard()
+            }
             if changed.contains("adblock") {
                 BrowserCoordinator.shared.applyLiveContentBlocker()
             }

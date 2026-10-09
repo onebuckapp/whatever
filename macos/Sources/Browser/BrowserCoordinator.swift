@@ -56,6 +56,21 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
     }
 
+    /// Pushes the search link guard onto every open page.
+    ///
+    /// The script list rebuilds from current settings and the visible
+    /// documents patch live, so the toggle answers at once instead of on the
+    /// next navigation. Called from `SettingsStore.onChange`.
+    func applyLiveSearchLinkGuard() {
+        let enabled = SettingsStore.shared.settings.search.cleanResultLinks
+        for window in windows {
+            for tab in window.tabs {
+                guard let webView = tab.webView else { continue }
+                SearchLinkGuard.apply(enabled: enabled, to: webView)
+            }
+        }
+    }
+
     /// Pushes the compiled content-blocker lists onto every open page.
     ///
     /// Each tab is synced with the exception list for the page it shows, and

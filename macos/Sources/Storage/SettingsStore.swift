@@ -318,6 +318,15 @@ struct AppSettings: Codable, Equatable {
 
         /// Engines the user added, in the order they were added.
         var customEngines: [CustomSearchEngine] = []
+
+        /// Whether result pages on the major search engines get a guard
+        /// script that stops the engine swapping result links for tracker
+        /// hops when they are pressed, so clicks (and copied links) carry
+        /// the destination instead.
+        ///
+        /// Off by default: it touches the pages' event handling, and engine
+        /// UI is partly built from links. Opt-in only.
+        var cleanResultLinks = false
     }
 
     /// Content blocker preferences.

@@ -762,6 +762,17 @@ struct SearchSettingsView: View {
 
             customGroup
 
+            SettingsGroup(
+                title: "Result Links",
+                footnote: "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+            ) {
+                SettingsToggleRow(
+                    title: "Clean search result links",
+                    subtitle: "Clicks and copied links carry the destination.",
+                    isOn: store.binding(\.search.cleanResultLinks)
+                )
+            }
+
             if isAdding {
                 addForm
             }

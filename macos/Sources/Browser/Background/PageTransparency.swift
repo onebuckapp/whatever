@@ -27,12 +27,12 @@ import WebKit
 /// image on `body`, still hides the media, and there is no way to see
 /// through that without rewriting the page.
 ///
-/// Removals go through `removeAllUserScripts()` because `WKUserContentController`
-/// has no `removeUserScript(_:)`. That call also takes the find-in-page bridge
-/// `WebViewFactory` installs, so every toggle re-adds the bridge first and the
-/// transparency script second: toggling never strips find from future loads.
-/// (A live document keeps its already-evaluated scripts; the list only gates
-/// what future pages start with.)
+/// Removals go through `PageScripts.rebuild(on:)` because
+/// `WKUserContentController` has no `removeUserScript(_:)`. The rebuild
+/// installs the find bridge and every opt-in script whose setting is on, so
+/// toggling transparency never strips the search link guard (or find) from
+/// future loads. (A live document keeps its already-evaluated scripts; the
+/// list only gates what future pages start with.)
 @MainActor
 enum PageTransparency {
     /// Marks the style element this installs, so it can find and remove it again
@@ -46,7 +46,9 @@ enum PageTransparency {
     }
     """
 
-    private static var script: WKUserScript {
+    /// Internal because the shared script-list rebuild installs it alongside
+    /// the other opt-in scripts.
+    static var script: WKUserScript {
         let source = """
         (() => {
             const install = () => {
@@ -77,12 +79,9 @@ enum PageTransparency {
         (webView as? BrowserWebView)?.drawsOpaquePageBackground = false
         webView.underPageBackgroundColor = .clear
 
-        let controller = webView.configuration.userContentController
-        controller.removeAllUserScripts()
-        controller.addUserScript(FindBridge.script)
-        if enabled {
-            controller.addUserScript(script)
-        }
+        // The script list is shared with the search link guard: rebuilding
+        // goes through one place so the two toggles never strip each other.
+        PageScripts.rebuild(on: webView)
         // Step 3. The script only runs on the next load, so the document on
         // screen is fixed separately or the toggle would appear to do nothing
         // until a navigation happened.
