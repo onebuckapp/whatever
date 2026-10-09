@@ -34,11 +34,11 @@ struct CrawlTickerRenderTests {
         [
             CrawlHeadline(
                 articleID: 1, site: "website.com", title: "Lorem ipsum dolor sit amet",
-                url: "https://website.com/a", feedURL: "https://website.com/feed", publishedAt: 2
+                url: "https://website.com/a", feedURL: "https://website.com/feed", isSaved: false, publishedAt: 2
             ),
             CrawlHeadline(
                 articleID: 2, site: "website.org", title: "Something is happening",
-                url: "https://website.org/b", feedURL: "https://website.com/feed", publishedAt: 1
+                url: "https://website.org/b", feedURL: "https://website.com/feed", isSaved: false, publishedAt: 1
             ),
         ]
     }
@@ -324,7 +324,7 @@ struct CrawlTickerRenderTests {
         var inputs = sampleInputs()
         inputs.headlines.append(CrawlHeadline(
             articleID: 3, site: "website.net", title: "Breaking news",
-            url: "https://website.net/c", feedURL: "https://website.net/feed", publishedAt: 3
+            url: "https://website.net/c", feedURL: "https://website.net/feed", isSaved: false, publishedAt: 3
         ))
         view.update(with: inputs)
         #expect(view.isLooping, "refresh killed the loop")
@@ -370,7 +370,7 @@ struct CrawlTickerRenderTests {
                 articleID: i, site: "website.com",
                 title: String(repeating: "Long headline text ", count: 8),
                 url: "https://website.com/\(i)", feedURL: "https://website.com/feed",
-                publishedAt: i
+                isSaved: false, publishedAt: i
             )
         }
         guard let tiles = CrawlStripRenderer.renderTiles(
@@ -409,7 +409,7 @@ struct CrawlTickerRenderTests {
                 articleID: i, site: "website.com",
                 title: String(repeating: "Long headline text ", count: 8),
                 url: "https://website.com/\(i)", feedURL: "https://website.com/feed",
-                publishedAt: i
+                isSaved: false, publishedAt: i
             )
         }
         guard let tiles = CrawlStripRenderer.renderTiles(

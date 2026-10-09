@@ -30,6 +30,9 @@ struct CrawlHeadline: Hashable, Sendable, Identifiable {
     let url: String
     /// Owning subscription, for favicon lookup. Empty when unknown.
     let feedURL: String
+    /// Whether the reader user saved the article. Carried so marking a
+    /// tapped headline read never unsaves it as a side effect.
+    let isSaved: Bool
     let publishedAt: Int64
 }
 
@@ -94,6 +97,7 @@ enum CrawlContent {
                 title: title,
                 url: article.url,
                 feedURL: article.feedURL,
+                isSaved: article.isSaved,
                 publishedAt: article.publishedAt
             ))
         }

@@ -115,16 +115,37 @@ final class CrawlStore: ObservableObject {
     /// store with nothing in it simply yields no headlines, which hides the bar.
     /// Concurrent calls collapse into one; settings drags can trigger reloads
     /// faster than the store answers.
+    ///
+    /// Unread only: the bar is an unread strip, and tapping a headline marks
+    /// it read (see `markReadAndDrop`), which is what removes it.
     func load() async {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         do {
-            let data = try await client.feedArticles(feedURL: "", onlyUnread: false, limit: 200)
+            let data = try await client.feedArticles(feedURL: "", onlyUnread: true, limit: 200)
             headlines = CrawlContent.headlines(from: FeedArticleSummary.decodeList(data))
             await warmFavicons()
         } catch {
             // Keep showing what was there; an empty store stays empty.
+        }
+    }
+
+    /// Marks a tapped headline read and drops it from the bar at once.
+    ///
+    /// The removal is local and immediate, so the tap answers without
+    /// waiting for the round trip; persistence and a reconciling reload
+    /// follow behind. A failed persist heals on that reload, which refetches
+    /// the store truth (unread-only) and brings the item back.
+    func markReadAndDrop(_ headline: CrawlHeadline) {
+        headlines.removeAll { $0.id == headline.id }
+        Task {
+            try? await client.setFeedArticleState(
+                id: headline.articleID,
+                isRead: true,
+                isSaved: headline.isSaved
+            )
+            await load()
         }
     }
 

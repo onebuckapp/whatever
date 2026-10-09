@@ -33,7 +33,8 @@ struct CrawlContentTests {
         site: String = "website.com",
         publishedAt: Int64 = 1_700_000_000,
         url: String = "https://website.com/a",
-        feedURL: String = "https://website.com/feed"
+        feedURL: String = "https://website.com/feed",
+        isSaved: Bool = false
     ) -> [String: Any] {
         [
             "id": id,
@@ -43,12 +44,23 @@ struct CrawlContentTests {
             "title": title,
             "publishedAt": publishedAt,
             "siteName": site,
+            "isSaved": isSaved,
         ]
     }
 
     @Test("item renders as site, colon, headline")
     func itemFormat() {
         #expect(CrawlContent.itemText(site: "website.com", title: "Lorem ipsum") == "website.com: Lorem ipsum")
+    }
+
+    @Test("saved state rides along, so marking read never unsaves")
+    func savedPassthrough() {
+        let headlines = CrawlContent.headlines(from: articles([
+            row(id: 1, title: "Lorem ipsum dolor sit amet", isSaved: true),
+            row(id: 2, title: "Something is happening"),
+        ]))
+        #expect(headlines.first(where: { $0.articleID == 1 })?.isSaved == true)
+        #expect(headlines.first(where: { $0.articleID == 2 })?.isSaved == false)
     }
 
     @Test("item without a site renders the bare headline")

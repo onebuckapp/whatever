@@ -28,11 +28,11 @@ struct CrawlLayoutTests {
         [
             CrawlHeadline(
                 articleID: 1, site: "website.com", title: "Lorem ipsum dolor sit amet",
-                url: "https://website.com/a", feedURL: "https://website.com/feed", publishedAt: 2
+                url: "https://website.com/a", feedURL: "https://website.com/feed", isSaved: false, publishedAt: 2
             ),
             CrawlHeadline(
                 articleID: 2, site: "website.org", title: "Something is happening",
-                url: "https://website.org/b", feedURL: "https://website.com/feed", publishedAt: 1
+                url: "https://website.org/b", feedURL: "https://website.com/feed", isSaved: false, publishedAt: 1
             ),
         ]
     }
@@ -126,5 +126,18 @@ struct CrawlLayoutTests {
         }
         #expect(abs(pane.view.frame.height - fullHeight) < 1,
                 "page height \(pane.view.frame.height) drifted from \(fullHeight) across toggles")
+    }
+
+    @Test("marking a headline read drops it from the bar at once")
+    @MainActor
+    func markReadDropsHeadline() {
+        let store = CrawlStore()
+        let headlines = sampleHeadlines()
+        store.replaceHeadlinesForTesting(headlines)
+        store.markReadAndDrop(headlines[0])
+        // The persistence round trip has no store service here and fails
+        // silently; the bar answers from the local removal, not from it.
+        #expect(store.headlines.count == 1)
+        #expect(store.headlines[0].id == headlines[1].id)
     }
 }

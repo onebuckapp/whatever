@@ -208,8 +208,18 @@ final class CrawlBarController {
             backgroundOpacity: feeds.crawlBackgroundOpacity,
             separator: feeds.crawlSeparator,
             favicons: store.faviconImages,
-            onOpen: { [weak self] url in self?.onOpenArticle?(url) }
+            onOpen: { [weak self] url in self?.openHeadline(url) }
         )
+    }
+
+    /// A ticker tap always reads the item: it leaves the unread-only bar at
+    /// once, persists behind the navigation, and the opener takes it from
+    /// there. An unknown URL (stale loop, rebuilt list) still navigates.
+    private func openHeadline(_ url: URL) {
+        if let headline = store.headlines.first(where: { $0.url == url.absoluteString }) {
+            store.markReadAndDrop(headline)
+        }
+        onOpenArticle?(url)
     }
 
     private func install(feeds: AppSettings.FeedSettings) {
