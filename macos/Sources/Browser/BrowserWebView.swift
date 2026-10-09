@@ -11,8 +11,20 @@ final class BrowserWebView: WKWebView {
         rawValue: "com.onebuckapp.whatever.generateQRCode"
     )
 
-    /// Called when the injected page-menu item is chosen.
-    var onGenerateQRCode: (() -> Void)?
+    /// Called when the injected page-menu item is chosen, with the
+    /// right-clicked link's address when the menu was opened on a link, or
+    /// nil for the page itself. Set by the hosting pane.
+    var onGenerateQRCode: ((URL?) -> Void)?
+
+    /// Called when link hover changes, with the hovered link or nil when the
+    /// pointer leaves links. Set by the hosting pane, which owns the bubble.
+    var onLinkHover: ((URL?) -> Void)?
+
+    /// The relay this page's configuration posts hover messages to. Held
+    /// strongly: the content controller retains its handlers, and the relay
+    /// holds this view weakly, so neither direction leaks. Replaced on every
+    /// script-list rebuild, one per page.
+    var hoverRelay: LinkHoverRelay?
 
     /// Called for the retargeted "Open Link" item, with the right-clicked
     /// link's address. A menu open is a deliberate new-tab gesture, not an
@@ -35,9 +47,24 @@ final class BrowserWebView: WKWebView {
     private static let openLinkInNewWindowID = "WKMenuItemIdentifierOpenLinkInNewWindow"
     private static let downloadLinkedFileID = "WKMenuItemIdentifierDownloadLinkedFile"
 
-    /// The right-click point in view coordinates, recorded when the menu
-    /// opens and read when an item is chosen.
-    private var linkMenuPoint: NSPoint?
+    /// What the retargeted "Open Link" item is renamed to. WebKit's title
+    /// describes its own behavior (load in place); ours opens a new tab, and
+    /// the menu should say so next to "Open Link in New Window".
+    static let openLinkInNewTabTitle = "Open Link in New Tab"
+
+    /// The right-clicked link's address for the open menu, resolving while
+    /// the menu opens and read when an item is chosen.
+    ///
+    /// Resolved at menu time, not click time: the press point is freshest
+    /// then, and whatever the page does between the menu and the choice —
+    /// lazy images landing, fonts swapping, an SPA navigating — cannot move
+    /// the link out from under an already-answered question. Re-querying at
+    /// click time missed on exactly those real-world pages, every time the
+    /// layout shifted in between, which is why the items worked once and
+    /// then not again. The task runs on the main actor: script evaluation is
+    /// a UI API, and background evaluation answered nil whenever WebKit felt
+    /// strict about it.
+    private var linkMenuResolution: Task<URL?, Never>?
     /// WebKit's original target and action per retargeted item, so a click
     /// that cannot be resolved still does what WebKit would have done.
     /// Keyed by identifier: there is at most one of each per menu.
@@ -186,6 +213,11 @@ final class BrowserWebView: WKWebView {
 
     override func mouseDown(with event: NSEvent) {
         guard takesMouseInput else { return }
+        // Control-click opens a context menu too, without a right-button
+        // press to record below.
+        if event.modifierFlags.contains(.control) {
+            noteMenuPress(event)
+        }
         super.mouseDown(with: event)
     }
 
@@ -222,6 +254,32 @@ final class BrowserWebView: WKWebView {
         super.scrollWheel(with: event)
     }
 
+    /// Records a press that may open a context menu, in view coordinates.
+    ///
+    /// Called while the event is still the genuine press. By the time
+    /// `willOpenMenu` runs, WebKit has replaced it with a menu-tracking
+    /// pseudo-event from another window, whose location is meaningless —
+    /// resolving the link from that point always missed.
+    private func noteMenuPress(_ event: NSEvent) {
+        menuPressPoint = (convert(event.locationInWindow, from: nil), Date())
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        guard takesMouseInput else { return }
+        noteMenuPress(event)
+        super.rightMouseDown(with: event)
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        guard takesMouseInput else { return }
+        noteMenuPress(event)
+        super.rightMouseUp(with: event)
+    }
+
+    /// A recent genuine press and when it happened, for the menu to resolve
+    /// its link from. Nil until the first right-button press.
+    private var menuPressPoint: (point: NSPoint, at: Date)?
+
     // MARK: - Page context menu
 
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
@@ -241,11 +299,46 @@ final class BrowserWebView: WKWebView {
             menu.insertItem(.separator(), at: 1)
         }
 
-        retargetLinkItems(in: menu, event: event)
+        retargetLinkItems(in: menu)
     }
 
     @objc private func handleGenerateQRCode(_ sender: NSMenuItem?) {
-        onGenerateQRCode?()
+        // Awaits the menu-time resolution like the open-link items: on a
+        // link menu this is the right-clicked link, otherwise nil for the
+        // page itself.
+        let resolution = linkMenuResolution
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.onGenerateQRCode?(await resolution?.value)
+        }
+    }
+
+    /// Picks the point the menu resolves its link from.
+    ///
+    /// Pure so tests pin the priority without a web view: a fresh press
+    /// beats the cursor, a stale press is ignored (a right-click that opened
+    /// no menu must not leak into a later keyboard-opened one), and with
+    /// neither there is no point.
+    static func menuResolutionPoint(
+        press: NSPoint?,
+        pressedAt: Date?,
+        cursor: NSPoint?,
+        now: Date = Date()
+    ) -> NSPoint? {
+        if let press, let pressedAt, now.timeIntervalSince(pressedAt) < 2 {
+            return press
+        }
+        return cursor
+    }
+
+    /// Where the cursor is now, in view coordinates, if it is over this
+    /// view at all. Fallback for menus no press opened (keyboard and edge
+    /// cases): the cursor is where the user was looking, which still beats
+    /// the menu event.
+    private func cursorPoint() -> NSPoint? {
+        guard let window else { return nil }
+        let point = convert(window.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
+        return bounds.contains(point) ? point : nil
     }
 
     /// Takes WebKit's link items over and drops its download item.
@@ -254,17 +347,36 @@ final class BrowserWebView: WKWebView {
     /// never consult the navigation policy), so it would save files the app
     /// never records. The open items keep their titles and positions; only
     /// their behavior changes, to the handlers below.
-    private func retargetLinkItems(in menu: NSMenu, event: NSEvent) {
+    private func retargetLinkItems(in menu: NSMenu) {
         menu.items
             .filter { $0.identifier?.rawValue == Self.downloadLinkedFileID }
             .forEach(menu.removeItem)
-        // Recorded for click-time resolution rather than resolved now: the
-        // address is re-queried when the user chooses, so there is no race
-        // and no stale cache.
-        linkMenuPoint = convert(event.locationInWindow, from: nil)
+        // Resolved now rather than when the user chooses, so the page state
+        // the user saw is the one queried. The link itself comes from the
+        // page's own `contextmenu` event (see `PageLinkCapture`); the press
+        // point is only a fallback for pages that never fired one.
+        linkMenuResolution?.cancel()
+        let point = Self.menuResolutionPoint(
+            press: menuPressPoint?.point,
+            pressedAt: menuPressPoint?.at,
+            cursor: cursorPoint()
+        )
+        linkMenuResolution = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled else { return nil }
+            let script = Self.linkResolutionScript(
+                viewX: point?.x,
+                viewY: point.map { bounds.height - $0.y }
+            )
+            let raw = try? await self.evaluateJavaScript(script)
+            guard let href = raw as? String, !href.isEmpty, let url = URL(string: href) else {
+                return nil
+            }
+            return url
+        }
         for item in menu.items {
             switch item.identifier?.rawValue {
             case Self.openLinkID:
+                item.title = Self.openLinkInNewTabTitle
                 takeOver(item, action: #selector(handleOpenLink(_:)))
             case Self.openLinkInNewWindowID:
                 takeOver(item, action: #selector(handleOpenLinkInNewWindow(_:)))
@@ -284,9 +396,12 @@ final class BrowserWebView: WKWebView {
     }
 
     @objc private func handleOpenLink(_ sender: NSMenuItem) {
-        resolveLinkURL { [weak self] url in
+        // Awaits the menu-time resolution: usually already answered, in
+        // which case this continues without suspending.
+        let resolution = linkMenuResolution
+        Task { @MainActor [weak self] in
             guard let self else { return }
-            if let url {
+            if let url = await resolution?.value {
                 self.onOpenLinkInNewTab?(url)
             } else {
                 self.fallBack(sender)
@@ -295,9 +410,10 @@ final class BrowserWebView: WKWebView {
     }
 
     @objc private func handleOpenLinkInNewWindow(_ sender: NSMenuItem) {
-        resolveLinkURL { [weak self] url in
+        let resolution = linkMenuResolution
+        Task { @MainActor [weak self] in
             guard let self else { return }
-            if let url {
+            if let url = await resolution?.value {
                 self.onOpenLinkInNewWindow?(url)
             } else {
                 self.fallBack(sender)
@@ -318,34 +434,34 @@ final class BrowserWebView: WKWebView {
         _ = NSApp.sendAction(action, to: target, from: sender)
     }
 
-    /// Finds the right-clicked link's address.
+    /// The script the menu runs to find the right-clicked link.
     ///
-    /// `elementFromPoint` wants viewport coordinates in CSS pixels, origin
-    /// top-left: AppKit's bottom-left origin is flipped and the scroll offset
-    /// and page zoom are subtracted in the same script, so layout between the
-    /// menu and the click cannot skew it. Links inside frames resolve through
-    /// the top document only. Nil when the point is not over a link, or when
-    /// scripting is off — the caller then falls back to WebKit's behavior.
-    private func resolveLinkURL(_ finish: @escaping (URL?) -> Void) {
-        guard let point = linkMenuPoint else {
-            finish(nil)
-            return
+    /// Prefers the href the page's own `contextmenu` event captured, which
+    /// needs no coordinate math and cannot drift with layout, scroll, or
+    /// zoom. Falls back to the point-based anchor lookup only when the page
+    /// never fired a `contextmenu` (or the script was not yet installed), and
+    /// clears the captured value either way so it cannot leak into the next
+    /// menu.
+    static func linkResolutionScript(viewX: CGFloat?, viewY: CGFloat?) -> String {
+        let coordinate: String
+        if let viewX, let viewY {
+            coordinate = "return \(linkLookupScript(viewX: viewX, viewY: viewY));"
+        } else {
+            coordinate = "return null;"
         }
-        Task { [weak self] in
-            guard let self else { return }
-            let script = Self.linkLookupScript(viewX: point.x, viewY: bounds.height - point.y)
-            let raw = try? await self.evaluateJavaScript(script)
-            guard let href = raw as? String, let url = URL(string: href) else {
-                finish(nil)
-                return
-            }
-            finish(url)
-        }
+        return """
+        (() => {
+            const captured = window.\(PageLinkCapture.variable);
+            window.\(PageLinkCapture.variable) = null;
+            if (captured) return captured;
+            \(coordinate)
+        })()
+        """
     }
 
     /// The anchor lookup for a right-click at view coordinates with a
     /// top-left origin. Pure so tests can prove the coordinate math without
-    /// a web view.
+    /// a web view. The menu's fallback path, not its first choice.
     static func linkLookupScript(viewX: CGFloat, viewY: CGFloat) -> String {
         """
         (() => {
