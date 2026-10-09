@@ -20,6 +20,67 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
     let titlePositions: [Int]
     let urlPositions: [Int]
 
+    /// Identity of the synthetic search row. Constant across rebuilds, so typing
+    /// another character replaces the row in place instead of dropping a
+    /// highlight the user just arrowed onto. The core issues UUIDs, so no real
+    /// history row can collide with this.
+    static let searchRowID = "search"
+
+    /// Whether this is the synthetic `Search for "…"` row rather than history.
+    /// The dropdown treats it differently: choosing it leaves the typed text in
+    /// the field instead of rewriting it with the destination.
+    var isSearchRow: Bool { id == Self.searchRowID }
+
+    /// The omnibox first row for `query`: `Search for "<query>"`, navigating
+    /// through the address parser exactly as Enter on the typed text would,
+    /// so URLs still go direct. Nil for blank queries and when no destination
+    /// builds. The engine's name is the second line, so the row reads
+    /// `Search for "cats" / Google` rather than flashing the search URL.
+    static func searchRow(query: String, engine: ResolvedSearchEngine) -> HistoryFuzzyEntry? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let destination = AddressParser.url(from: trimmed, searchEngine: engine)
+        else { return nil }
+        return HistoryFuzzyEntry(
+            id: Self.searchRowID,
+            url: destination.absoluteString,
+            title: "Search for \"\(trimmed)\"",
+            host: engine.title,
+            firstVisited: Date(),
+            lastVisited: Date(),
+            visitCount: 0,
+            // The row is prepended explicitly, never sorted in: like the
+            // recent-history rows, it carries no score.
+            score: 0,
+            titlePositions: [],
+            urlPositions: []
+        )
+    }
+
+    private init(
+        id: String,
+        url: String,
+        title: String,
+        host: String,
+        firstVisited: Date,
+        lastVisited: Date,
+        visitCount: Int,
+        score: Double,
+        titlePositions: [Int],
+        urlPositions: [Int]
+    ) {
+        self.id = id
+        self.url = url
+        self.title = title
+        self.host = host
+        self.firstVisited = firstVisited
+        self.lastVisited = lastVisited
+        self.visitCount = visitCount
+        self.score = score
+        self.titlePositions = titlePositions
+        self.urlPositions = urlPositions
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, url, title, host, firstVisited, lastVisited, visitCount
         case score, titlePositions, urlPositions

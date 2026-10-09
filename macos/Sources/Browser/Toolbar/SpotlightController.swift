@@ -97,8 +97,12 @@ final class SpotlightController {
             showMostRecent()
             return
         }
+        // The search row answers keystrokes, not the debounce: it is built from
+        // the live text on every press, so it is always current while the
+        // history below it is still arriving. A lone character gets the row
+        // without a history query behind it.
+        showSearchRow(for: trimmed, open: preopen)
         guard trimmed.count >= Self.minimumQueryLength else {
-            close()
             return
         }
         // Opened before the query returns, so the panel is on screen with the bar's
@@ -125,8 +129,30 @@ final class SpotlightController {
         }
     }
 
+    /// Shows just the search row for the live text, keeping a highlight the
+    /// user already placed by id: typing on with the row arrowed on must not
+    /// drop it.
+    private func showSearchRow(for trimmed: String, open: Bool) {
+        let engine = SettingsStore.shared.settings.search.engine()
+        let row = HistoryFuzzyEntry.searchRow(query: trimmed, engine: engine)
+        let keep = selectedEntry?.id
+        results = row.map { [$0] } ?? []
+        selectedIndex = keep.flatMap { id in results.firstIndex(where: { $0.id == id }) }
+        guard !results.isEmpty else {
+            close()
+            return
+        }
+        refreshResults()
+        if open {
+            openPanel()
+        }
+    }
+
     private func showMostRecent() {
         pendingSearch?.cancel()
+        // Captured, not re-read: keystrokes after this bump the generation,
+        // and recents arriving late must not land over typed text.
+        let generation = self.generation
         Task { [weak self] in
             guard let self else { return }
             let payload: Data
@@ -136,17 +162,47 @@ final class SpotlightController {
                 return
             }
             guard !Task.isCancelled else { return }
-            self.present(HistoryEntry.decodeList(payload).map(HistoryFuzzyEntry.init))
+            self.present(
+                HistoryEntry.decodeList(payload).map(HistoryFuzzyEntry.init),
+                generation: generation
+            )
         }
     }
 
-    private func present(_ entries: [HistoryFuzzyEntry], preselectFirst: Bool = true) {
-        results = entries
+    private func present(
+        _ entries: [HistoryFuzzyEntry],
+        preselectFirst: Bool = true,
+        generation: Int? = nil
+    ) {
+        // Stale recents over fresh typing: the field moved on while the store
+        // answered, so this answer is for nobody.
+        if let generation, generation != self.generation { return }
+        // Rebuilt from the field's live text, not the queried one: the search
+        // row names what is on screen now, and history arriving late must not
+        // push a row for stale text above it.
+        let live = fieldView?.textField.stringValue ?? ""
+        let engine = SettingsStore.shared.settings.search.engine()
+        let row = HistoryFuzzyEntry.searchRow(query: live, engine: engine)
+        // Captured before the swap: `selectedEntry` reads `results`, so after
+        // this line it would name the new list's row, not the user's.
+        let keep = selectedEntry?.id
+        results = row.map { [$0] + entries } ?? entries
         // Typed-query results never preselect: arrow-down reaches the first
         // row, and Enter on unhighlighted text submits that text. Recent
-        // history keeps its longstanding top-row selection.
-        selectedIndex = entries.isEmpty || !preselectFirst ? nil : 0
-        guard !entries.isEmpty else {
+        // history keeps its longstanding top-row selection. A highlight the
+        // user placed survives the history landing under it, but clearing
+        // the field is a fresh start: the old highlight stays behind.
+        if !preselectFirst,
+           let keep = selectedEntry?.id,
+           let index = results.firstIndex(where: { $0.id == keep })
+        {
+            selectedIndex = index
+        } else {
+            selectedIndex = results.isEmpty || !preselectFirst ? nil : 0
+        }
+        // No history is not no answer: the search row alone still offers
+        // somewhere to go. Only a missing row closes the panel.
+        guard !results.isEmpty else {
             close()
             return
         }
@@ -324,11 +380,15 @@ final class SpotlightController {
             SystemBeep.play()
             return
         }
-        // The bar shows where it is going immediately, rather than holding the
-        // typed query until the page reports back. Set directly, not typed: this
-        // must repaint only, never re-query.
-        fieldView?.textField.stringValue = entry.url
-        fieldView?.updateClearButton()
+        // History rewrites the bar with its destination, showing where it is
+        // going immediately. The search row does not: its destination is the
+        // engine's URL, and the typed text it replaces is what a failed search
+        // needs to keep for a retry. The navigation updates the bar on commit.
+        // Set directly, not typed: this must repaint only, never re-query.
+        if !entry.isSearchRow {
+            fieldView?.textField.stringValue = entry.url
+            fieldView?.updateClearButton()
+        }
         close()
         onNavigate?(url)
     }
