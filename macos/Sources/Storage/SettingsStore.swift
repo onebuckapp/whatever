@@ -77,16 +77,21 @@ struct AppSettings: Codable, Equatable {
         var crawlCornerRadius = 8.0
         /// Bottom corners only: the page meets the tab bar squarely at the top.
         var pageCornerRadius = 10.0
+        /// How solid the floating link bubble paints, 0 to 1.
+        var linkHoverOpacity = 0.75
 
         /// Slider bounds. Tab and crawl tops sit below half their bar
         /// heights, so the maximum stays shy of a full pill.
         static let tabCornerRadiusRange = 0.0...12.0
         static let crawlCornerRadiusRange = 0.0...12.0
         static let pageCornerRadiusRange = 0.0...20.0
+        /// Faint enough to see the page through, never fully gone.
+        static let linkHoverOpacityRange = 0.2...1.0
 
         enum CodingKeys: String, CodingKey {
             case noise, background, tabTheme, activeTabTheme
             case tabCornerRadius, crawlCornerRadius, pageCornerRadius
+            case linkHoverOpacity
         }
 
         init() {}
@@ -110,6 +115,7 @@ struct AppSettings: Codable, Equatable {
             tabCornerRadius = try container.decodeIfPresent(Double.self, forKey: .tabCornerRadius) ?? 8.0
             crawlCornerRadius = try container.decodeIfPresent(Double.self, forKey: .crawlCornerRadius) ?? 8.0
             pageCornerRadius = try container.decodeIfPresent(Double.self, forKey: .pageCornerRadius) ?? 10.0
+            linkHoverOpacity = try container.decodeIfPresent(Double.self, forKey: .linkHoverOpacity) ?? 0.75
         }
 
         /// Codable mirror of `NoiseOverlayConfiguration`. `NSColor` is not

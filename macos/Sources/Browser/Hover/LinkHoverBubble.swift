@@ -15,7 +15,7 @@ final class LinkHoverBubble: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor(white: 0.08, alpha: 0.88).cgColor
+        layer?.backgroundColor = NSColor(white: 0.08, alpha: 1).cgColor
         layer?.cornerRadius = 7
 
         label.font = .systemFont(ofSize: 11)
@@ -45,14 +45,24 @@ final class LinkHoverBubble: NSView {
         nil
     }
 
-    func show(_ url: URL, onPage pageURL: URL?) {
+    /// The paint the fade rests at while up: the user's chosen opacity.
+    /// Read for tests; the animator does the visible moving.
+    private(set) var restingOpacity: CGFloat = 0
+
+    /// Shows `url`, floating at the user's chosen opacity. An explicit
+    /// opacity overrides the setting, for tests.
+    func show(_ url: URL, onPage pageURL: URL?, opacity: Double? = nil) {
         label.stringValue = Self.displayText(link: url, onPage: pageURL)
-        // Already up: just the text changes, so a stream of hovers never
-        // restarts the fade.
-        guard !isShowing else { return }
+        restingOpacity = CGFloat(opacity ?? SettingsStore.shared.settings.appearance.linkHoverOpacity)
+        // Already up: just the text and paint change, so a stream of hovers
+        // never restarts the fade.
+        guard !isShowing else {
+            animator().alphaValue = restingOpacity
+            return
+        }
         isShowing = true
         isHidden = false
-        animator().alphaValue = 1
+        animator().alphaValue = restingOpacity
     }
 
     /// The bubble text: the full address, with a ↗ suffix for links leaving
@@ -83,6 +93,7 @@ final class LinkHoverBubble: NSView {
     func hide() {
         guard isShowing else { return }
         isShowing = false
+        restingOpacity = 0
         animator().alphaValue = 0
         // The fade-out leaves a transparent view behind; unhide on the next
         // show. Delayed to outlive the animation rather than snapping it.

@@ -102,4 +102,14 @@ struct LinkHoverTests {
         bubble.hide()
         #expect(bubble.isShowing == false)
     }
+
+    @Test("bubble rests at the chosen opacity")
+    @MainActor
+    func bubbleOpacity() {
+        let bubble = LinkHoverBubble()
+        bubble.show(URL(string: "https://example.com/")!, onPage: nil, opacity: 0.5)
+        #expect(bubble.restingOpacity == 0.5)
+        bubble.hide()
+        #expect(bubble.restingOpacity == 0)
+    }
 }

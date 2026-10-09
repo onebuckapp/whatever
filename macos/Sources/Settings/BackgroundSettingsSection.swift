@@ -25,6 +25,7 @@ struct BackgroundSettingsGroups: View {
         media
         kindSections
         transparency
+        linkBubble
     }
 
     /// Only the sections the chosen renderer actually reads.
@@ -54,6 +55,23 @@ struct BackgroundSettingsGroups: View {
     }
 
     // MARK: - Media
+
+    /// The floating link bubble's paint. Lives here rather than with the
+    /// hover code because it is page chrome, like the corners above.
+    private var linkBubble: some View {
+        SettingsGroup(
+            title: "Link Bubble",
+            footnote: "The floating address shown while hovering a link."
+        ) {
+            SettingsSliderRow(
+                title: "Opacity",
+                value: store.binding(\.appearance.linkHoverOpacity),
+                range: AppSettings.AppearanceSettings.linkHoverOpacityRange,
+                step: 0.05,
+                format: { String(format: "%.0f%%", $0 * 100) }
+            )
+        }
+    }
 
     private var media: some View {
         SettingsGroup(
