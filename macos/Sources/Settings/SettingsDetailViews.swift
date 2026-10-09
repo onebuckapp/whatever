@@ -424,15 +424,44 @@ struct WebSettingsView: View {
 
 // MARK: - Bookmarks
 
+/// The bookmarks pane: the bar toggle, then the saved tree.
+///
+/// Renders the same `BookmarkStore` the bar and the star use, so a save
+/// from any surface appears here without a reload, and folders nest the way
+/// they do on the bar.
 struct BookmarksSettingsView: View {
-    @State private var entries: [BookmarkSummary] = []
-    @State private var isLoading = true
-    @State private var failure: String?
+    @ObservedObject private var store = BookmarkStore.shared
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .task { await load() }
+        VStack(alignment: .leading, spacing: 0) {
+            visibility
+            Divider()
+            content
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task {
+            if !store.isLoaded {
+                await store.load()
+            }
+        }
+    }
+
+    /// The bar's visibility toggle, above the list and always visible: with
+    /// no bookmarks yet the bar is still the way to create the first one,
+    /// so the control cannot live inside the list's header.
+    private var visibility: some View {
+        HStack {
+            Toggle(
+                "Show bookmarks bar",
+                isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
+            )
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .font(.system(size: 12))
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
     }
 
     private var header: some View {
@@ -441,10 +470,10 @@ struct BookmarksSettingsView: View {
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
             Button("Remove All") {
-                Task { await clearAll() }
+                store.removeAll()
             }
             .controlSize(.small)
-            .disabled(entries.isEmpty || isLoading)
+            .disabled(store.nodes.isEmpty || !store.isLoaded)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -453,25 +482,23 @@ struct BookmarksSettingsView: View {
     /// The pane body, which is either a placeholder centered on its own or a
     /// list under the header.
     ///
-    /// The placeholder is deliberately the whole body rather than the leftover
-    /// space under the header. A placeholder centers itself in the space it is
-    /// given, so nesting it below the header put its center lower than the same
-    /// placeholder in a pane with no header, and History lower still because it
-    /// has more chrome above it. Hiding the header when there is nothing to list
-    /// is also the honest version: the header's only controls are disabled here.
+    /// The placeholder is deliberately the whole body rather than the
+    /// leftover space under the header: the header's only controls are
+    /// disabled when there is nothing to list, so hiding it is the honest
+    /// version, same as the other panes.
     @ViewBuilder
     private var content: some View {
-        if isLoading {
+        if !store.isLoaded {
             listed {
                 ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        } else if let failure {
+        } else if let failure = store.lastError, store.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "exclamationmark.triangle",
                 title: "Bookmarks unavailable",
                 message: failure
             )
-        } else if entries.isEmpty {
+        } else if store.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "bookmark",
                 title: "No bookmarks yet",
@@ -481,8 +508,8 @@ struct BookmarksSettingsView: View {
             listed {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(entries) { entry in
-                            row(entry)
+                        ForEach(store.roots) { node in
+                            BookmarkSettingsRow(node: node, store: store)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -499,102 +526,62 @@ struct BookmarksSettingsView: View {
             body()
         }
     }
+}
 
-    private func row(_ entry: BookmarkSummary) -> some View {
+/// One row of the settings tree: a folder as a disclosure group with its
+/// children nested inside, or a link with its address and a remove button.
+private struct BookmarkSettingsRow: View {
+    let node: BookmarkNode
+    @ObservedObject var store: BookmarkStore
+    @State private var isExpanded = true
+
+    var body: some View {
+        if node.isFolder {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                ForEach(store.children(of: node.id)) { child in
+                    BookmarkSettingsRow(node: child, store: store)
+                }
+            } label: {
+                rowBody
+            }
+            .padding(.vertical, 2)
+        } else {
+            rowBody
+                .padding(.vertical, 6)
+        }
+    }
+
+    private var rowBody: some View {
         HStack(spacing: 10) {
+            Image(systemName: node.isFolder ? "folder" : "bookmark")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
-                Text(entry.title.isEmpty ? entry.url : entry.title)
+                Text(node.displayTitle)
                     .font(.system(size: 12))
                     .lineLimit(1)
-                Text(entry.url)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                if let url = node.url, !url.isEmpty {
+                    Text(url)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
             Spacer(minLength: 8)
             Button {
-                Task { await remove(entry) }
+                store.delete(node.id)
             } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("Remove this bookmark")
-        }
-        .padding(.vertical, 6)
-    }
-
-    private func load() async {
-        do {
-            let data = try await StoreClient.shared.bookmarks()
-            entries = BookmarkSummary.decodeList(data)
-        } catch {
-            failure = error.localizedDescription
-        }
-        isLoading = false
-    }
-
-    private func remove(_ entry: BookmarkSummary) async {
-        do {
-            try await StoreClient.shared.deleteBookmark(id: entry.id)
-            entries.removeAll { $0.id == entry.id }
-        } catch {
-            failure = error.localizedDescription
-        }
-    }
-
-    private func clearAll() async {
-        do {
-            try await StoreClient.shared.clearBookmarks()
-            entries = []
-        } catch {
-            failure = error.localizedDescription
-        }
-    }
-}
-
-/// One bookmark as the settings list needs it.
-///
-/// The store holds whatever JSON the app gave it, so the list reads the two
-/// fields it shows and tolerates their absence rather than failing the decode.
-struct BookmarkSummary: Identifiable, Decodable, Hashable {
-    let id: String
-    let title: String
-    let url: String
-
-    private enum CodingKeys: String, CodingKey {
-        case id, title, url
-    }
-
-    init(id: String, title: String, url: String) {
-        self.id = id
-        self.title = title
-        self.url = url
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        title = (try? container.decode(String.self, forKey: .title)) ?? ""
-        url = (try? container.decode(String.self, forKey: .url)) ?? ""
-    }
-
-    /// Decodes a stored array, skipping rows that are not objects.
-    ///
-    /// A single malformed bookmark should cost that bookmark, not the list.
-    static func decodeList(_ data: Data) -> [BookmarkSummary] {
-        guard let root = try? JSONDecoder().decode([FailableBookmark].self, from: data) else {
-            return []
-        }
-        return root.compactMap(\.value)
-    }
-
-    private struct FailableBookmark: Decodable {
-        let value: BookmarkSummary?
-
-        init(from decoder: Decoder) throws {
-            value = try? BookmarkSummary(from: decoder)
+            .help(
+                node.isFolder
+                    ? "Remove this folder and everything in it"
+                    : "Remove this bookmark"
+            )
         }
     }
 }
