@@ -36,6 +36,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var settingsPresenter: SettingsModalPresenter?
     private var adBlockPresenter: AdBlockPopupPresenter?
     private var bookmarkEditorPresenter: BookmarkEditorPresenter?
+    private var passwordManagerPresenter: PasswordManagerPresenter?
     private var feedReaderPresenter: FeedReaderPresenter?
     /// Internal for layout tests, which drive visibility through the
     /// controller's testing seams.
@@ -350,6 +351,55 @@ final class BrowserWindowContentViewController: NSViewController {
     func dismissBookmarkEditor() {
         bookmarkEditorPresenter?.dismiss()
         bookmarkEditorPresenter = nil
+    }
+
+    /// Opens the password manager card, or closes it when already open.
+    ///
+    /// Shielded with click semantics like settings: the card holds text
+    /// fields, so a selection drag that ends outside it must not dismiss it.
+    /// Closing locks the vault: the teardown wipes the core session, so
+    /// reopening always re-prompts.
+    func presentPasswordManager() {
+        guard isViewLoaded else { return }
+        if passwordManagerPresenter != nil {
+            dismissPasswordManager()
+            return
+        }
+        let presenter = PasswordManagerPresenter(container: view) { [weak self] in
+            self?.clearPasswordManager()
+        }
+        passwordManagerPresenter = presenter
+        claimShield(id: "passwords", dismissOnPress: false) { [weak self] in
+            Task { @MainActor in
+                self?.dismissPasswordManager()
+            }
+        }
+        presenter.present()
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it, and don't leave a vault unlocked behind it.
+            passwordManagerPresenter = nil
+            releaseShield(id: "passwords")
+            Task { @MainActor in
+                await PasswordStore.shared.lock()
+            }
+        }
+    }
+
+    func dismissPasswordManager() {
+        passwordManagerPresenter?.dismiss()
+        clearPasswordManager()
+    }
+
+    /// Single teardown for every way out: the presenter's teardown calls
+    /// back here too, so a dismissal the owner did not start still releases
+    /// the shield and locks. Both halves are idempotent.
+    private func clearPasswordManager() {
+        passwordManagerPresenter = nil
+        releaseShield(id: "passwords")
+        Task { @MainActor in
+            await PasswordStore.shared.lock()
+        }
     }
 
     private func dismissNoiseSettings() {

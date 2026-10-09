@@ -76,6 +76,10 @@ struct WhateverApp: App {
                     AppDelegate.presentSettingsOnFrontWindow()
                 }
                 .keyboardShortcut(",", modifiers: .command)
+                Button("Passwords\u{2026}") {
+                    AppDelegate.presentPasswordsOnFrontWindow()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
             }
         }
     }
@@ -120,6 +124,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         target.presentSettings()
+    }
+
+    /// Opens the password manager on whichever browser window is frontmost.
+    /// Same fallback chain as settings: frontmost, first, else a new window.
+    @MainActor
+    static func presentPasswordsOnFrontWindow() {
+        let windows = BrowserCoordinator.shared.windows
+        guard let target = windows.first(where: { $0.window?.isKeyWindow == true })
+            ?? windows.first
+        else {
+            BrowserCoordinator.shared.newTab()
+            return
+        }
+        target.presentPasswordManager()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

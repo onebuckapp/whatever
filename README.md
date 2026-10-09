@@ -56,7 +56,7 @@
 It also happens to be beautiful: a start page and window you theme yourself, a headline crawl for your RSS, film grain over the whole web if you want it, and a Spotlight-grade address bar that keeps up with you.
 
 ### 🗺 Roadmap
-Where this goes next — tab groups and workspaces, profiles, a reader mode, a local password manager, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
+Where this goes next — tab groups and workspaces, profiles, a reader mode, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
 
 ### 🛠 Build
 - `make macos` — build the app (includes the Nim core)

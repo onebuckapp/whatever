@@ -41,8 +41,8 @@ before starting what's new.
 
 ## Privacy and safety
 
-- **Local password manager.** Encrypted on-device vault with generation and
-  autofill. No cloud, in line with everything else.
+- **Local password manager.** The encrypted on-device vault with generation
+  is in; still to come is autofill. No cloud, in line with everything else.
 - **Fingerprinting resistance.** Optional canvas/font/user-agent hardening
   per site, next to the existing blocker exceptions.
 - **Cookie management.** See and clear per-site storage without nuking all

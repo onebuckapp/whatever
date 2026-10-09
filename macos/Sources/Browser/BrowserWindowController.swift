@@ -562,6 +562,9 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onBookmarks = { [weak self] in
             self?.presentSettings(section: .bookmarks)
         }
+        toolbarController.onPasswords = { [weak self] in
+            self?.presentPasswordManager()
+        }
         toolbarController.onAdBlock = { [weak self] in
             self?.presentAdBlockPopup()
         }
@@ -1446,6 +1449,14 @@ final class BrowserWindowController: NSWindowController {
     /// modal is always owned by the window it is opened over.
     func presentSettings(section: SettingsSection = .general) {
         contentController.presentSettings(section: section)
+    }
+
+    /// Opens the password manager card on this window.
+    ///
+    /// Behind the toolbar key button and the app menu's Passwords item, so
+    /// the modal is always owned by the window it is opened over.
+    func presentPasswordManager() {
+        contentController.presentPasswordManager()
     }
 
     /// Opens the per-site content-blocker card for the selected tab.

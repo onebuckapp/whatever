@@ -41,6 +41,7 @@ final class BrowserToolbarController: NSObject {
     private let settingsButton = BrowserToolbarButton()
     private let downloadsButton = BrowserToolbarButton()
     private let bookmarksButton = BrowserToolbarButton()
+    private let passwordButton = BrowserToolbarButton()
     private let adblockButton = BrowserToolbarButton()
     private let backButton = BrowserToolbarButton()
     private let forwardButton = BrowserToolbarButton()
@@ -71,6 +72,8 @@ final class BrowserToolbarController: NSObject {
     var onDownloads: (() -> Void)?
     /// Opens the settings modal on the Bookmarks section.
     var onBookmarks: (() -> Void)?
+    /// Opens the password manager card for this window.
+    var onPasswords: (() -> Void)?
     /// Opens the per-site content-blocker card for the current tab.
     var onAdBlock: (() -> Void)?
     /// Opens the bookmark editor for the current page: add when the page is
@@ -88,7 +91,7 @@ final class BrowserToolbarController: NSObject {
         let toolbar = BrowserToolbarView(
             leading: [backButton, forwardButton, reloadButton, bookmarkButton],
             center: centerStack,
-            trailing: [adblockButton, bookmarksButton, downloadsButton, settingsButton]
+            trailing: [adblockButton, passwordButton, bookmarksButton, downloadsButton, settingsButton]
         )
         self.toolbarView = toolbar
         super.init()
@@ -362,6 +365,10 @@ final class BrowserToolbarController: NSObject {
         onBookmarks?()
     }
 
+    @objc private func togglePasswords() {
+        onPasswords?()
+    }
+
     @objc private func openAdBlock() {
         onAdBlock?()
     }
@@ -413,6 +420,7 @@ final class BrowserToolbarController: NSObject {
             help: "Bookmarks",
             action: #selector(openBookmarks)
         )
+        configurePasswordButton()
         configureAdBlockButton()
     }
 
@@ -437,6 +445,21 @@ final class BrowserToolbarController: NSObject {
     /// show a check (blocking) or a cross (paused) inside the shield. Like
     /// the feed button: template images sized like the neighboring glyphs,
     /// with `syncAdBlockButton` owning the state from here on.
+    /// Bundled Tabler vector rather than a system glyph, like the feed and
+    /// shield buttons: a template image sized like the neighboring glyphs.
+    /// `syncPasswordButton` does not exist because the button carries no
+    /// state — the vault's lock state lives inside the manager card.
+    private func configurePasswordButton() {
+        let image = NSImage(named: "PasswordFingerprint")
+        image?.accessibilityDescription = "Password Manager"
+        image?.isTemplate = true
+        image?.size = NSSize(width: 18, height: 18)
+        passwordButton.image = image
+        passwordButton.toolTip = "Password Manager"
+        passwordButton.target = self
+        passwordButton.action = #selector(togglePasswords)
+    }
+
     private func configureAdBlockButton() {
         adblockButton.target = self
         adblockButton.action = #selector(openAdBlock)
