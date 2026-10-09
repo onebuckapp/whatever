@@ -5,5 +5,5 @@ DerivedData/
 build/
 Build/
 nimcache/
-plans/
 clue.lock
+press/
