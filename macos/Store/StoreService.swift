@@ -276,6 +276,115 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
+    // MARK: Passwords
+
+    func passwordStatus(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_password_status(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func passwordSetup(_ master: String, _ hint: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = master.withCString { masterPointer in
+                hint.withCString { hintPointer in
+                    bc_password_setup(masterPointer, hintPointer)
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func passwordUnlock(_ master: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = master.withCString { bc_password_unlock($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func passwordLock(reply: @escaping (NSError?) -> Void) {
+        serve {
+            reply(StoreErrors.check(bc_password_lock(), message: coreLastError()))
+        }
+    }
+
+    func passwordVaultGet(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            // Locked is a real answer — the UI checks status first and only
+            // reaches here unlocked, so a lock here means the state moved
+            // under it — and it has to survive phase one like notFound does
+            // for bookmarks.
+            let payload: CorePayload?
+            do {
+                payload = try CoreBuffer.read({ buffer, capacity, needed in
+                    bc_password_vault_get(buffer, capacity, needed)
+                }, rejecting: [.locked])
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func passwordVaultSet(_ document: Data, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = document.withUnsafeBytes { raw in
+                bc_password_vault_set(raw.bindMemory(to: CChar.self).baseAddress)
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func passwordVaultDelete(reply: @escaping (NSError?) -> Void) {
+        serve {
+            reply(StoreErrors.check(bc_password_vault_delete(), message: coreLastError()))
+        }
+    }
+
+    func passwordHint(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_password_hint_get(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func passwordHintSet(_ hint: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = hint.withCString { bc_password_hint_set($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func passwordStrength(_ password: String, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                password.withCString { pointer in
+                    bc_password_strength(pointer, buffer, capacity, needed)
+                }
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
     // MARK: History
 
     func historyRecord(

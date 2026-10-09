@@ -55,6 +55,23 @@ import Foundation
     func bookmarkDelete(_ id: String, reply: @escaping (NSError?) -> Void)
     func bookmarksClear(reply: @escaping (NSError?) -> Void)
 
+    // MARK: Passwords
+
+    /// `{"state":"unset"|"locked"|"unlocked"}` for the vault.
+    func passwordStatus(reply: @escaping (Data?, NSError?) -> Void)
+    func passwordSetup(_ master: String, _ hint: String, reply: @escaping (NSError?) -> Void)
+    func passwordUnlock(_ master: String, reply: @escaping (NSError?) -> Void)
+    func passwordLock(reply: @escaping (NSError?) -> Void)
+    func passwordVaultGet(reply: @escaping (Data?, NSError?) -> Void)
+    func passwordVaultSet(_ document: Data, reply: @escaping (NSError?) -> Void)
+    func passwordVaultDelete(reply: @escaping (NSError?) -> Void)
+    /// `{"hint": "..."}` — "" when none was kept. Readable while locked.
+    func passwordHint(reply: @escaping (Data?, NSError?) -> Void)
+    /// Replaces the hint; requires the vault to be unlocked.
+    func passwordHintSet(_ hint: String, reply: @escaping (NSError?) -> Void)
+    /// `{"strength","score","reason"}` for a candidate password. Works locked.
+    func passwordStrength(_ password: String, reply: @escaping (Data?, NSError?) -> Void)
+
     // MARK: History
 
     /// `collapseWindowSecs` is a user setting: a revisit of the same URL inside
@@ -264,6 +281,10 @@ public enum StoreStatus: Int32, Sendable {
     /// only code the QR surface adds; it sits above the shared range so it
     /// cannot be confused with the codes below.
     case payloadTooLong = 7
+    /// A master password that does not open the vault. Distinct from
+    /// `.locked` (a held file lock, or a vault that was never unlocked)
+    /// because the UI answers it with "wrong password" rather than a failure.
+    case wrongPassword = 8
 
     /// Fallback text, so a caller never has to render an empty error.
     public var message: String {
@@ -276,6 +297,7 @@ public enum StoreStatus: Int32, Sendable {
         case .notFound: "No such item."
         case .locked: "Another process is using the store."
         case .payloadTooLong: "That will not fit in a QR code."
+        case .wrongPassword: "The master password does not open the vault."
         }
     }
 }
@@ -302,6 +324,10 @@ public struct StoreError: Error, LocalizedError, Sendable {
     /// Another process holds the store's lock. Worth retrying, unlike a corrupt
     /// or missing database.
     public var isLocked: Bool { status == .locked }
+
+    /// A master password that does not open the vault. Answered with "wrong
+    /// password, try again" rather than a failure state.
+    public var isWrongPassword: Bool { status == .wrongPassword }
 }
 
 /// Reads the status back out of an `NSError` the store produced, whether it

@@ -173,6 +173,10 @@ enum BrowserCoreError: Error, LocalizedError {
             self = .bufferTooSmall
         case .storage, .locked:
             self = .storeUnavailable
+        case .wrongPassword:
+            // Unreachable for QR: the vault is a different surface. Treated
+            // as unavailable rather than inventing a QR meaning for it.
+            self = .storeUnavailable
         case .ok:
             self = .storeUnavailable
         }

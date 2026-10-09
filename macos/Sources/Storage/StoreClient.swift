@@ -213,6 +213,68 @@ final class StoreClient {
         }
     }
 
+    // MARK: Passwords
+
+    func passwordStatus() async throws -> Data {
+        try await document { proxy, done in
+            proxy.passwordStatus(reply: done)
+        }
+    }
+
+    func passwordSetup(master: String, hint: String) async throws {
+        try await perform { proxy, done in
+            proxy.passwordSetup(master, hint, reply: done)
+        }
+    }
+
+    func passwordUnlock(master: String) async throws {
+        try await perform { proxy, done in
+            proxy.passwordUnlock(master, reply: done)
+        }
+    }
+
+    func passwordLock() async throws {
+        try await perform { proxy, done in
+            proxy.passwordLock(reply: done)
+        }
+    }
+
+    func passwordVault() async throws -> Data {
+        try await document { proxy, done in
+            proxy.passwordVaultGet(reply: done)
+        }
+    }
+
+    func setPasswordVault(_ document: Data) async throws {
+        try await perform { proxy, done in
+            proxy.passwordVaultSet(document, reply: done)
+        }
+    }
+
+    func deletePasswordVault() async throws {
+        try await perform { proxy, done in
+            proxy.passwordVaultDelete(reply: done)
+        }
+    }
+
+    func passwordHint() async throws -> Data {
+        try await document { proxy, done in
+            proxy.passwordHint(reply: done)
+        }
+    }
+
+    func setPasswordHint(_ hint: String) async throws {
+        try await perform { proxy, done in
+            proxy.passwordHintSet(hint, reply: done)
+        }
+    }
+
+    func passwordStrength(_ password: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.passwordStrength(password, reply: done)
+        }
+    }
+
     // MARK: History
 
     /// Records a visit to `url`.
