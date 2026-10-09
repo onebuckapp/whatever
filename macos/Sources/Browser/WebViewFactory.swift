@@ -29,7 +29,10 @@ enum WebViewFactory {
         configuration.websiteDataStore = dataStore
         // Fresh pool per page: nothing outlives the view.
         configuration.processPool = WKProcessPool()
-        enableDeveloperExtras(on: configuration)
+        // Developer extras stay off: no Inspect Element item, no inspector.
+        // `enableDeveloperExtras` and its test remain, so re-enabling is one
+        // uncommented line if the auto-widening suspicion clears it.
+        // enableDeveloperExtras(on: configuration)
         // Served from memory by HomepageSchemeHandler; w://about is
         // the homepage and always shows the bundled markup. The retired
         // whtvr:// name stays registered so stored URLs keep resolving.

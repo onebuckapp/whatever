@@ -107,9 +107,72 @@ final class BrowserWindow: NSWindow {
     /// Applied from `setFrame` rather than once at launch, because AppKit re-lays
     /// these three out on resizes and undoes the nudge.
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        #if DEBUG
+        let oldSize = frame.size
+        #endif
         super.setFrame(frameRect, display: flag)
+        #if DEBUG
+        logResizeIfNeeded(oldSize: oldSize, newSize: frameRect.size)
+        #endif
         positionStandardWindowButtons()
     }
+
+    #if DEBUG
+
+    /// Debug trace for unexpected window growth: every size change lands here
+    /// with who asked for it, so a resize can be blamed on its caller.
+    ///
+    /// Reads in Console.app (or `log stream --process Whatever`): user drags
+    /// are tagged `live`, everything else carries the full backtrace — the
+    /// direct caller is usually AppKit or WebKit, not Whatever, so nothing
+    /// is filtered out. Temporary scaffolding for the auto-widening report;
+    /// delete once the grower is found.
+    private func logResizeIfNeeded(oldSize: NSSize, newSize: NSSize) {
+        guard oldSize != newSize else { return }
+        let trace = Thread.callStackSymbols
+            .dropFirst(2)
+            .prefix(14)
+            .joined(separator: "\n    ")
+        NSLog(
+            "[Whatever] window resized %.0fx%.0f -> %.0fx%.0f live=%@ min=%@ trace:\n    %@",
+            oldSize.width, oldSize.height, newSize.width, newSize.height,
+            inLiveResize ? "yes" : "no", NSStringFromSize(contentMinSize), trace
+        )
+        // A runaway widening is a width demand from inside the content: name
+        // the views wider than the window used to be, with what sizes them.
+        if newSize.width - oldSize.width > 300 {
+            reportWideViews(widerThan: oldSize.width)
+        }
+    }
+
+    /// Temporary scaffolding beside the resize log: walks the content tree
+    /// and names every view (and width constraint) demanding more than the
+    /// window had, so the runaway grower can be blamed precisely.
+    private func reportWideViews(widerThan width: CGFloat) {
+        guard let root = contentView else { return }
+        var lines: [String] = []
+        var queue = [root]
+        while !queue.isEmpty {
+            let view = queue.removeFirst()
+            queue.append(contentsOf: view.subviews)
+            if view.frame.width > width {
+                lines.append(
+                    "\(type(of: view)) frame=\(NSStringFromSize(view.frame.size)) intrinsic=\(NSStringFromSize(view.intrinsicContentSize))"
+                )
+            }
+            for constraint in view.constraints where constraint.firstAttribute == .width {
+                if constraint.constant > width {
+                    lines.append(
+                        "\(type(of: view)) width-constraint=\(constraint.constant) priority=\(constraint.priority.rawValue)"
+                    )
+                }
+            }
+            if lines.count > 15 { break }
+        }
+        NSLog("[Whatever] wide views (window was %.0f):\n    %@", width, lines.joined(separator: "\n    "))
+    }
+
+    #endif
 
     /// The buttons are created and placed by AppKit while the window first shows,
     /// so ordering front is the earliest moment they exist to be nudged. Both
