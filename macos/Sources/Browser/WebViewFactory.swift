@@ -8,6 +8,16 @@ import WebKit
 /// share the persistent default store (cookies survive navigation),
 /// private tabs share one isolated non-persistent store per tab.
 enum WebViewFactory {
+    /// Turns on the inspector: the Inspect Element context-menu item and the
+    /// per-page web inspector.
+    ///
+    /// `developerExtrasEnabled` has no public counterpart; the key is stable
+    /// across releases to date. Separate from `makeWebView` so tests pin it
+    /// without building a whole page.
+    static func enableDeveloperExtras(on configuration: WKWebViewConfiguration) {
+        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
+    }
+
     /// `MainActor` because the settings it reads live on a `MainActor` store,
     /// and because a `WKWebView` has to be built on the main thread anyway.
     @MainActor
@@ -19,6 +29,7 @@ enum WebViewFactory {
         configuration.websiteDataStore = dataStore
         // Fresh pool per page: nothing outlives the view.
         configuration.processPool = WKProcessPool()
+        enableDeveloperExtras(on: configuration)
         // Served from memory by HomepageSchemeHandler; w://about is
         // the homepage and always shows the bundled markup. The retired
         // whtvr:// name stays registered so stored URLs keep resolving.

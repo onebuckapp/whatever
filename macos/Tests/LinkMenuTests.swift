@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import WebKit
 @testable import Whatever
 
 /// Context-menu link lookup: the script carries the click point into the
@@ -63,5 +64,13 @@ struct LinkMenuTests {
     @Test("the retargeted open item says New Tab")
     func openItemTitle() {
         #expect(BrowserWebView.openLinkInNewTabTitle == "Open Link in New Tab")
+    }
+
+    @Test("developer extras turn on for the inspector")
+    @MainActor
+    func developerExtrasEnabled() {
+        let configuration = WKWebViewConfiguration()
+        WebViewFactory.enableDeveloperExtras(on: configuration)
+        #expect(configuration.preferences.value(forKey: "developerExtrasEnabled") as? Bool == true)
     }
 }
