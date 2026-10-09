@@ -39,6 +39,15 @@ final class LinkHoverBubble: NSView {
         label.textColor = .white
         label.lineBreakMode = .byTruncatingMiddle
         label.maximumNumberOfLines = 1
+        // The window-sizing trap, same as the address field: AppKit grows a
+        // window to satisfy content whose compression resistance is above
+        // `NSLayoutPriorityWindowSizeStayPut` (500), and an NSTextField's
+        // default is 750. The bubble is capped at 62% of the page width, so
+        // a long URL (YouTube links with tracking params) demanded enough
+        // window width that its cap could hold the text — the window grew
+        // whenever such a link was hovered. Below the threshold the label
+        // truncates middle instead, which is what it already draws.
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([

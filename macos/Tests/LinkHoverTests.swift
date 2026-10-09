@@ -129,4 +129,21 @@ struct LinkHoverTests {
         bubble.hide()
         #expect(bubble.restingOpacity == 0)
     }
+
+    @Test("bubble label yields before the window does")
+    @MainActor
+    func labelCompressionBelowWindowStayPut() {
+        let bubble = LinkHoverBubble()
+        guard let label = bubble.subviews.first(where: { $0 is NSTextField }) else {
+            Issue.record("bubble has no label")
+            return
+        }
+        let resistance = label
+            .contentCompressionResistancePriority(for: .horizontal).rawValue
+        // AppKit grows a window to fit content whose compression resistance
+        // exceeds `NSLayoutPriorityWindowSizeStayPut` (500). The label at its
+        // 750 default made hovering a long URL widen the window until the
+        // bubble's 62% cap could hold the text; it must truncate instead.
+        #expect(resistance < 500, "label compression resistance \(resistance) can size the window")
+    }
 }
