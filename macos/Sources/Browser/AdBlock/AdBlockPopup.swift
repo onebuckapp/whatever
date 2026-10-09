@@ -285,10 +285,14 @@ final class AdBlockPopupPresenter {
 
     /// Trades the card for the full settings tab: dismiss first, then let
     /// the owner open settings, so the two never stack.
-    private func manage() {
-        dismiss()
+    ///
+    /// The handler is captured before the dismiss, not after: teardown nils
+    /// every handler, so reading it afterwards always finds nothing and the
+    /// settings tap silently does nothing.
+    func manage() {
         let manage = onManage
         onManage = nil
+        dismiss()
         manage?()
     }
 

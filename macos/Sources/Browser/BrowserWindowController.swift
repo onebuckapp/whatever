@@ -584,6 +584,9 @@ final class BrowserWindowController: NSWindowController {
         dismissQRCode()
         dismissFileBrowser()
         dismissDownloads()
+        // Per-tab card: it names the previous tab's host, so it must not
+        // survive onto the next tab.
+        contentController.dismissAdBlockPopup()
 
         selectedTabID = tab.id
         tab.markActive()
