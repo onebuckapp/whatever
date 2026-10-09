@@ -96,6 +96,13 @@ final class TabBarView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        // Manual layout only: `TabBarContainerView.layout` sets this view's
+        // frame from `preferredWidth`, so an autoresizing mask would bake
+        // each laid-out width back as a required constraint. Those snapshots
+        // ratchet: a transiently wide strip (long titles, many tabs) sticks
+        // as a demand, and the window — which has no fixed width of its own
+        // — grows to satisfy it and can never shrink back.
+        translatesAutoresizingMaskIntoConstraints = false
         registerForDraggedTypes([TabDragPayload.type])
         // Same glyph treatment as the top bar buttons: the default cut
         // renders ~16pt tall, and 13.5 lands ~18 with a medium weight.
@@ -533,6 +540,10 @@ final class TabBarContainerView: NSView {
     }
 
     private func setUpSubviews() {
+        // Manual layout only, like the strip: `layout` assigns the frame from
+        // the container bounds, so a mask would snapshot it back as a demand.
+        // Same ratchet as the strip's — see its init.
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
         // No scroller bars at all, and this is load-bearing rather than
         // cosmetic. `NSScrollView` reserves about 15pt of layout height for a
         // horizontal scroller whenever one can appear, and shrinks its document

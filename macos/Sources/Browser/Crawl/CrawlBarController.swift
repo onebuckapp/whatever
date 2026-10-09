@@ -228,6 +228,13 @@ final class CrawlBarController {
         // the SwiftUI bar paints its own rounded fill, so the corners stay
         // transparent onto the page beneath.
         hosted.translatesAutoresizingMaskIntoConstraints = false
+        // Content must never size the bar: the ticker's ideal width follows
+        // its headlines, and a long loop reaching the window through the edge
+        // pins would grow the window to fit the text. Demoted, so the pins
+        // always win and the strip clips instead — the same demand the
+        // spotlight dropdown demotes for the same reason.
+        hosted.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        hosted.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         guard let container else { return }
         container.addSubview(hosted)
         heightConstraint = hosted.heightAnchor.constraint(equalToConstant: barHeight)
