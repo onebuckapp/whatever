@@ -104,4 +104,14 @@ struct SessionSnapshotTests {
         let decoded = try JSONDecoder().decode(SessionSnapshot.self, from: data)
         #expect(decoded.windows[0].splitGroup == nil)
     }
+
+    @Test("an oversized saved width is capped, a fitting one kept")
+    func widthCapping() {
+        let frame = SessionSnapshot.WindowSnapshot.Frame(x: 0, y: 0, width: 3394, height: 811)
+        #expect(frame.widthCapped(to: 1920).width == 1920)
+        #expect(frame.widthCapped(to: 1920).height == 811)
+
+        let fitting = SessionSnapshot.WindowSnapshot.Frame(x: 0, y: 0, width: 1300, height: 840)
+        #expect(fitting.widthCapped(to: 1920) == fitting)
+    }
 }

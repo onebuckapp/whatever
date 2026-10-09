@@ -135,6 +135,16 @@ struct SessionSnapshot: Codable, Equatable {
                 width >= 360 && height >= 320 && width.isFinite && height.isFinite
                     && x.isFinite && y.isFinite
             }
+
+            /// Width capped to `limit`: a frame saved while the window was
+            /// transiently oversized (the old constraint ratchet, a detached
+            /// external display) must not come back and shove the restored
+            /// window off a smaller screen. AppKit clamps on show anyway;
+            /// this also keeps the session document itself honest.
+            func widthCapped(to limit: Double) -> Frame {
+                guard width > limit else { return self }
+                return Frame(x: x, y: y, width: limit, height: height)
+            }
         }
     }
 
