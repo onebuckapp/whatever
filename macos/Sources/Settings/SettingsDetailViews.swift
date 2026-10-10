@@ -45,9 +45,22 @@ enum SettingsDetailView {
 struct GeneralSettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
     @StateObject private var defaultBrowser = DefaultBrowserSettings()
+    @StateObject private var updater = AppUpdateSettings()
 
     var body: some View {
         SettingsDetailStack {
+            SettingsGroup(
+                title: "Software Update",
+                footnote: "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+            ) {
+                SettingsButtonRow(
+                    title: updater.title,
+                    subtitle: updater.subtitle
+                ) {
+                    updateAccessory
+                }
+            }
+
             SettingsGroup(
                 title: "Default Browser",
                 footnote: "Links clicked in other apps open here."
@@ -100,6 +113,33 @@ struct GeneralSettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { defaultBrowser.refresh() }
+    }
+
+    /// The update row's trailing control under `updater.status`: a check
+    /// button at rest, a spinner while busy, the download button when an
+    /// update is ready, and a Finder reveal once it has landed.
+    @ViewBuilder
+    private var updateAccessory: some View {
+        switch updater.status {
+        case .idle, .upToDate, .failed, .noCompatibleDownload:
+            Button("Check for Updates") {
+                Task { await updater.checkForUpdates() }
+            }
+            .controlSize(.small)
+        case .checking, .downloading:
+            ProgressView()
+                .controlSize(.small)
+        case .available:
+            Button("Download Update") {
+                Task { await updater.downloadUpdate() }
+            }
+            .controlSize(.small)
+        case .downloaded:
+            Button("Show in Finder") {
+                updater.revealDownload()
+            }
+            .controlSize(.small)
+        }
     }
 }
 
