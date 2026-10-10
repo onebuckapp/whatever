@@ -739,7 +739,23 @@ final class BrowserWindowController: NSWindowController {
             layout = .single(tabID: tab.id)
         }
         refresh()
+        // Keyboard focus follows the selection when it was in page content:
+        // hidden pages are parked off-screen, not removed, so the previous
+        // tab keeps its views — and its first-responder status — in the
+        // hierarchy, and without this it keeps eating keys (space pausing
+        // its video while looking at another tab). Focus anywhere else
+        // (address field, find bar, cards, buttons) stays put.
+        if Self.focusWasInPageContent(window?.firstResponder) {
+            window?.makeFirstResponder(tab.ensureWebView())
+        }
         sessionDidChange()
+    }
+
+    /// Whether keyboard focus sits in a page: only then does a tab switch
+    /// move it to the new tab's view. Static so the rule is testable
+    /// without a window.
+    static func focusWasInPageContent(_ firstResponder: NSResponder?) -> Bool {
+        firstResponder is WKWebView
     }
 
     /// The sticky group, only when both members are still tabs of this
