@@ -317,16 +317,36 @@ private struct SpotlightResultRow: View {
     private static let activeOpacity: CGFloat = 0.15
 
     var body: some View {
-        HStack(spacing: 10) {
+        // Top-aligned so the first line sits high; the visits label rides
+        // top-right with it.
+        HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
-                line(entry.title.isEmpty ? entry.url : entry.title,
-                     ranges: entry.title.isEmpty ? entry.urlHighlight : entry.titleHighlight,
-                     size: 12,
-                     dim: false)
-                line(entry.host.isEmpty ? entry.url : entry.host,
-                      ranges: entry.host.isEmpty ? entry.urlHighlight : [],
-                      size: 10,
-                      dim: true)
+                // The star rides on the title line itself, aside the text:
+                // the flag comes from the prewarmed cache at merge time, so
+                // history rows for bookmarked pages star exactly like
+                // bookmark rows.
+                HStack(spacing: 5) {
+                    if entry.isBookmarked {
+                        // Small enough to ride the title line without
+                        // widening it: at 9pt the glyph fits the 12pt
+                        // line's x-height band and the title keeps its
+                        // full width.
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                    line(entry.title.isEmpty ? entry.url : entry.title,
+                         ranges: entry.title.isEmpty ? entry.urlHighlight : entry.titleHighlight,
+                         size: 12,
+                         dim: false)
+                }
+                line(entry.subtitle,
+                     ranges: entry.subtitleHighlight,
+                     size: 10,
+                     dim: true)
+                // Hanging indent: the subtitle starts under the title text,
+                // not under the star. 9pt glyph plus 5pt spacing.
+                .padding(.leading, entry.isBookmarked ? 14 : 0)
             }
             Spacer(minLength: 8)
             if entry.visitCount > 1 {

@@ -206,7 +206,24 @@ final class SpotlightController {
         // Captured before the swap: `selectedEntry` reads `results`, so after
         // this line it would name the new list's row, not the user's.
         let keep = selectedEntry?.id
-        results = row.map { [$0] + entries } ?? entries
+        // The bookmarked-URL set comes from the prewarmed cache: one pass
+        // over a few hundred nodes, no store round trip on the keystroke
+        // path. History rows get flagged here; bookmark-sourced rows arrive
+        // already flagged and keep their flag through the blend.
+        let bookmarkedURLs = Set(BookmarkStore.shared.nodes.values.compactMap { node in
+            node.kind == .link ? node.url.map(BookmarkURL.normalized) : nil
+        })
+        let history = Self.markingBookmarked(entries, bookmarkedURLs: bookmarkedURLs)
+        // Bookmarks blend with history under one ordering rather than
+        // pinning a section of their own: a bookmarked daily page is already
+        // represented by its high-visit history row, while a bookmark whose
+        // history was cleared still surfaces on URL length alone.
+        let blended = Self.blend(
+            history: history,
+            bookmarks: bookmarkEntries(for: live),
+            limit: Self.resultLimit
+        )
+        results = row.map { [$0] + blended } ?? blended
         // Typed-query results never preselect: arrow-down reaches the first
         // row, and Enter on unhighlighted text submits that text. Recent
         // history keeps its longstanding top-row selection. A highlight the
@@ -228,6 +245,68 @@ final class SpotlightController {
         }
         refreshResults()
         openPanel()
+    }
+
+    /// Bookmark hits for the live text, from the prewarmed cache: no store
+    /// round trip on the keystroke path. Queries below the minimum match
+    /// nothing, exactly like history.
+    private func bookmarkEntries(for live: String) -> [HistoryFuzzyEntry] {
+        let trimmed = live.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= Self.minimumQueryLength else { return [] }
+        return BookmarkMatcher.hits(query: trimmed, nodes: Array(BookmarkStore.shared.nodes.values)).map {
+            HistoryFuzzyEntry(
+                bookmark: $0.node,
+                score: $0.score,
+                titlePositions: $0.titlePositions,
+                urlPositions: $0.urlPositions
+            )
+        }
+    }
+
+    /// Flags rows whose URL is bookmarked, so the list can star them.
+    /// Skips the search row (synthetic, never a bookmark) and rows already
+    /// flagged. Static and panel-free so the rule is testable without a
+    /// field or any history.
+    nonisolated static func markingBookmarked(
+        _ entries: [HistoryFuzzyEntry],
+        bookmarkedURLs: Set<String>
+    ) -> [HistoryFuzzyEntry] {
+        entries.map { entry in
+            guard !entry.isSearchRow, !entry.isBookmarked else { return entry }
+            var copy = entry
+            copy.isBookmarked = bookmarkedURLs.contains(BookmarkURL.normalized(entry.url))
+            return copy
+        }
+    }
+
+    /// One ordering over both sources: visits first, then URL length, then
+    /// score — the core's rule, applied here because bookmarks carry no
+    /// visit count of their own. A URL in both is one row, and the history
+    /// row wins it: it has the visits, the recency, and the same
+    /// destination. Duplicate bookmarks (one page filed in two folders)
+    /// collapse the same way. Static and panel-free so the rule is testable
+    /// without a field or any history.
+    nonisolated static func blend(
+        history: [HistoryFuzzyEntry],
+        bookmarks: [HistoryFuzzyEntry],
+        limit: Int
+    ) -> [HistoryFuzzyEntry] {
+        var seen = Set(history.map { BookmarkURL.normalized($0.url) })
+        var merged = history
+        merged.reserveCapacity(history.count + bookmarks.count)
+        for bookmark in bookmarks {
+            let key = BookmarkURL.normalized(bookmark.url)
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            merged.append(bookmark)
+        }
+        merged.sort {
+            if $0.visitCount != $1.visitCount { return $0.visitCount > $1.visitCount }
+            if $0.url.count != $1.url.count { return $0.url.count < $1.url.count }
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.url < $1.url
+        }
+        return Array(merged.prefix(max(0, limit)))
     }
 
     // MARK: - Panel

@@ -97,6 +97,16 @@ final class BookmarkStore: ObservableObject {
         lastError = nil
     }
 
+    /// Warms the in-memory cache in the background, so the address bar can
+    /// match bookmarks on the first keystroke instead of waiting for a lazy
+    /// load. No-op once loaded or while a load is already running; later
+    /// mutations keep the cache fresh through the usual optimistic writes,
+    /// so nothing ever re-warms on a timer.
+    func prewarm() async {
+        guard !isLoaded, !isLoading else { return }
+        await load()
+    }
+
     /// Reloads from the persisted store. Failures keep the previous content
     /// and surface in `lastError`: a transient XPC hiccup must not blank the
     /// bar. Concurrent calls collapse into one.

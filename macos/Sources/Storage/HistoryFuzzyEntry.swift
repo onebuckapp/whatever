@@ -36,6 +36,11 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
     let score: Double
     let titlePositions: [Int]
     let urlPositions: [Int]
+    /// Whether the row's URL is bookmarked. The core never sends this —
+    /// history has no notion of bookmarks — so decoding defaults it to
+    /// false and the controller flags rows from the prewarmed cache.
+    /// Bookmark-sourced rows are born flagged.
+    var isBookmarked: Bool
 
     /// Identity of the synthetic search row. Constant across rebuilds, so typing
     /// another character replaces the row in place instead of dropping a
@@ -84,7 +89,8 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
         visitCount: Int,
         score: Double,
         titlePositions: [Int],
-        urlPositions: [Int]
+        urlPositions: [Int],
+        isBookmarked: Bool = false
     ) {
         self.id = id
         self.url = url
@@ -96,11 +102,12 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
         self.score = score
         self.titlePositions = titlePositions
         self.urlPositions = urlPositions
+        self.isBookmarked = isBookmarked
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, url, title, host, firstVisited, lastVisited, visitCount
-        case score, titlePositions, urlPositions
+        case score, titlePositions, urlPositions, isBookmarked
     }
 
     init(from decoder: Decoder) throws {
@@ -120,6 +127,8 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
         score = try container.decode(Double.self, forKey: .score)
         titlePositions = try container.decode([Int].self, forKey: .titlePositions)
         urlPositions = try container.decode([Int].self, forKey: .urlPositions)
+        // Never sent by the core; see the property note.
+        isBookmarked = (try? container.decode(Bool.self, forKey: .isBookmarked)) ?? false
     }
 
     /// Builds an unhighlighted entry from a plain history row.
@@ -138,6 +147,32 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
         self.score = 0
         self.titlePositions = []
         self.urlPositions = []
+        self.isBookmarked = false
+    }
+
+    /// Builds an entry from a bookmark hit.
+    ///
+    /// The matcher reports UTF-8 byte offsets, the same form the core uses,
+    /// so highlighting is shared. `visitCount` is always 0: a bookmarked URL
+    /// that also matched history is represented by its history row instead
+    /// (see `SpotlightController.blend`), and history is the only record of
+    /// visits — which is exactly why bookmarks survive a history clear while
+    /// contributing no frequency of their own.
+    init(bookmark node: BookmarkNode, score: Double, titlePositions: [Int], urlPositions: [Int]) {
+        let url = node.url ?? ""
+        self.init(
+            id: node.id,
+            url: url,
+            title: node.title,
+            host: URL(string: url)?.host?.lowercased() ?? "",
+            firstVisited: Date(),
+            lastVisited: Date(),
+            visitCount: 0,
+            score: score,
+            titlePositions: titlePositions,
+            urlPositions: urlPositions,
+            isBookmarked: true
+        )
     }
 
     /// Decodes a result set, dropping rows that are not usable objects.
@@ -157,6 +192,25 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
         init(from decoder: Decoder) throws {
             entry = try? HistoryFuzzyEntry(from: decoder)
         }
+    }
+
+    /// Second line of a dropdown row: the full URL when the row has a title,
+    /// so sibling pages under one host can be told apart. When the title is
+    /// empty the first line already shows the URL, so the second line falls
+    /// back to the host rather than repeating it. The synthetic search row
+    /// keeps the engine's name: its URL is the search destination, and the
+    /// row reads `Search for "cats" / Google` rather than flashing that URL.
+    var subtitle: String {
+        if isSearchRow { return host }
+        return title.isEmpty ? (host.isEmpty ? url : host) : url
+    }
+
+    /// Highlight for `subtitle`: the URL match positions whenever the
+    /// subtitle is the URL. A host subtitle has no positions of its own, and
+    /// borrowing the URL's offsets against a shorter string would paint the
+    /// wrong characters. The search row carries no positions at all.
+    var subtitleHighlight: [NSRange] {
+        isSearchRow ? [] : (!title.isEmpty || host.isEmpty ? urlHighlight : [])
     }
 
     /// Where the match landed in the title, as character ranges.

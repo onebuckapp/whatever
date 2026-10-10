@@ -194,8 +194,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // read or write stored data.
             async let version = BrowserCore.version()
             async let session = SessionStore.shared.load()
+            // Warms the bookmark cache while the window is still opening, so
+            // the address bar's first query already sees bookmarks. Runs with
+            // the other launch loads rather than on any keystroke path.
+            async let bookmarks = BookmarkStore.shared.prewarm()
             await SettingsStore.shared.load()
             _ = try? await version
+            _ = await bookmarks
 
             // Compiles the content-blocker lists before the first tab opens,
             // so the first page is already filtered. Fail-open: a failure
