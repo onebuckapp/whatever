@@ -26,8 +26,17 @@ import SwiftUI
 enum CreditsContent {
     struct Entry: Hashable {
         let name: String
+        /// License tag shown after the name, when the artifact has one.
+        /// People and organizations carry none.
+        let license: String?
         let detail: String
         let url: URL?
+
+        /// Title line: just text, never a link — `Name | License`, or the
+        /// bare name when there is no license to show.
+        var titleLine: String {
+            license.map { "\(name) | \($0)" } ?? name
+        }
     }
 
     struct Section: Hashable {
@@ -40,8 +49,27 @@ enum CreditsContent {
         entries: [
             Entry(
                 name: "George Lemon",
-                detail: "Design and development · © 2026 · GPLv3",
+                license: "GPLv3",
+                detail: "Design and development · © 2026",
                 url: nil
+            ),
+        ]
+    )
+
+    static let writtenIn = Section(
+        title: "Written in",
+        entries: [
+            Entry(
+                name: "Swift",
+                license: nil,
+                detail: "App and interface language",
+                url: URL(string: "https://swift.org")
+            ),
+            Entry(
+                name: "Nim",
+                license: nil,
+                detail: "A statically typed compiled systems programming language",
+                url: URL(string: "https://nim-lang.org")
             ),
         ]
     )
@@ -51,11 +79,13 @@ enum CreditsContent {
         entries: [
             Entry(
                 name: "OpenPeeps",
+                license: nil,
                 detail: "Tooling and infrastructure",
                 url: URL(string: "https://github.com/openpeeps")
             ),
             Entry(
                 name: "OneBuck.app",
+                license: nil,
                 detail: "Home of Whatever",
                 url: URL(string: "https://onebuck.app")
             ),
@@ -67,12 +97,14 @@ enum CreditsContent {
         entries: [
             Entry(
                 name: "Tabler Icons",
-                detail: "Toolbar and chrome glyphs",
+                license: "MIT-licensed",
+                detail: "Built and maintained by Paweł Kuna",
                 url: URL(string: "https://tabler.io")
             ),
             Entry(
                 name: "Mijick Popups",
-                detail: "In-window card presentations",
+                license: "Apache-2.0 license",
+                detail: "Author Tomasz Kurylik",
                 url: URL(string: "https://github.com/Mijick/Popups")
             ),
         ]
@@ -81,14 +113,14 @@ enum CreditsContent {
     static let core = Section(
         title: "Storage core",
         entries: [
-            Entry(name: "openparser", detail: "Fuzzy matching (Nim)", url: nil),
-            Entry(name: "boogie", detail: "Embedded store (Nim)", url: nil),
-            Entry(name: "nimcypher", detail: "Cryptography (Nim)", url: nil),
-            Entry(name: "blackpaper", detail: "Utilities (Nim)", url: nil),
+            Entry(name: "openparser", license: "MIT-licensed", detail: "Collection of tiny parsers and dumpers", url: URL(string: "https://github.com/openpeeps/openparser")),
+            Entry(name: "boogie", license: "MIT-licensed", detail: "A suite of WAL-based embedded data stores", url: URL(string: "https://github.com/openpeeps/boogie")),
+            Entry(name: "nimcypher", license: "BSD-2-Clause", detail: "Pure-Nim cryptographic library", url: URL(string: "https://github.com/nimbase/nimcypher")),
+            Entry(name: "blackpaper", license: "MIT-licensed", detail: "Password strength estimator (Nim)", url: URL(string: "https://github.com/openpeeps/blackpaper")),
         ]
     )
 
-    static let sections = [madeBy, builtWith, interface, core]
+    static let sections = [madeBy, writtenIn, builtWith, interface, core]
 
     /// Short version string for the header, from the bundle.
     static var appVersion: String {
@@ -185,16 +217,17 @@ struct CreditsContentView: View {
     @ViewBuilder
     private func entryRow(_ entry: CreditsContent.Entry) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            if let url = entry.url {
-                Link(entry.name, destination: url)
-                    .font(.system(size: 12, weight: .medium))
-            } else {
-                Text(entry.name)
-                    .font(.system(size: 12, weight: .medium))
-            }
+            Text(entry.titleLine)
+                .font(.system(size: 12, weight: .medium))
             Text(entry.detail)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+            // The raw address, directly: link text is the URL itself, the
+            // title line above stays plain text.
+            if let url = entry.url {
+                Link(url.absoluteString, destination: url)
+                    .font(.system(size: 11))
+            }
         }
     }
 }

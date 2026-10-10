@@ -41,6 +41,37 @@ struct CreditsTests {
         }
     }
 
+    @Test("titles pair names with licenses, links stay raw urls")
+    func titleAndLinkFormat() {
+        let entries = Dictionary(
+            CreditsContent.sections.flatMap(\.entries).map { ($0.name, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        #expect(entries["Tabler Icons"]?.titleLine == "Tabler Icons | MIT-licensed")
+        #expect(entries["Tabler Icons"]?.url?.absoluteString == "https://tabler.io")
+        #expect(entries["Mijick Popups"]?.titleLine == "Mijick Popups | Apache-2.0 license")
+        #expect(entries["boogie"]?.titleLine == "boogie | MIT-licensed")
+        #expect(entries["boogie"]?.detail == "A suite of WAL-based embedded data stores")
+        #expect(entries["boogie"]?.url?.absoluteString == "https://github.com/openpeeps/boogie")
+        #expect(entries["openparser"]?.titleLine == "openparser | MIT-licensed")
+        #expect(entries["openparser"]?.url?.absoluteString == "https://github.com/openpeeps/openparser")
+        #expect(entries["nimcypher"]?.titleLine == "nimcypher | BSD-2-Clause")
+        #expect(entries["nimcypher"]?.detail == "Pure-Nim cryptographic library")
+        #expect(entries["nimcypher"]?.url?.absoluteString == "https://github.com/nimbase/nimcypher")
+        #expect(entries["blackpaper"]?.titleLine == "blackpaper | MIT-licensed")
+        #expect(entries["blackpaper"]?.url?.absoluteString == "https://github.com/openpeeps/blackpaper")
+        #expect(entries["Nim"]?.titleLine == "Nim")
+        #expect(entries["Nim"]?.detail == "A statically typed compiled systems programming language")
+        #expect(entries["Nim"]?.url?.absoluteString == "https://nim-lang.org")
+        #expect(entries["Swift"]?.url?.absoluteString == "https://swift.org")
+    }
+
+    @Test("written-in comes right after made-by")
+    func sectionOrder() {
+        let titles = CreditsContent.sections.map(\.title)
+        #expect(titles.firstIndex(of: "Written in") == (titles.firstIndex(of: "Made by") ?? -1) + 1)
+    }
+
     @Test("cover rect fills the bounds and centers the image")
     func coverGeometry() {
         // Wide image in a square window: full height, overflowing sides.
