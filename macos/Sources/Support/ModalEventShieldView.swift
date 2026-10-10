@@ -86,11 +86,18 @@ final class ModalEventShieldView: NSView {
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        onClick?()
+        // Swallowed, never dismissal: a right press is a context menu in
+        // the making, and right-clicking empty card space reaches this
+        // shield — SwiftUI tap gestures do not claim the right button, so
+        // hit-testing falls straight through the hosting view. Firing
+        // onClick here closed whatever card was up on any right-click that
+        // did not land on a control. Dismissal stays left-click-only (plus
+        // Escape through the presenter).
     }
 
     override func otherMouseDown(with event: NSEvent) {
-        onClick?()
+        // Same as right: middle-click is a gesture of its own (autoscroll,
+        // new-tab), never a dismissal.
     }
 
     /// A press that starts on the page and is released over the shield
