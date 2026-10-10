@@ -284,12 +284,20 @@ final class BrowserToolbarController: NSObject {
         backButton.isEnabled = state.canGoBack
         forwardButton.isEnabled = state.canGoForward
         reloadButton.isEnabled = true
-        // Same 13.5pt medium cut as every other toolbar glyph (see `configure`):
-        // this one is re-set on every state change, so it cannot reuse that path.
-        reloadButton.image = NSImage(
-            systemSymbolName: state.isLoading ? "xmark" : "arrow.clockwise",
-            accessibilityDescription: state.isLoading ? "Stop" : "Reload"
-        )?.withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        // The stop glyph stays a system X: it means stop, not reload, and no
+        // bundled X was cut for it. The reload glyph is the bundled Tabler
+        // arrow, re-set here because this row re-sets the image on every
+        // state change rather than reusing the setup path.
+        if state.isLoading {
+            reloadButton.image = NSImage(
+                systemSymbolName: "xmark",
+                accessibilityDescription: "Stop"
+            )?.withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        } else {
+            let image = BrowserToolbarButton.bundledGlyphImage(named: "TablerReload", inkRatio: 0.75)
+            image?.accessibilityDescription = "Reload"
+            reloadButton.image = image
+        }
         reloadButton.toolTip = state.isLoading ? "Stop" : "Reload"
 
         // The leading lock follows the live page (falling back to the tab's
@@ -349,12 +357,12 @@ final class BrowserToolbarController: NSObject {
             )
         } ?? false
         // One ratio for both states so toggling blocker state never moves
-        // the glyph: it boxes both at 13pt, where the check paints 11pt
-        // of ink and the cross 11.5pt — both inside the system glyphs'
-        // 10–11.5pt band.
+        // the glyph: it boxes both at 17pt, where the check paints ~14.5pt
+        // of ink and the cross ~15pt — both inside the system glyphs'
+        // 12–15pt band.
         let image = BrowserToolbarButton.bundledGlyphImage(
             named: isBlocking ? "ShieldCheck" : "ShieldX",
-            inkRatio: 0.88
+            inkRatio: 0.85
         )
         image?.accessibilityDescription = isBlocking
             ? "Content blocker active on this site"
@@ -366,15 +374,19 @@ final class BrowserToolbarController: NSObject {
     }
 
     /// The star: filled while the current page is bookmarked, hollow when
-    /// not, disabled where there is no user-facing address to save.
+    /// not, disabled where there is no user-facing address to save. Both
+    /// states share one ratio so toggling saved state never moves the glyph.
     private func syncBookmarkButton() {
         let url = tab?.displayURL
         let saved = url.map { !$0.isAddresslessPage && BookmarkStore.shared.isBookmarked($0) } ?? false
-        let symbol = saved ? "star.fill" : "star"
         let help = saved ? "Edit Bookmark" : "Add Bookmark"
         bookmarkButton.isEnabled = url.map { !$0.isAddresslessPage } ?? false
-        bookmarkButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
-            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        let image = BrowserToolbarButton.bundledGlyphImage(
+            named: saved ? "TablerStarFilled" : "TablerStar",
+            inkRatio: 0.875
+        )
+        image?.accessibilityDescription = help
+        bookmarkButton.image = image
         bookmarkButton.toolTip = help
     }
 
@@ -446,32 +458,55 @@ final class BrowserToolbarController: NSObject {
     // MARK: - Setup
 
     private func configureButtons() {
-        configure(backButton, symbol: "chevron.left", help: "Back", action: #selector(goBack))
-        configure(forwardButton, symbol: "chevron.right", help: "Forward", action: #selector(goForward))
-        configure(reloadButton, symbol: "arrow.clockwise", help: "Reload", action: #selector(toggleReload))
+        configureBundled(
+            backButton,
+            asset: "TablerChevronLeft",
+            inkRatio: 0.58,
+            help: "Back",
+            action: #selector(goBack)
+        )
+        configureBundled(
+            forwardButton,
+            asset: "TablerChevronRight",
+            inkRatio: 0.58,
+            help: "Forward",
+            action: #selector(goForward)
+        )
+        configureBundled(
+            reloadButton,
+            asset: "TablerReload",
+            inkRatio: 0.75,
+            help: "Reload",
+            action: #selector(toggleReload)
+        )
         configure(bookmarkButton, symbol: "star", help: "Add Bookmark", action: #selector(toggleBookmark))
         syncBookmarkButton()
         configureFeedButton()
 
-        configure(settingsButton, symbol: "gearshape", help: "Settings", action: #selector(openSettings))
-        // `arrow.down.to.line` is the plain download glyph: an arrow descending
-        // onto a baseline, which reads as "fetching" without needing the tray
-        // shape Safari uses or the circle the empty Downloads pane uses.
-        configure(
-            downloadsButton,
-            symbol: "arrow.down.to.line",
-            help: "Downloads",
-            action: #selector(openDownloads)
-        )
-        configure(
-            bookmarksButton,
-            symbol: "bookmark",
-            help: "Bookmarks",
-            action: #selector(openBookmarks)
-        )
         configurePasswordButton()
         configureAdBlockButton()
         configureWebRTCButton()
+        configureBundled(
+            bookmarksButton,
+            asset: "TablerBookmark",
+            inkRatio: 0.833,
+            help: "Bookmarks",
+            action: #selector(openBookmarks)
+        )
+        configureBundled(
+            downloadsButton,
+            asset: "TablerDownloads",
+            inkRatio: 0.75,
+            help: "Downloads",
+            action: #selector(openDownloads)
+        )
+        configureBundled(
+            settingsButton,
+            asset: "TablerSettings",
+            inkRatio: 0.833,
+            help: "Settings",
+            action: #selector(openSettings)
+        )
     }
 
     private func configureCenterStack() {
@@ -535,11 +570,13 @@ final class BrowserToolbarController: NSObject {
     }
 
     /// Bundled access-point vector rather than a system glyph, so the
-    /// control reads as broadcast rather than any one device. Boxed by ink
-    /// like the other bundled glyphs. Hidden until a capture request or
+    /// control reads as broadcast rather than any one device. Boxed to
+    /// match the system glyphs' width rather than their height: the arcs
+    /// span nearly the whole grid, so height-matching would make it far
+    /// wider than its neighbors. Hidden until a capture request or
     /// grant lights it; `syncMediaCaptureButton` owns this from here on.
     private func configureWebRTCButton() {
-        let image = BrowserToolbarButton.bundledGlyphImage(named: "AccessPoint", inkRatio: 0.556)
+        let image = BrowserToolbarButton.bundledGlyphImage(named: "AccessPoint", inkRatio: 0.69)
         image?.accessibilityDescription = "Capture controls"
         webrtcButton.image = image
         webrtcButton.toolTip = "Capture controls"
@@ -570,6 +607,23 @@ final class BrowserToolbarController: NSObject {
         // stroke sharp rather than hairline at that size.
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
             .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        button.image = image
+        button.toolTip = help
+        button.target = action == nil ? nil : self
+        button.action = action
+    }
+
+    /// Same as `configure` for bundled Tabler vectors: boxed by ink through
+    /// the shared factory so the glyph paints at the system glyphs' size.
+    private func configureBundled(
+        _ button: BrowserToolbarButton,
+        asset: String,
+        inkRatio: CGFloat,
+        help: String,
+        action: Selector?
+    ) {
+        let image = BrowserToolbarButton.bundledGlyphImage(named: asset, inkRatio: inkRatio)
+        image?.accessibilityDescription = help
         button.image = image
         button.toolTip = help
         button.target = action == nil ? nil : self

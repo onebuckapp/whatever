@@ -49,11 +49,11 @@ final class BrowserToolbarButton: NSButton {
 
     /// Ink height every toolbar glyph paints at, bundled or system.
     /// Measured, not guessed: the 13.5pt medium system cuts render
-    /// 10–11.5pt of ink, while the bundled vectors boxed at 18pt painted
-    /// 13.5–16pt — visibly larger, with tighter padding than their
-    /// neighbors. Vectors are boxed per asset below to land in the same
-    /// band instead.
-    static let glyphInkHeight: CGFloat = 11.5
+    /// 12–15pt of ink, clustering at 14–15, while the bundled vectors
+    /// boxed small painted ~11pt — visibly smaller, with looser padding
+    /// than their neighbors. Vectors are boxed per asset below to land in
+    /// the same band instead.
+    static let glyphInkHeight: CGFloat = 14.5
 
     /// Loads a bundled vector as a toolbar glyph, boxed so its ink height
     /// lands on `glyphInkHeight`.
@@ -118,6 +118,19 @@ final class BrowserToolbarButton: NSButton {
 
     override var intrinsicContentSize: NSSize {
         NSSize(width: Self.side, height: Self.side)
+    }
+
+    /// Fixed fitting size: the strip's stack views size the alignment axis
+    /// from `fittingSize`, not from constraints, and the cell behind this
+    /// button derives its fitting height from the glyph — so system glyphs
+    /// came out 26–29pt tall while the smaller bundled vectors held 22,
+    /// and every button hovered a different fill. The explicit constraints
+    /// above pin the distribution axis; this pins the other one. Static so
+    /// the size is testable without laying out a strip.
+    static let fittingDimensions = NSSize(width: outerWidth, height: outerHeight)
+
+    override var fittingSize: NSSize {
+        Self.fittingDimensions
     }
 
     override var acceptsFirstResponder: Bool {
