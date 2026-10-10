@@ -46,6 +46,48 @@ struct TabThemeTests {
         #expect(try JSONDecoder().decode(AppSettings.AppearanceSettings.self, from: stored) == appearance)
     }
 
+    @Test("a gradient theme round-trips")
+    func gradientRoundTrip() throws {
+        var theme = TabThemeConfiguration()
+        theme.background.kind = .gradient
+        theme.background.gradient.kind = .radial
+        theme.background.gradient.centerX = 0.3
+        theme.background.gradient.centerY = 0.7
+        theme.background.gradient.startRadius = 0.1
+        theme.background.gradient.endRadius = 0.9
+        theme.background.gradient.stops = [
+            .init(color: .init(red: 0.9, green: 0.2, blue: 0.2, alpha: 1), location: 0),
+            .init(color: .init(red: 0.2, green: 0.2, blue: 0.9, alpha: 0.8), location: 1),
+        ]
+        let data = try JSONEncoder().encode(theme)
+        let decoded = try JSONDecoder().decode(TabThemeConfiguration.self, from: data)
+        #expect(decoded.background.kind == .gradient)
+        #expect(decoded.background.gradient.kind == .radial)
+        #expect(decoded.background.gradient.centerX == 0.3)
+        #expect(decoded.background.gradient.centerY == 0.7)
+        #expect(decoded.background.gradient.startRadius == 0.1)
+        #expect(decoded.background.gradient.endRadius == 0.9)
+        #expect(decoded.background.gradient.isUsable)
+        #expect(decoded.background.gradient.stops.map(\.location) == [0, 1])
+        #expect(decoded.background.gradient.stops.map(\.color) == theme.background.gradient.stops.map(\.color))
+    }
+
+    @Test("tint and opacity round-trip with the theme")
+    func effectsRoundTrip() throws {
+        var theme = TabThemeConfiguration()
+        theme.background.kind = .image
+        theme.background.path = "/tmp/wallpaper.jpg"
+        theme.background.effects.opacity = 0.6
+        theme.background.effects.overlay = BackgroundColor(red: 0.1, green: 0.2, blue: 0.8, alpha: 0.35)
+        let decoded = try JSONDecoder().decode(
+            TabThemeConfiguration.self,
+            from: JSONEncoder().encode(theme)
+        )
+        #expect(decoded == theme)
+        #expect(decoded.background.effects.opacity == 0.6)
+        #expect(decoded.background.effects.overlay == theme.background.effects.overlay)
+    }
+
     @Test("documents written before themes decode to inert themes")
     func legacyDocuments() throws {
         let legacy = """

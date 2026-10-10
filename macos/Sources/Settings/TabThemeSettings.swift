@@ -20,8 +20,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Tab chrome theming rows: one group per tab state, each with its own
-/// background (none, solid, image, or video — the tab subset of the window
-/// background kinds) and its own foreground colour.
+/// background (none, solid, gradient, image, or video) and its own
+/// foreground colour.
 ///
 /// Every control writes straight through the store, so the tab strip behind
 /// the card re-themes as the control moves. Emits groups rather than a whole
@@ -57,10 +57,9 @@ struct TabThemeSettingsGroups: View {
 
 /// One tab state's background plus foreground.
 ///
-/// The kind picker offers the tab subset (none, solid, image, video): the
-/// model can also hold a gradient, which the cell renders but these rows do
-/// not offer, matching the window background's rule that a row which does
-/// nothing is worse than an absent one.
+/// The kind picker offers none, solid, gradient, image, and video — everything
+/// the window background offers, minus nothing: the cell already renders a
+/// gradient from a hand-edited document, so these rows just expose it.
 private struct TabThemeGroup: View {
     let title: String
     let footnote: String
@@ -77,6 +76,7 @@ private struct TabThemeGroup: View {
                 options: [
                     BackgroundMediaConfiguration.Kind.none,
                     .solid,
+                    .gradient,
                     .image,
                     .video,
                 ],
@@ -94,34 +94,202 @@ private struct TabThemeGroup: View {
                     color: $theme.background.solid.color
                 )
             case .gradient:
-                // Reachable only from a hand-edited document: the cell
-                // renders it, and these rows leave it alone rather than
-                // offering controls that would silently replace it.
-                EmptyView()
-            case .image, .video:
-                SettingsButtonRow(
-                    title: mediaTitle,
-                    subtitle: mediaSubtitle
-                ) {
-                    HStack(spacing: 6) {
-                        Button("Choose…") { choose() }
-                            .controlSize(.small)
-                        if background.path != nil {
-                            Button("Clear") {
-                                theme.background.path = nil
-                            }
-                            .controlSize(.small)
-                        }
-                    }
+                gradientEditor
+            case .image:
+                mediaButtons
+                SettingsPickerRow(
+                    title: "Fit",
+                    options: [
+                        BackgroundMediaConfiguration.Fit.fill,
+                        .contain,
+                        .custom,
+                    ],
+                    selection: $theme.background.fit,
+                    isSegmented: true,
+                    label: { $0.title }
+                )
+                if theme.background.fit == .custom {
+                    SettingsSliderRow(
+                        title: "Scale",
+                        value: $theme.background.fitScale,
+                        range: 10...400,
+                        step: 5,
+                        format: { String(format: "%.0f%%", $0) }
+                    )
                 }
+                SettingsPickerRow(
+                    title: "Position",
+                    options: TabImageVerticalAnchor.allCases,
+                    selection: anchorBinding,
+                    isSegmented: true,
+                    label: { $0.title }
+                )
+            case .video:
+                mediaButtons
+            }
+
+            // Tint and opacity over the picture: the tint lays a flat colour
+            // across image and video alike, and opacity fades the themed
+            // background without touching the text or the selection wash.
+            // Offered only where there is a picture to combine with — over
+            // nothing or a flat fill these rows would do nothing visible.
+            if background.kind == .image || background.kind == .video {
+                SettingsSliderRow(
+                    title: "Opacity",
+                    value: $theme.background.effects.opacity,
+                    range: 0...1,
+                    step: 0.05,
+                    format: { String(format: "%.0f%%", $0 * 100) }
+                )
+                TabThemeColorRow(
+                    title: "Tint",
+                    color: $theme.background.effects.overlay
+                )
             }
 
             TabThemeForegroundRow(foreground: $theme.foreground)
         }
     }
 
-    private var mediaTitle: String {
-        guard let path = background.path else { return "No file chosen" }
+    /// Linear or radial gradient controls for this tab state, mirroring the
+    /// window background's gradient section on a smaller footprint: the tab
+    /// cell renders the same gradient model, so the rows edit it in place.
+    /// Writes go through the theme binding, which the store binding carries
+    /// back with change detection and the debounced save.
+    @ViewBuilder
+    private var gradientEditor: some View {
+        SettingsPickerRow(
+            title: "Kind",
+            options: BackgroundMediaConfiguration.Gradient.Kind.allCases,
+            selection: $theme.background.gradient.kind,
+            isSegmented: true,
+            label: { $0.title }
+        )
+        if theme.background.gradient.kind == .linear {
+            SettingsSliderRow(
+                title: "Angle",
+                value: $theme.background.gradient.angle,
+                range: 0...360,
+                step: 5,
+                format: { String(format: "%.0f°", $0) }
+            )
+        } else {
+            SettingsSliderRow(
+                title: "Centre X",
+                value: $theme.background.gradient.centerX,
+                range: 0...1,
+                step: 0.01,
+                format: { String(format: "%.0f%%", $0 * 100) }
+            )
+            SettingsSliderRow(
+                title: "Centre Y",
+                value: $theme.background.gradient.centerY,
+                range: 0...1,
+                step: 0.01,
+                format: { String(format: "%.0f%%", $0 * 100) }
+            )
+            SettingsSliderRow(
+                title: "Inner Radius",
+                value: $theme.background.gradient.startRadius,
+                range: 0...1,
+                step: 0.01,
+                format: { String(format: "%.0f%%", $0 * 100) }
+            )
+            SettingsSliderRow(
+                title: "Outer Radius",
+                value: $theme.background.gradient.endRadius,
+                range: 0...1,
+                step: 0.01,
+                format: { String(format: "%.0f%%", $0 * 100) }
+            )
+        }
+        ForEach(theme.background.gradient.stops) { stop in
+            GradientStopRow(
+                stop: stopBinding(stop.id),
+                canRemove: theme.background.gradient.stops.count > 2,
+                onDelete: { removeStop(stop.id) }
+            )
+        }
+        SettingsButtonRow(
+            title: "Add Stop",
+            subtitle: theme.background.gradient.stops.count >= 8
+                ? "Eight is the limit."
+                : "A colour at a point along the gradient."
+        ) {
+            Button("Add") { addStop() }
+                .controlSize(.small)
+                .disabled(theme.background.gradient.stops.count >= 8)
+        }
+    }
+
+    private func addStop() {
+        let stops = theme.background.gradient.stops
+        // New stops go at the far end unless that is already taken, so the
+        // new colour is visible immediately instead of hiding under an
+        // existing stop.
+        let location = (stops.map(\.location).max() ?? 0) < 0.99 ? 1 : 0.5
+        let color = stops.last?.color
+            ?? BackgroundColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1)
+        theme.background.gradient.stops.append(
+            BackgroundMediaConfiguration.Gradient.Stop(color: color, location: location)
+        )
+        theme.background.gradient.stops.sort { $0.location < $1.location }
+    }
+
+    private func removeStop(_ id: UUID) {
+        theme.background.gradient.stops.removeAll { $0.id == id }
+    }
+
+    /// A two-way binding onto one gradient stop, falling back to a throwaway
+    /// when the stop is gone: the row unmounts on the next render either way.
+    private func stopBinding(_ id: UUID) -> Binding<BackgroundMediaConfiguration.Gradient.Stop> {
+        Binding(
+            get: {
+                theme.background.gradient.stops.first { $0.id == id }
+                    ?? BackgroundMediaConfiguration.Gradient.Stop(
+                        color: .init(red: 0.5, green: 0.5, blue: 0.5, alpha: 1),
+                        location: 0
+                    )
+            },
+            set: { newValue in
+                guard let index = theme.background.gradient.stops
+                    .firstIndex(where: { $0.id == id })
+                else { return }
+                theme.background.gradient.stops[index] = newValue
+            }
+        )
+    }
+
+    /// The file picker row shared by images and videos.
+    private var mediaButtons: some View {
+        SettingsButtonRow(
+            title: mediaTitle,
+            subtitle: mediaSubtitle
+        ) {
+            HStack(spacing: 6) {
+                Button("Choose…") { choose() }
+                    .controlSize(.small)
+                if background.path != nil {
+                    Button("Clear") {
+                        theme.background.path = nil
+                    }
+                    .controlSize(.small)
+                }
+            }
+        }
+    }
+
+    /// The image's vertical anchor as a three-way choice. Stored in the
+    /// shared nine-way position (middle column); anything else in there —
+    /// a hand-edited document, the corners — reads as its nearest row.
+    private var anchorBinding: Binding<TabImageVerticalAnchor> {
+        Binding(
+            get: { TabImageVerticalAnchor.from(theme.background.position) },
+            set: { theme.background.position = $0.position }
+        )
+    }
+
+    private var mediaTitle: String {        guard let path = background.path else { return "No file chosen" }
         return URL(fileURLWithPath: path).lastPathComponent
     }
 
@@ -161,6 +329,43 @@ private struct TabThemeGroup: View {
         panel.beginSheetModal(for: window) { response in
             guard response == .OK, let url = panel.url else { return }
             theme.background.path = url.path
+        }
+    }
+}
+
+/// Where a tab image sits vertically: which edge the picture holds while
+/// the cell crops or letterboxes around it. A 32pt strip has no room for
+/// the window background's nine-way grid, so rows offer the middle column.
+/// Shared with tests, which pin the mapping to the shared position.
+enum TabImageVerticalAnchor: String, CaseIterable, Identifiable {
+    case top, center, bottom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .top: return "Top"
+        case .center: return "Center"
+        case .bottom: return "Bottom"
+        }
+    }
+
+    var position: BackgroundMediaConfiguration.Position {
+        switch self {
+        case .top: return .topCenter
+        case .center: return .center
+        case .bottom: return .bottomCenter
+        }
+    }
+
+    static func from(_ position: BackgroundMediaConfiguration.Position) -> Self {
+        switch position {
+        case .topLeft, .topCenter, .topRight:
+            return .top
+        case .bottomLeft, .bottomCenter, .bottomRight:
+            return .bottom
+        case .centerLeft, .center, .centerRight, .custom:
+            return .center
         }
     }
 }

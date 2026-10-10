@@ -492,6 +492,13 @@ final class TabBarItemView: NSView {
     /// Media layer for the themed background (gradient, image, or video),
     /// or nil for solid colours, which paint the host layer directly.
     private var mediaLayer: CALayer?
+    /// Pixel size of the image in `mediaLayer`, or nil when the media is
+    /// not an image. Images draw at a computed frame (fit plus anchor)
+    /// rather than filling the cell, so `layout` re-resolves it on resize.
+    private var mediaImageSize: CGSize?
+    /// Flat tint over the media (image or video), below the state washes.
+    /// Torn down with the media layer; nil when the tint is transparent.
+    private var tintLayer: CALayer?
     /// Pool path held while the theme is a video, released on change and
     /// teardown.
     private var videoPath: String?
@@ -510,6 +517,9 @@ final class TabBarItemView: NSView {
         }
         mediaLayer?.removeFromSuperlayer()
         mediaLayer = nil
+        mediaImageSize = nil
+        tintLayer?.removeFromSuperlayer()
+        tintLayer = nil
         if let videoPath {
             TabVideoPool.shared.release(path: videoPath)
             self.videoPath = nil
@@ -533,20 +543,17 @@ final class TabBarItemView: NSView {
                 // Animated image: the first frame is the resting contents so
                 // the loop failing still leaves the poster, and the loop dies
                 // with the layer on the next theme change.
-                let layer = CALayer()
-                layer.contents = frames[0].image
-                layer.contentsGravity = .resizeAspectFill
-                layer.contentsScale = window?.backingScaleFactor ?? 2
-                installMediaLayer(layer)
-                if let loop = AnimatedImage.loopAnimation(frames: frames) {
-                    layer.add(loop, forKey: "contentsLoop")
+                installImageLayer(
+                    contents: frames[0].image,
+                    size: CGSize(width: frames[0].image.width, height: frames[0].image.height),
+                    config: config
+                )
+                if let mediaLayer,
+                   let loop = AnimatedImage.loopAnimation(frames: frames) {
+                    mediaLayer.add(loop, forKey: "contentsLoop")
                 }
             } else if let image = TabThemeMedia.image(at: path) {
-                let layer = CALayer()
-                layer.contents = image
-                layer.contentsGravity = .resizeAspectFill
-                layer.contentsScale = window?.backingScaleFactor ?? 2
-                installMediaLayer(layer)
+                installImageLayer(contents: image, size: image.size, config: config)
             }
         case .video:
             guard let path = config.background.path,
@@ -559,6 +566,20 @@ final class TabBarItemView: NSView {
             layer.videoGravity = .resizeAspectFill
             installMediaLayer(layer)
         }
+
+        // Tint sits above the media — image, video, or anything else drawn —
+        // and below the state washes, which `updateAppearance` composites over
+        // it. Opacity fades the whole themed background (media plus tint) but
+        // never the wash or the text above it.
+        let overlay = config.background.effects.overlay
+        if overlay.alpha > 0.001 {
+            let layer = CALayer()
+            layer.backgroundColor = overlay.nsColor.cgColor
+            layer.frame = backgroundView.bounds
+            backgroundView.layer?.addSublayer(layer)
+            tintLayer = layer
+        }
+        backgroundView.layer?.opacity = Float(config.background.effects.opacity)
 
         if let foreground = config.foreground?.nsColor {
             titleLabel.textColor = foreground
@@ -577,6 +598,25 @@ final class TabBarItemView: NSView {
         layer.frame = backgroundView.bounds
         backgroundView.layer?.addSublayer(layer)
         mediaLayer = layer
+    }
+
+    /// Installs an image at its fitted frame: fit plus anchor, not a blind
+    /// fill. The frame is aspect-correct, so the gravity stretches nothing;
+    /// the background view's clipping cuts the overflow.
+    private func installImageLayer(contents: Any, size: CGSize, config: TabThemeConfiguration) {
+        let layer = CALayer()
+        layer.contents = contents
+        layer.contentsGravity = .resize
+        layer.contentsScale = window?.backingScaleFactor ?? 2
+        mediaImageSize = size
+        installMediaLayer(layer)
+        layer.frame = TabThemeMedia.imageFrame(
+            imageSize: size,
+            in: backgroundView.bounds,
+            fit: config.background.fit,
+            scalePercent: config.background.fitScale,
+            position: config.background.position
+        )
     }
 
     /// Gradient honoring the stored stops, angle, and radial geometry, so a
@@ -610,9 +650,22 @@ final class TabBarItemView: NSView {
         layer?.cornerRadius = radius
         backgroundView.layer?.cornerRadius = radius
         backgroundView.frame = bounds
-        // The media fills the cell at any size; gradient geometry is unit
-        // space, so only the frame needs tracking.
-        mediaLayer?.frame = backgroundView.bounds
+        // Gradient and video geometry is unit space or live, so only the
+        // frame needs tracking. Images carry an explicit fitted frame,
+        // re-resolved here so resizes move the anchor with the cell.
+        if let mediaLayer, let imageSize = mediaImageSize,
+           let applied = appliedThemeKey {
+            mediaLayer.frame = TabThemeMedia.imageFrame(
+                imageSize: imageSize,
+                in: backgroundView.bounds,
+                fit: applied.config.background.fit,
+                scalePercent: applied.config.background.fitScale,
+                position: applied.config.background.position
+            )
+        } else {
+            mediaLayer?.frame = backgroundView.bounds
+        }
+        tintLayer?.frame = backgroundView.bounds
         // The border is drawn, not layered, so it repaints with every layout.
         needsDisplay = true
         updateAppearance()

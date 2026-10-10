@@ -591,8 +591,9 @@ struct BackgroundSettingsGroups: View {
     }
 }
 
-/// One gradient stop: a colour and where it sits.
-private struct GradientStopRow: View {
+/// One gradient stop: a colour and where it sits. Shared with the tab theme
+/// rows, which edit the same gradient model on their own themes.
+struct GradientStopRow: View {
     @Binding var stop: BackgroundMediaConfiguration.Gradient.Stop
     /// A gradient needs two stops to exist at all, and `isUsable` says so, so
     /// below two the background quietly stops drawing with nothing on screen

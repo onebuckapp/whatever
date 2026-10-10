@@ -58,6 +58,55 @@ enum TabThemeMedia {
         animations.setObject(AnimatedImageFrames(frames: frames), forKey: path as NSString)
         return frames.isEmpty ? nil : frames
     }
+
+    /// Where an image draws inside a tab cell, in the background view's
+    /// (unflipped, y-up) coordinates.
+    ///
+    /// `contentsGravity` alone cannot do this: the aspect modes always
+    /// centre, so top/bottom anchoring needs an explicit frame. The caller
+    /// sizes the layer to the returned rect with `.resize` gravity; the
+    /// background view's clipping cuts the overflow. Pure so the geometry
+    /// is testable without a view.
+    static func imageFrame(
+        imageSize: CGSize,
+        in bounds: CGRect,
+        fit: BackgroundMediaConfiguration.Fit,
+        scalePercent: Double,
+        position: BackgroundMediaConfiguration.Position
+    ) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0,
+              bounds.width > 0, bounds.height > 0
+        else {
+            return bounds
+        }
+        let scale: CGFloat
+        switch fit {
+        case .fill:
+            scale = max(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        case .contain:
+            scale = min(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        case .custom:
+            scale = CGFloat(scalePercent / 100)
+        case .original:
+            scale = 1
+        case .stretch:
+            // Distort to the cell: the only fit that does not preserve the
+            // aspect ratio, so there is no drawn size to anchor.
+            return bounds
+        }
+        let drawn = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        let x = bounds.minX + (bounds.width - drawn.width) / 2
+        let y: CGFloat
+        switch position {
+        case .topLeft, .topCenter, .topRight:
+            y = bounds.maxY - drawn.height
+        case .centerLeft, .center, .centerRight, .custom:
+            y = bounds.minY + (bounds.height - drawn.height) / 2
+        case .bottomLeft, .bottomCenter, .bottomRight:
+            y = bounds.minY
+        }
+        return CGRect(x: x, y: y, width: drawn.width, height: drawn.height)
+    }
 }
 
 /// `NSCache` holds objects, so the frame array rides in one.
