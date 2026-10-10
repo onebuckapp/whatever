@@ -122,7 +122,8 @@ struct ChromeWidthDemandTests {
         #expect(
             bar.frame.width <= 1490,
             "bookmarks bar is \(bar.frame.width) wide in a 1490 container")
-        #expect(controller.view.isOverflowVisibleForTesting, "overflow chevron never appeared")
+        // Overflow scrolls under a fade instead of a chevron menu now.
+        #expect(controller.view.fadesVisibleForTesting == (false, true))
         // And widening must not stick as a demand: after a transient resize
         // the bar is free to shrink again.
         container.setFrameSize(NSSize(width: 2400, height: 900))

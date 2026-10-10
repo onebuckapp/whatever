@@ -78,9 +78,6 @@ final class BookmarkBarController {
         view.contextMenuProvider = { [weak self] node in
             self?.menu(for: node)
         }
-        view.overflowMenuProvider = { [weak self] in
-            self?.overflowMenu()
-        }
         view.onDropTab = { [weak self] tabs, destination in
             self?.saveTabs(tabs, at: destination)
         }
@@ -276,25 +273,5 @@ final class BookmarkBarController {
             at: NSPoint(x: 0, y: anchor.bounds.minY - 4),
             in: anchor
         )
-    }
-
-    private func overflowMenu() -> NSMenu {
-        prepareTarget()
-        let menu = BookmarkContextMenu.itemsMenu(
-            parentID: nil,
-            emptyTitle: "No Bookmarks",
-            store: store,
-            target: menuTarget
-        )
-        menu.addItem(.separator())
-        BookmarkContextMenu.add(
-            "Edit Bookmarks\u{2026}",
-            .openBookmarksSettings,
-            parentID: nil,
-            nodeID: nil,
-            to: menu,
-            target: menuTarget
-        )
-        return menu
     }
 }

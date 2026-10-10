@@ -19,12 +19,12 @@ import AppKit
 
 /// The bookmarks strip that lives between the toolbar and the tab bar.
 ///
-/// Entries are laid out leading-to-trailing in a clipped container; when
-/// they no longer fit, a chevron appears at the trailing edge and the
-/// overflow is reachable through its menu. The strip never carries a
-/// required width: the stack has no trailing pin and low compression
-/// resistance, so a bar full of long titles clips instead of pushing the
-/// window wider.
+/// Entries are laid out leading-to-trailing by hand in a scroll view, the
+/// tab strip's arrangement at a smaller scale: trackpad gestures and mouse
+/// wheels scroll the strip, and a fade marks each edge hiding entries. No
+/// overflow menu — everything stays reachable by scrolling. The strip never
+/// carries a required width: everything below is manual frames, so a bar
+/// full of long titles clips instead of pushing the window wider.
 @MainActor
 final class BookmarkBarView: NSView {
     static let height: CGFloat = 28
@@ -37,8 +37,6 @@ final class BookmarkBarView: NSView {
     var onMiddleClick: ((BookmarkNode) -> Void)?
     /// Right-click menu; nil node means the bar background.
     var contextMenuProvider: ((BookmarkNode?) -> NSMenu?)?
-    /// The overflow chevron's menu.
-    var overflowMenuProvider: (() -> NSMenu?)?
     /// A completed drag: (id, parentID, beforeID).
     var onMove: ((String, String?, String?) -> Void)?
     /// Tabs dropped on the bar, with where they landed. The receiver saves
@@ -49,82 +47,123 @@ final class BookmarkBarView: NSView {
     var store: BookmarkStore?
 
     private static let sideInset: CGFloat = 4
-    private static let overflowReserve: CGFloat = 34
+    private static let itemSpacing: CGFloat = 2
+    private static let itemHeight: CGFloat = 22
 
-    private let itemsContainer = NSView()
-    private let stack = NSStackView()
-    private let overflowButton = BrowserToolbarButton()
+    /// Feather width of each edge fade, in points. Same as the tab strip.
+    private static let fadeFeather: CGFloat = 24
+
+    private let scrollView = NSScrollView()
+    private let content = BookmarkBarContentView()
+    private var items: [BookmarkBarItemView] = []
     private let insertionMarker = TabInsertionMarkerView()
-    private var itemsTrailing: NSLayoutConstraint!
-    private var nodes: [BookmarkNode] = []
+
+    /// Masks the clip view's content: transparent where more entries hide
+    /// off that edge, opaque elsewhere. Rebuilt by `refreshFades` whenever
+    /// the scroll position, content width, or bar width changes.
+    private let fadeMask = CAGradientLayer()
+    private var boundsObserver: NSObjectProtocol?
+
+    private var leftFadeVisible = false
+    private var rightFadeVisible = false
+
+    /// The fade state, for tests: whether the left / right edge currently
+    /// shows its fade.
+    var fadesVisibleForTesting: (left: Bool, right: Bool) {
+        (leftFadeVisible, rightFadeVisible)
+    }
+
+    /// Scroll offset, for tests.
+    var scrollOriginXForTesting: CGFloat {
+        scrollView.contentView.bounds.origin.x
+    }
+
+    /// Scrolls the strip so `offset` becomes the visible origin. For tests.
+    func scrollToForTesting(_ offset: CGFloat) {
+        let maxX = max(0, contentWidth - scrollView.contentView.bounds.width)
+        scrollView.contentView.scroll(to: NSPoint(
+            x: TabBarContainerView.snappedOffset(offset, max: maxX), y: 0))
+        // A headless test host may not deliver the bounds notification, so
+        // refresh directly; in the app the observer covers this too.
+        refreshFades()
+    }
+
+    /// Scrolls the strip by `dx`, clamped to the content. For tests.
+    func scrollHorizontallyForTesting(_ dx: CGFloat) {
+        scrollContent(by: dx)
+    }
 
     init() {
         super.init(frame: .zero)
         wantsLayer = true
-
-        itemsContainer.wantsLayer = true
-        itemsContainer.layer?.masksToBounds = true
-        itemsContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        stack.orientation = .horizontal
-        stack.alignment = .centerY
-        stack.spacing = 2
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        overflowButton.image = NSImage(
-            systemSymbolName: "chevron.right.2",
-            accessibilityDescription: "More bookmarks"
-        )?.withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
-        overflowButton.toolTip = "More bookmarks"
-        overflowButton.target = self
-        overflowButton.action = #selector(showOverflow)
-        overflowButton.isHidden = true
-
-        addSubview(itemsContainer)
-        itemsContainer.addSubview(stack)
-        addSubview(overflowButton)
-        addSubview(insertionMarker)
-
+        setUpSubviews()
         registerForDraggedTypes([BookmarkDragPayload.type, TabDragPayload.type])
-
-        itemsTrailing = itemsContainer.trailingAnchor.constraint(
-            equalTo: trailingAnchor,
-            constant: -Self.sideInset
-        )
-        NSLayoutConstraint.activate([
-            itemsContainer.leadingAnchor.constraint(
-                equalTo: leadingAnchor,
-                constant: Self.sideInset
-            ),
-            itemsContainer.topAnchor.constraint(equalTo: topAnchor),
-            itemsContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
-            itemsTrailing,
-
-            stack.leadingAnchor.constraint(equalTo: itemsContainer.leadingAnchor),
-            stack.topAnchor.constraint(equalTo: itemsContainer.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: itemsContainer.bottomAnchor),
-
-            overflowButton.trailingAnchor.constraint(
-                equalTo: trailingAnchor,
-                constant: -Self.sideInset
-            ),
-            overflowButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        if let boundsObserver {
+            NotificationCenter.default.removeObserver(boundsObserver)
+        }
+    }
+
+    private func setUpSubviews() {
+        // Manual layout only, like the tab strip: frames come from `layout`,
+        // so an autoresizing mask would snapshot each laid-out width back as
+        // a required demand and the bar would push the window wider.
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        // No scroller bars at all: `NSScrollView` reserves layout height for
+        // a horizontal scroller whenever one can appear, and still scrolls a
+        // wider document view with both scrollers off. Same arrangement as
+        // the tab strip.
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.drawsBackground = false
+        scrollView.documentView = content
+        addSubview(scrollView)
+
+        content.translatesAutoresizingMaskIntoConstraints = false
+        // Precise horizontal gestures scroll natively through the scroll
+        // view; everything else is mapped onto the strip, exactly like the
+        // tab strip's document view.
+        content.scrollWheelHandler = { [weak self] event in
+            self?.handleScrollWheel(event)
+        }
+        // A drag hovering near either visible edge scrolls hidden entries
+        // into reach for the drop.
+        content.autoScroll = { [weak self] contentX in
+            self?.autoScroll(contentX) ?? 0
+        }
+
+        // The mask lives on the scroll view, whose bounds never move: only
+        // the clip view's bounds origin changes, so the fades sit at the
+        // visible edges, not at the content's ends.
+        scrollView.wantsLayer = true
+        scrollView.layer?.mask = fadeMask
+        fadeMask.startPoint = CGPoint(x: 0, y: 0.5)
+        fadeMask.endPoint = CGPoint(x: 1, y: 0.5)
+
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        boundsObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshFades()
+        }
+    }
+
     /// Rebuilds the strip's buttons for `nodes`.
     func update(nodes: [BookmarkNode]) {
-        self.nodes = nodes
-        for view in stack.arrangedSubviews {
-            stack.removeArrangedSubview(view)
-            view.removeFromSuperview()
+        for item in items {
+            item.removeFromSuperview()
         }
-        for node in nodes {
-            stack.addArrangedSubview(makeItem(node))
+        items = nodes.map(makeItem)
+        for item in items {
+            content.addSubview(item)
         }
         clearDropIndicators()
         needsLayout = true
@@ -133,45 +172,130 @@ final class BookmarkBarView: NSView {
 
     /// Test seams.
     var itemTitlesForTesting: [String] {
-        stack.arrangedSubviews.compactMap { ($0 as? BookmarkBarItemView)?.node.displayTitle }
+        items.map(\.node.displayTitle)
     }
 
-    var isOverflowVisibleForTesting: Bool { !overflowButton.isHidden }
-
-    var itemsWidthForTesting: CGFloat { stack.fittingSize.width }
+    /// The laid-out content width: entries plus spacing plus both insets.
+    var itemsWidthForTesting: CGFloat { contentWidth }
 
     override func layout() {
         super.layout()
-        updateOverflow()
+        scrollView.frame = bounds
+        layoutItems()
+        let clip = scrollView.contentView
+        let overflowing = contentWidth - clip.bounds.width > 0.5
+        if !overflowing, clip.bounds.origin.x != 0 {
+            // The window widened past the overflow: re-zero a scroll offset
+            // nothing clamps anymore, or the strip sits shifted with blank
+            // chrome at its leading edge. Same as the tab strip.
+            clip.scroll(to: NSPoint(x: 0, y: 0))
+        }
+        scrollView.reflectScrolledClipView(clip)
+        refreshFades()
     }
 
-    /// Shows the chevron exactly when the entries outgrow the strip.
-    ///
-    /// The available width is computed from the current reserve state, not
-    /// from the container's laid-out frame, so one pass is self-consistent
-    /// and the visibility cannot oscillate between passes.
-    private func updateOverflow() {
-        let reserved = overflowButton.isHidden ? 0 : Self.overflowReserve
-        let available = bounds.width - Self.sideInset * 2 - reserved
-        let needsOverflow = !nodes.isEmpty
-            && bounds.width > 0
-            && stack.fittingSize.width > available + 0.5
-        if needsOverflow == overflowButton.isHidden {
-            overflowButton.isHidden = !needsOverflow
+    /// The content's full width, for the document frame and scroll limits.
+    private var contentWidth: CGFloat {
+        var total = Self.sideInset
+        for (index, item) in items.enumerated() {
+            if index > 0 {
+                total += Self.itemSpacing
+            }
+            total += item.intrinsicContentSize.width
         }
-        let desiredTrailing = -(Self.sideInset + (needsOverflow ? Self.overflowReserve : 0))
-        if itemsTrailing.constant != desiredTrailing {
-            itemsTrailing.constant = desiredTrailing
-        }
+        return total + Self.sideInset
     }
 
-    @objc private func showOverflow() {
-        guard let menu = overflowMenuProvider?() else { return }
-        menu.popUp(
-            positioning: nil,
-            at: NSPoint(x: 0, y: overflowButton.bounds.minY - 4),
-            in: overflowButton
+    private func layoutItems() {
+        let clipWidth = scrollView.contentSize.width
+        content.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: max(contentWidth, clipWidth),
+            height: bounds.height
         )
+        let itemY = (bounds.height - Self.itemHeight) / 2
+        var x = Self.sideInset
+        for (index, item) in items.enumerated() {
+            if index > 0 {
+                x += Self.itemSpacing
+            }
+            let width = item.intrinsicContentSize.width
+            item.frame = NSRect(x: x, y: itemY, width: width, height: Self.itemHeight)
+            x += width
+        }
+    }
+
+    // MARK: - Scrolling
+
+    /// Maps wheel deltas onto a horizontal strip offset. Shared with the tab
+    /// strip's convention: a device speaking horizontal is trusted as-is,
+    /// anything vertical rotates a quarter turn.
+    private func handleScrollWheel(_ event: NSEvent) {
+        scrollContent(by: TabBarContainerView.stripDelta(
+            dx: event.scrollingDeltaX,
+            dy: event.scrollingDeltaY,
+            precise: event.hasPreciseScrollingDeltas
+        ))
+    }
+
+    /// Scrolls the strip by `dx`, clamped to the content. No-op when every
+    /// entry fits.
+    private func scrollContent(by dx: CGFloat) {
+        let clip = scrollView.contentView
+        let maxX = max(0, contentWidth - clip.bounds.width)
+        guard maxX > 0, dx != 0 else { return }
+        let next = TabBarContainerView.snappedOffset(clip.bounds.origin.x + dx, max: maxX)
+        guard next != clip.bounds.origin.x else { return }
+        clip.scroll(to: NSPoint(x: next, y: 0))
+        refreshFades()
+    }
+
+    /// Scrolls the strip when a drag hovers near either visible edge, so a
+    /// hidden entry can be reached for the drop. Same shape as the tab
+    /// strip's auto-scroll.
+    private func autoScroll(_ contentX: CGFloat) -> CGFloat {
+        let visible = scrollView.contentView
+        let edge: CGFloat = 24
+        var delta: CGFloat = 0
+        if contentX < visible.bounds.minX + edge {
+            delta = -12
+        } else if contentX > visible.bounds.maxX - edge {
+            delta = 12
+        }
+        guard delta != 0, scrollView.documentView != nil else { return 0 }
+        let maxX = max(0, contentWidth - visible.bounds.width)
+        let next = TabBarContainerView.snappedOffset(visible.bounds.origin.x + delta, max: maxX)
+        guard next != visible.bounds.origin.x else { return 0 }
+        visible.scroll(to: NSPoint(x: next, y: 0))
+        return next - visible.bounds.origin.x
+    }
+
+    /// Recomputes which edge fades show. Each side appears only while
+    /// entries hide off that side; a fully visible strip stays crisp on
+    /// both ends. Same arrangement as the tab strip.
+    private func refreshFades() {
+        let clip = scrollView.contentView
+        let visibleWidth = clip.bounds.width
+        guard visibleWidth > 0 else { return }
+        let originX = clip.bounds.origin.x
+        let hidden = contentWidth - visibleWidth
+        leftFadeVisible = originX > 0.5 && hidden > 0.5
+        rightFadeVisible = hidden > 0.5 && originX < hidden - 0.5
+        fadeMask.contentsScale = window?.backingScaleFactor ?? 2
+        // The scroll view's own bounds: origin zero, always. The mask is
+        // positioned in that space, so it never drifts with the scroll.
+        fadeMask.frame = CGRect(origin: .zero, size: scrollView.bounds.size)
+        let clear = NSColor.white.withAlphaComponent(0).cgColor
+        let solid = NSColor.white.cgColor
+        let feather = min(Self.fadeFeather / visibleWidth, 0.45)
+        fadeMask.colors = [
+            leftFadeVisible ? clear : solid,
+            solid,
+            solid,
+            rightFadeVisible ? clear : solid,
+        ]
+        fadeMask.locations = [0, feather, 1 - feather, 1] as [NSNumber]
     }
 
     // MARK: - Drag and drop
@@ -221,7 +345,7 @@ final class BookmarkBarView: NSView {
     }
 
     private func hitItem(at point: NSPoint) -> BookmarkBarItemView? {
-        for case let item as BookmarkBarItemView in stack.arrangedSubviews {
+        for item in items {
             if convert(item.bounds, from: item).contains(point) {
                 return item
             }
@@ -249,7 +373,7 @@ final class BookmarkBarView: NSView {
     }
 
     private func setDropTarget(_ id: String?) {
-        for case let item as BookmarkBarItemView in stack.arrangedSubviews {
+        for item in items {
             item.isDropTarget = item.node.id == id
         }
     }
@@ -257,12 +381,10 @@ final class BookmarkBarView: NSView {
     private func layoutInsertionMarker(beforeID: String?) {
         let x: CGFloat
         if let beforeID,
-           let item = stack.arrangedSubviews
-               .compactMap({ $0 as? BookmarkBarItemView })
-               .first(where: { $0.node.id == beforeID })
+           let item = items.first(where: { $0.node.id == beforeID })
         {
             x = convert(item.bounds, from: item).minX - 2
-        } else if let last = stack.arrangedSubviews.last {
+        } else if let last = items.last {
             x = convert(last.bounds, from: last).maxX + 2
         } else {
             x = Self.sideInset + 2
@@ -321,6 +443,10 @@ final class BookmarkBarView: NSView {
             return []
         }
         let point = convert(sender.draggingLocation, from: nil)
+        // A drag hovering near either visible edge scrolls hidden entries
+        // into reach. Runs before hit testing so the indicator lands on
+        // the post-scroll geometry.
+        _ = content.autoScroll?(content.convert(point, from: self).x)
         guard let destination = destination(for: payload, at: point) else {
             clearDropIndicators()
             return []
@@ -371,8 +497,7 @@ final class BookmarkBarView: NSView {
     }
 
     func itemFrameForTesting(_ id: String) -> NSRect? {
-        for case let item as BookmarkBarItemView in stack.arrangedSubviews
-        where item.node.id == id {
+        for item in items where item.node.id == id {
             return convert(item.bounds, from: item)
         }
         return nil
@@ -422,5 +547,30 @@ final class BookmarkBarView: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         needsDisplay = true
+    }
+}
+
+/// The scroll view's document: lays out nothing itself (the bar assigns
+/// every item frame in `layoutItems`), but intercepts wheel events first —
+/// exactly like the tab strip — so a precise horizontal gesture scrolls
+/// natively while everything else is mapped onto the strip.
+final class BookmarkBarContentView: NSView {
+    /// Maps wheel and gesture events the strip does not scroll natively.
+    /// Set by the bar.
+    var scrollWheelHandler: ((NSEvent) -> Void)?
+    /// Scrolls the strip when a drag hovers near a visible edge. Set by
+    /// the bar; mirrors the tab strip's `autoScroll`.
+    var autoScroll: ((CGFloat) -> CGFloat)?
+
+    override func scrollWheel(with event: NSEvent) {
+        if event.hasPreciseScrollingDeltas && event.scrollingDeltaX != 0 {
+            super.scrollWheel(with: event)
+            return
+        }
+        if let scrollWheelHandler {
+            scrollWheelHandler(event)
+        } else {
+            super.scrollWheel(with: event)
+        }
     }
 }
