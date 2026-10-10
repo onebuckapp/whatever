@@ -126,3 +126,36 @@ thread — same contract as `StoreService.swift`).
 Phase 1 items 1–2: DLL builds, exports verified, Windows smoke test calling
 `bc_version` / `bc_history_fuzzy_search` from a C# console harness — de-risks
 the whole plan before any XAML exists.
+
+## Content blocker on WebView2 (no WKContentRuleListStore equivalent)
+
+WebView2 has nothing that compiles JSON rules and matches inside the engine.
+The macOS path (`ContentBlockerStore.swift` → `bc_filter_compile` →
+`compileContentRuleList` → attach) becomes three host-side pieces:
+
+1. **Network blocking → `WebResourceRequested` interception.** Register
+   `AddWebResourceRequestedFilter("*", All)`; the handler matches URL +
+   initiator + resource context and cancels or returns an empty/403 response.
+   Matching runs per request on the UI thread, so the handler must be one
+   P/Invoke + one branch — hence `bc_filter_match(url, initiator,
+   resource_kind)` as a zero-alloc native export (takes the initiator so
+   `$domain=`-scoped rules work). Compile once at settings-change time via
+   `bc_filter_compile`; core holds the set in memory keyed by the FNV hash
+   `bc_filter_meta` returns. One handler shared by every `WebView2`.
+2. **Cosmetic filtering (`##`) → injected stylesheet.** Core emits the
+   cosmetic selectors as a CSS blob (`bc_filter_cosmetics()`), the shell
+   injects it via `AddScriptToExecuteOnDocumentCreatedAsync`. Procedural
+   cosmetics (`:has`, `:xpath`) are a documented gap — at parity with the
+   macOS content blocker, not behind it.
+3. **Free baseline → Edge tracking prevention.**
+   `CoreWebView2Profile.PreferredTrackingPreventionLevel`
+   (None/Basic/Balanced/Strict, profile-wide, enabled via
+   `EnableTrackingPrevention` at environment creation) maps to a settings
+   toggle. Per-site exceptions still go through the interception layer,
+   since the profile API can't do per-site.
+
+Rejected: bundling uBlock Origin Lite via WebView2's UI-less extensions API
+(`AddBrowserExtensionAsync`). It would bring its own lists, update channel,
+and storage — breaking the local-first deal (user lists compiled by core,
+driven by native settings UI) — while the per-site panel would still need
+native code talking to an opaque extension. Two blockers instead of one.
