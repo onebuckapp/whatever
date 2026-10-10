@@ -102,7 +102,7 @@ struct BookmarkMoveTests {
 /// background appends, and the refusals.
 @MainActor
 struct BookmarkDragDestinationTests {
-    private func makeBar() -> (BookmarkBarController, NSView) {
+    private func makeBar() -> (BookmarkBarController, BookmarkStore, NSView) {
         let store = BookmarkStore()
         store.persistEnabled = false
         store.replaceNodesForTesting([
@@ -116,12 +116,26 @@ struct BookmarkDragDestinationTests {
         let bar = BookmarkBarController(container: container, store: store)
         bar.forceEnabledForTesting = true
         container.layoutSubtreeIfNeeded()
-        return (bar, container)
+        return (bar, store, container)
+    }
+
+    private final class StubHistory: HistoryRecording {
+        func record(url: URL, title: String?) {}
+    }
+
+    private func makeTab(url: String, title: String) -> BrowserTab {
+        let tab = BrowserTab(
+            privacyMode: .regular,
+            history: StubHistory(),
+            initialURL: URL(string: url)
+        )
+        tab.tabController.setPlaceholderTitle(title)
+        return tab
     }
 
     @Test("the left half of an item inserts before it")
     func insertBefore() throws {
-        let (bar, _) = makeBar()
+        let (bar, _, _) = makeBar()
         let view = bar.view
         let frame = try #require(view.itemFrameForTesting("a"))
         let point = NSPoint(x: frame.midX - 4, y: frame.midY)
@@ -133,7 +147,7 @@ struct BookmarkDragDestinationTests {
 
     @Test("the right quarter of the last item appends at the end")
     func appendAtEnd() throws {
-        let (bar, _) = makeBar()
+        let (bar, _, _) = makeBar()
         let view = bar.view
         let frame = try #require(view.itemFrameForTesting("g"))
         // The right quarter, not the middle: a folder's middle files into it.
@@ -146,7 +160,7 @@ struct BookmarkDragDestinationTests {
 
     @Test("a folder's middle files into it")
     func fileIntoFolder() throws {
-        let (bar, _) = makeBar()
+        let (bar, _, _) = makeBar()
         let view = bar.view
         let frame = try #require(view.itemFrameForTesting("f"))
         let point = NSPoint(x: frame.midX, y: frame.midY)
@@ -158,7 +172,7 @@ struct BookmarkDragDestinationTests {
 
     @Test("the bar background appends at the end")
     func backgroundAppends() {
-        let (bar, _) = makeBar()
+        let (bar, _, _) = makeBar()
         let view = bar.view
         let point = NSPoint(x: 20, y: 1)
         #expect(
@@ -169,10 +183,60 @@ struct BookmarkDragDestinationTests {
 
     @Test("a folder dropped on itself has no destination")
     func selfDropRefused() throws {
-        let (bar, _) = makeBar()
+        let (bar, _, _) = makeBar()
         let view = bar.view
         let frame = try #require(view.itemFrameForTesting("f"))
         let point = NSPoint(x: frame.midX, y: frame.midY)
         #expect(view.dropDestinationForTesting(at: point, draggedID: "f") == nil)
+    }
+
+    @Test("a tab drag takes the same destinations, without cycle checks")
+    func tabDestinations() throws {
+        let (bar, _, _) = makeBar()
+        let view = bar.view
+        let folder = try #require(view.itemFrameForTesting("f"))
+        #expect(
+            view.dropDestinationForTesting(at: NSPoint(x: folder.midX, y: folder.midY), draggedID: nil)
+                == .intoFolder("f")
+        )
+        let link = try #require(view.itemFrameForTesting("a"))
+        #expect(
+            view.dropDestinationForTesting(at: NSPoint(x: link.midX - 4, y: link.midY), draggedID: nil)
+                == .reorder(parentID: nil, beforeID: "a")
+        )
+    }
+
+    @Test("dropping a tab saves its page at the destination")
+    func dropTabSavesBookmark() throws {
+        let (bar, store, _) = makeBar()
+        let tab = makeTab(url: "https://example.com/page", title: "Example Page")
+        bar.saveTabs([tab], at: .reorder(parentID: nil, beforeID: "a"))
+        let node = try #require(
+            store.roots.first { $0.kind == .link && $0.url == "https://example.com/page" }
+        )
+        #expect(node.title == "Example Page")
+        let order = store.roots.map(\.id)
+        #expect(order.firstIndex(of: node.id)! < order.firstIndex(of: "a")!)
+    }
+
+    @Test("dropping a tab on a folder files it inside")
+    func dropTabIntoFolder() throws {
+        let (bar, store, _) = makeBar()
+        let tab = makeTab(url: "https://example.com/page", title: "")
+        bar.saveTabs([tab], at: .intoFolder("f"))
+        let children = store.children(of: "f")
+        #expect(children.count == 2)
+        #expect(children.last?.url == "https://example.com/page")
+        #expect(children.last?.title == "example.com")
+    }
+
+    @Test("an addressless tab saves nothing")
+    func dropAddresslessTabSavesNothing() {
+        let (bar, store, _) = makeBar()
+        let before = store.nodes
+        // No initial URL: the homepage, which has no address worth saving.
+        let tab = BrowserTab(privacyMode: .regular, history: StubHistory())
+        bar.saveTabs([tab], at: .reorder(parentID: nil, beforeID: nil))
+        #expect(store.nodes == before)
     }
 }

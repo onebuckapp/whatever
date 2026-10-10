@@ -81,6 +81,9 @@ final class BookmarkBarController {
         view.overflowMenuProvider = { [weak self] in
             self?.overflowMenu()
         }
+        view.onDropTab = { [weak self] tabs, destination in
+            self?.saveTabs(tabs, at: destination)
+        }
         // Drags resolve against the same store the bar renders; the move
         // itself goes through the store's guarded `move`.
         view.store = store
@@ -191,9 +194,39 @@ final class BookmarkBarController {
         }
     }
 
+    /// Saves dragged tabs as bookmarks at the drop destination, in drag
+    /// order. A dragged split group saves every member; addressless pages
+    /// carry no URL worth saving and are skipped. Internal for tests, which
+    /// drive it with headless tabs.
+    func saveTabs(_ tabs: [BrowserTab], at destination: BookmarkDropDestination) {
+        let parentID: String?
+        let beforeID: String?
+        switch destination {
+        case .intoFolder(let id):
+            parentID = id
+            beforeID = nil
+        case .reorder(let parent, let before):
+            parentID = parent
+            beforeID = before
+        }
+        for tab in tabs {
+            let url = tab.displayURL
+            guard !url.isAddresslessPage else { continue }
+            guard let node = store.createLink(
+                title: tab.tabController.title ?? "",
+                url: url.absoluteString,
+                in: parentID
+            ) else {
+                continue
+            }
+            if let beforeID {
+                store.move(node.id, to: parentID, before: beforeID)
+            }
+        }
+    }
+
     /// Every link in a folder's subtree, in tree order, each in its own tab.
-    private func openAll(in id: String?) {
-        guard let id, let folder = store.node(id), folder.isFolder else { return }
+    private func openAll(in id: String?) {        guard let id, let folder = store.node(id), folder.isFolder else { return }
         var urls: [URL] = []
         func collect(_ parentID: String) {
             for child in store.children(of: parentID) {

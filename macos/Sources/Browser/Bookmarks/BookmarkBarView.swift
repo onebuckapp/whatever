@@ -41,6 +41,9 @@ final class BookmarkBarView: NSView {
     var overflowMenuProvider: (() -> NSMenu?)?
     /// A completed drag: (id, parentID, beforeID).
     var onMove: ((String, String?, String?) -> Void)?
+    /// Tabs dropped on the bar, with where they landed. The receiver saves
+    /// each tab's page as a bookmark, in drag order.
+    var onDropTab: (([BrowserTab], BookmarkDropDestination) -> Void)?
 
     /// The store drags resolve against. Set by the controller.
     var store: BookmarkStore?
@@ -82,7 +85,7 @@ final class BookmarkBarView: NSView {
         addSubview(overflowButton)
         addSubview(insertionMarker)
 
-        registerForDraggedTypes([BookmarkDragPayload.type])
+        registerForDraggedTypes([BookmarkDragPayload.type, TabDragPayload.type])
 
         itemsTrailing = itemsContainer.trailingAnchor.constraint(
             equalTo: trailingAnchor,
@@ -176,28 +179,36 @@ final class BookmarkBarView: NSView {
     /// Resolves a drag to a destination: the middle of a folder files into
     /// it, an edge reorders before or after the hovered item, and the
     /// background appends at the end of the root level. Nil refuses the drop
-    /// (a node onto itself, or a folder into its own subtree).
-    private func dropDestination(at point: NSPoint, dragged: BookmarkNode) -> BookmarkDropDestination? {
+    /// (a node onto itself, or a folder into its own subtree). A nil
+    /// `draggedID` is a tab drag: a brand-new bookmark that cannot cycle,
+    /// so only the hit testing applies.
+    private func dropDestination(at point: NSPoint, draggedID: String?) -> BookmarkDropDestination? {
         guard let store else { return nil }
         guard let hit = hitItem(at: point) else {
             // Background: append at the end.
-            guard !BookmarkTree.invalidMove(id: dragged.id, to: nil, in: store.nodes) else {
+            if let draggedID,
+               BookmarkTree.invalidMove(id: draggedID, to: nil, in: store.nodes)
+            {
                 return nil
             }
             return .reorder(parentID: nil, beforeID: nil)
         }
         let hitNode = hit.node
         // Dropping a bookmark onto itself is not a move.
-        guard hitNode.id != dragged.id else { return nil }
+        guard hitNode.id != draggedID else { return nil }
         let frame = convert(hit.bounds, from: hit)
         let middle = frame.insetBy(dx: frame.width * 0.25, dy: 0).contains(point)
         if hitNode.isFolder, middle {
-            guard !BookmarkTree.invalidMove(id: dragged.id, to: hitNode.id, in: store.nodes) else {
+            if let draggedID,
+               BookmarkTree.invalidMove(id: draggedID, to: hitNode.id, in: store.nodes)
+            {
                 return nil
             }
             return .intoFolder(hitNode.id)
         }
-        guard !BookmarkTree.invalidMove(id: dragged.id, to: nil, in: store.nodes) else {
+        if let draggedID,
+           BookmarkTree.invalidMove(id: draggedID, to: nil, in: store.nodes)
+        {
             return nil
         }
         let beforeID: String?
@@ -272,19 +283,45 @@ final class BookmarkBarView: NSView {
         setDropTarget(nil)
     }
 
+    /// What is being dragged over the bar: a bookmark by id, or tabs whose
+    /// pages want saving. Addressless tabs (homepage, blank pages) carry no
+    /// URL worth saving and are filtered out, so a drag of only those is no
+    /// drag at all.
+    private enum DropPayload {
+        case bookmark(String)
+        case tabs([BrowserTab])
+    }
+
+    private func payload(from sender: NSDraggingInfo) -> DropPayload? {
+        guard let store else { return nil }
+        if let node = BookmarkDragPayload.node(from: sender, in: store) {
+            return .bookmark(node.id)
+        }
+        let tabs = TabDragPayload.tabs(from: sender).filter { !$0.displayURL.isAddresslessPage }
+        guard !tabs.isEmpty else { return nil }
+        return .tabs(tabs)
+    }
+
+    private func destination(for payload: DropPayload, at point: NSPoint) -> BookmarkDropDestination? {
+        switch payload {
+        case .bookmark(let id):
+            return dropDestination(at: point, draggedID: id)
+        case .tabs:
+            return dropDestination(at: point, draggedID: nil)
+        }
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         draggingUpdated(sender)
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard let store,
-              let dragged = BookmarkDragPayload.node(from: sender, in: store)
-        else {
+        guard let payload = payload(from: sender) else {
             clearDropIndicators()
             return []
         }
         let point = convert(sender.draggingLocation, from: nil)
-        guard let destination = dropDestination(at: point, dragged: dragged) else {
+        guard let destination = destination(for: payload, at: point) else {
             clearDropIndicators()
             return []
         }
@@ -301,39 +338,36 @@ final class BookmarkBarView: NSView {
     }
 
     override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        guard let store,
-              let dragged = BookmarkDragPayload.node(from: sender, in: store)
-        else {
+        guard let payload = payload(from: sender) else {
             return false
         }
         let point = convert(sender.draggingLocation, from: nil)
-        return dropDestination(at: point, dragged: dragged) != nil
+        return destination(for: payload, at: point) != nil
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         defer { clearDropIndicators() }
-        guard let store,
-              let dragged = BookmarkDragPayload.node(from: sender, in: store)
-        else {
+        guard let payload = payload(from: sender) else {
             return false
         }
         let point = convert(sender.draggingLocation, from: nil)
-        guard let destination = dropDestination(at: point, dragged: dragged) else {
+        guard let destination = destination(for: payload, at: point) else {
             return false
         }
-        switch destination {
-        case .intoFolder(let parentID):
-            onMove?(dragged.id, parentID, nil)
-        case .reorder(let parentID, let beforeID):
-            onMove?(dragged.id, parentID, beforeID)
+        switch (payload, destination) {
+        case (.bookmark(let id), .intoFolder(let parentID)):
+            onMove?(id, parentID, nil)
+        case (.bookmark(let id), .reorder(let parentID, let beforeID)):
+            onMove?(id, parentID, beforeID)
+        case (.tabs(let tabs), _):
+            onDropTab?(tabs, destination)
         }
         return true
     }
 
     /// Test seams.
-    func dropDestinationForTesting(at point: NSPoint, draggedID: String) -> BookmarkDropDestination? {
-        guard let store, let dragged = store.node(draggedID) else { return nil }
-        return dropDestination(at: point, dragged: dragged)
+    func dropDestinationForTesting(at point: NSPoint, draggedID: String?) -> BookmarkDropDestination? {
+        dropDestination(at: point, draggedID: draggedID)
     }
 
     func itemFrameForTesting(_ id: String) -> NSRect? {
