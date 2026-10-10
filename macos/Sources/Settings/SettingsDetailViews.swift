@@ -854,9 +854,19 @@ struct HistorySettingsView: View {
 // MARK: - Search
 
 struct SearchSettingsView: View {
+    /// Tab order through the add form: without explicit focus bindings
+    /// SwiftUI leaves Tab dead inside the hosted card, and without a bound
+    /// focus state the fields take the cold focus path. Same arrangement as
+    /// the window-size card's form.
+    enum EngineField: Hashable {
+        case name, address, queryItem
+    }
+
     @ObservedObject private var store = SettingsStore.shared
     @State private var isAdding = false
     @State private var draft = CustomSearchEngine()
+    @FocusState private var focusedField: EngineField?
+    @State private var tabMonitor: Any?
 
     var body: some View {
         SettingsDetailStack {
@@ -952,9 +962,9 @@ struct SearchSettingsView: View {
     /// is the whole reason to show it at all.
     private var addForm: some View {
         VStack(alignment: .leading, spacing: 2) {
-            labelledField("Name", text: $draft.name, placeholder: "My search")
-            labelledField("Address", text: $draft.address, placeholder: "https://example.com/search")
-            labelledField("Query parameter", text: $draft.queryItem, placeholder: "q")
+            labelledField("Name", text: $draft.name, placeholder: "My search", field: .name)
+            labelledField("Address", text: $draft.address, placeholder: "https://example.com/search", field: .address)
+            labelledField("Query parameter", text: $draft.queryItem, placeholder: "q", field: .queryItem)
 
             if let problem {
                 Text(problem)
@@ -977,12 +987,75 @@ struct SearchSettingsView: View {
                 .disabled(problem != nil)
             }
         }
+        // The caret starts in the name field: typed-first, no click needed,
+        // and the focus infra is warm before any click lands. Delayed
+        // because the pane mounts asynchronously and a focus set before the
+        // field exists is silently dropped — same cadence as the
+        // window-size card.
+        .task {
+            try? await Task.sleep(for: .milliseconds(80))
+            focusedField = .name
+            try? await Task.sleep(for: .milliseconds(200))
+            if focusedField == nil {
+                focusedField = .name
+            }
+        }
+        .onAppear {
+            // Tab and Shift+Tab walk the three fields explicitly. The
+            // fields' AppKit editor eats Tab before SwiftUI's focus engine
+            // sees it, so bindings alone leave Tab dead: this monitor runs
+            // first and swallows only Tabs pressed while this form holds
+            // focus, so Tab anywhere else in the window is untouched.
+            guard tabMonitor == nil else { return }
+            let focus = $focusedField
+            tabMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard event.keyCode == 48 else { return event }
+                let mods = event.modifierFlags.intersection([.shift, .control, .option, .command])
+                guard mods == [] || mods == [.shift] else { return event }
+                return MainActor.assumeIsolated { () -> NSEvent? in
+                    guard focus.wrappedValue != nil else { return event }
+                    let forward = !mods.contains(.shift)
+                    focus.wrappedValue = forward
+                        ? Self.nextField(after: focus.wrappedValue)
+                        : Self.previousField(before: focus.wrappedValue)
+                    return nil
+                }
+            }
+        }
+        .onDisappear {
+            if let monitor = tabMonitor {
+                NSEvent.removeMonitor(monitor)
+                tabMonitor = nil
+            }
+        }
+    }
+
+    /// Next field walking forward with wraparound, or nil stays nil: Tab
+    /// with no field focused is not this form's to swallow. Static so the
+    /// walk is testable without a pane or any key events.
+    static func nextField(after field: EngineField?) -> EngineField? {
+        switch field {
+        case .name: .address
+        case .address: .queryItem
+        case .queryItem: .name
+        case nil: nil
+        }
+    }
+
+    static func previousField(before field: EngineField?) -> EngineField? {
+        switch field {
+        case .name: .queryItem
+        case .address: .name
+        case .queryItem: .address
+        case nil: nil
+        }
     }
 
     private func labelledField(
         _ title: String,
         text: Binding<String>,
-        placeholder: String
+        placeholder: String,
+        field: EngineField
     ) -> some View {
         HStack(spacing: 12) {
             Text(title)
@@ -992,6 +1065,7 @@ struct SearchSettingsView: View {
             TextField(placeholder, text: text)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
+                .focused($focusedField, equals: field)
         }
         .padding(.vertical, 2)
     }
