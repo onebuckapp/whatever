@@ -35,10 +35,10 @@ struct ToolbarGlyphTests {
         let cross = BrowserToolbarButton.bundledGlyphImage(named: "ShieldX", inkRatio: 0.85)
         #expect(cross?.size == NSSize(width: 17, height: 17))
         let fingerprint = BrowserToolbarButton.bundledGlyphImage(
-            named: "PasswordFingerprint",
-            inkRatio: 0.75
+            named: "TablerAsterisk",
+            inkRatio: 0.833
         )
-        #expect(fingerprint?.size == NSSize(width: 19, height: 19))
+        #expect(fingerprint?.size == NSSize(width: 17, height: 17))
         // Trailing buttons and the page star, same 14.5pt ink target: the
         // bookmark and settings vectors at 17pt, downloads at 19pt, both
         // star states sharing one box so the toggle never moves the glyph.
@@ -56,10 +56,10 @@ struct ToolbarGlyphTests {
         // chevrons sharing one box (narrow glyphs, height-matched).
         let reload = BrowserToolbarButton.bundledGlyphImage(named: "TablerReload", inkRatio: 0.75)
         #expect(reload?.size == NSSize(width: 19, height: 19))
-        let chevronLeft = BrowserToolbarButton.bundledGlyphImage(named: "TablerChevronLeft", inkRatio: 0.58)
-        #expect(chevronLeft?.size == NSSize(width: 25, height: 25))
-        let chevronRight = BrowserToolbarButton.bundledGlyphImage(named: "TablerChevronRight", inkRatio: 0.58)
-        #expect(chevronRight?.size == NSSize(width: 25, height: 25))
+        let chevronLeft = BrowserToolbarButton.bundledGlyphImage(named: "TablerChevronLeft", inkRatio: 0.725)
+        #expect(chevronLeft?.size == NSSize(width: 20, height: 20))
+        let chevronRight = BrowserToolbarButton.bundledGlyphImage(named: "TablerChevronRight", inkRatio: 0.725)
+        #expect(chevronRight?.size == NSSize(width: 20, height: 20))
         for image in [rss, check, cross, fingerprint, panelBookmark, downloads, settings, star, starFilled, reload, chevronLeft, chevronRight] {
             #expect(image?.isTemplate == true)
         }

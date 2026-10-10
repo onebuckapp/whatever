@@ -461,14 +461,14 @@ final class BrowserToolbarController: NSObject {
         configureBundled(
             backButton,
             asset: "TablerChevronLeft",
-            inkRatio: 0.58,
+            inkRatio: 0.725,
             help: "Back",
             action: #selector(goBack)
         )
         configureBundled(
             forwardButton,
             asset: "TablerChevronRight",
-            inkRatio: 0.58,
+            inkRatio: 0.725,
             help: "Forward",
             action: #selector(goForward)
         )
@@ -553,8 +553,8 @@ final class BrowserToolbarController: NSObject {
     /// state — the vault's lock state lives inside the manager card.
     private func configurePasswordButton() {
         let image = BrowserToolbarButton.bundledGlyphImage(
-            named: "PasswordFingerprint",
-            inkRatio: 0.75
+            named: "TablerAsterisk",
+            inkRatio: 0.833
         )
         image?.accessibilityDescription = "Password Manager"
         passwordButton.image = image
@@ -603,7 +603,7 @@ final class BrowserToolbarController: NSObject {
     private func configure(_ button: BrowserToolbarButton, symbol: String, help: String, action: Selector?) {
         // Measured, not guessed: the default cut renders ~16pt tall, and pointSize
         // scales it linearly (18 renders 24), so 13.5 lands ~18 — two points
-        // larger, filling more of the 24pt frame. The medium weight keeps the
+        // larger, filling more of the frame. The medium weight keeps the
         // stroke sharp rather than hairline at that size.
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: help)?
             .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))

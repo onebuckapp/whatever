@@ -82,9 +82,12 @@ struct AddressBarLayoutTests {
         strip.preferredWidth.isActive = false
         strip.toolbar.setFullWidth(true)
         layout(strip.toolbar, width: 1200)
-        // 1200 - 92 (window buttons) - 94 (3 leading) - 8 - 8 (gaps)
-        // - 126 (4 trailing) - 10 (trailing inset).
-        #expect(abs(strip.stack.frame.width - 862) < 1, "stack is \(strip.stack.frame.width)pt, want 862")
+        // 1200 - 92 (window buttons) - leading - 8 - 8 (gaps) - trailing
+        // - 10 (trailing inset), derived from the button size so padding
+        // changes flow through instead of rotting here.
+        let button = BrowserToolbarButton.outerWidth
+        let want = 1200 - 92 - (3 * button + 2 * 2) - 8 - 8 - (4 * button + 3 * 2) - 10
+        #expect(abs(strip.stack.frame.width - want) < 1, "stack is \(strip.stack.frame.width)pt, want \(want)")
         #expect(abs(strip.container.frame.width - strip.stack.frame.width) < 1,
                 "container \(strip.container.frame.width)pt did not fill the \(strip.stack.frame.width)pt stack")
     }
@@ -145,7 +148,9 @@ struct AddressBarLayoutTests {
         host.layoutSubtreeIfNeeded()
         let idleContainer = container.frame
         let idleField = field.frame
-        #expect(abs(idleContainer.width - 862) < 2, "setup did not stretch: \(idleContainer)")
+        let button = BrowserToolbarButton.outerWidth
+        let want = 1200 - 92 - (3 * button + 2 * 2) - 8 - 8 - (4 * button + 3 * 2) - 10
+        #expect(abs(idleContainer.width - want) < 2, "setup did not stretch: \(idleContainer)")
 
         // Type: text appears, the clear button shows, the dropdown opens.
         field.textField.stringValue = "hello world example.com"

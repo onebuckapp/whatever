@@ -30,9 +30,9 @@ import AppKit
 @MainActor
 final class BrowserToolbarButton: NSButton {
     /// The strip is 52pt and the address field beside these is 32pt, so these sit
-    /// tighter than either: close to the 22pt a regular `NSControlSize` bezel
-    /// button would have wanted.
-    private static let side: CGFloat = 24
+    /// tighter than either: near the 22pt a regular `NSControlSize` bezel
+    /// button would have wanted, plus breathing room around the glyph.
+    private static let side: CGFloat = 26
     private static let fillRadius: CGFloat = 8
     /// Outer width including the padding the fixed constraints add, for
     /// containers that lay this out by hand and need to reserve its space.

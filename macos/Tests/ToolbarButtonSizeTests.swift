@@ -26,10 +26,10 @@ import Testing
 /// different fill. Pure values, no strip needed.
 @MainActor
 struct ToolbarButtonSizeTests {
-    @Test("every button fits 30x22 whatever its glyph")
+    @Test("every button fits 32x24 whatever its glyph")
     func fittingSizeUniform() {
         let plain = BrowserToolbarButton()
-        #expect(plain.fittingSize == NSSize(width: 30, height: 22))
+        #expect(plain.fittingSize == NSSize(width: 32, height: 24))
         let glyphs: [NSImage?] = [
             NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium)),
@@ -42,7 +42,7 @@ struct ToolbarButtonSizeTests {
         for glyph in glyphs {
             let button = BrowserToolbarButton()
             button.image = glyph
-            #expect(button.fittingSize == NSSize(width: 30, height: 22))
+            #expect(button.fittingSize == NSSize(width: 32, height: 24))
         }
     }
 }
