@@ -23,9 +23,11 @@ import SwiftUI
 ///
 /// Styled exactly like the QR card — same backdrop opacity, corner radius, two
 /// shadows, and vertical padding for shadow room — so the two read as one family
-/// of dialogs. The consuming tap gesture matters as much as the looks: without it
-/// a click on empty card space falls through to Mijick's tap-outside layer and
-/// closes the dialog the user was trying to click inside.
+/// of dialogs. The click shield matters as much as the looks: a clear layer
+/// behind the content claims taps on empty card space, without which they fall
+/// through to Mijick's tap-outside layer and close the dialog the user was
+/// trying to click inside. It sits behind rather than on the card so field and
+/// button taps never arbitrate against it (see the card body).
 struct SettingsModalPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
@@ -60,9 +62,7 @@ struct SettingsModalPopup: CenterPopup {
 ///
 /// Styled exactly like the QR card — same backdrop opacity, corner radius, two
 /// shadows, and vertical padding for shadow room — so the two read as one family
-/// of dialogs. The consuming tap gesture matters as much as the looks: without it
-/// a click on empty card space falls through to Mijick's tap-outside layer and
-/// closes the dialog the user was trying to click inside.
+/// of dialogs. See `SettingsModalPopup` for the click shield behind it.
 private struct SettingsModalCard: View {
     /// The optical left edge that the heading and every row's first glyph sit on,
     /// measured from the card's own edge.
@@ -166,9 +166,22 @@ private struct SettingsModalCard: View {
         // need transparent room around the card. Symmetric, so the card itself
         // stays centered.
         .padding(.vertical, 88)
-        .onTapGesture {}
+        // Claims taps on empty card space — including the transparent shadow
+        // room — so they never reach Mijick's tap-outside layer and dismiss
+        // the dialog the user was trying to click inside. This used to be a
+        // plain `.onTapGesture {}` on the card itself, but as an ancestor of
+        // every control it joined the gesture arbitration of each field tap:
+        // the caret (AppKit, on press) landed instantly while the focus ring
+        // (SwiftUI, on tap recognition) waited behind it, which is the lag
+        // this replaces. Behind the content instead, field and button taps
+        // never meet this gesture — only taps that hit nothing else do.
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {}
+        )
         .task {
-            await prewarm()
+            await prewarm(flag: SettingsModalCoordinator.shared.prewarmFlag(id: popupID))
         }
         .onExitCommand {
             Task {
@@ -184,11 +197,24 @@ private struct SettingsModalCard: View {
     /// lands as a lump while the user is reading or scrolling the open
     /// pane. The task dies with the card, so closing the modal drops
     /// whatever has not been mounted yet.
-    private func prewarm() async {
+    ///
+    /// Aborts on the first press (see the presenter's monitor): mounting a
+    /// pane blocks the main thread for up to a few hundred milliseconds,
+    /// and an interacting user outruns warming anyway — a click landing
+    /// inside a pane build waits for the whole build before its field can
+    /// focus, which reads as a clunky, delayed field. Sections they actually
+    /// visit mount on demand instead, where the cost belongs to the click
+    /// that asked for it.
+    private func prewarm(flag: SettingsPrewarmFlag) async {
         for entry in SettingsSection.allCases where !mounted.contains(entry) {
             do {
                 try await Task.sleep(for: .milliseconds(400))
             } catch {
+                return
+            }
+            // Suspension, not work: a press during the sleep only waits out
+            // the remainder, so checking here still never stalls a click.
+            if Task.isCancelled || flag.cancelled {
                 return
             }
             await MainActor.run {
@@ -303,6 +329,7 @@ final class SettingsModalCoordinator {
     static let shared = SettingsModalCoordinator()
 
     private var dismissHandlers: [String: () -> Void] = [:]
+    private var prewarmFlags: [String: SettingsPrewarmFlag] = [:]
 
     func register(id: String, handler: @escaping () -> Void) {
         dismissHandlers[id] = handler
@@ -310,7 +337,34 @@ final class SettingsModalCoordinator {
 
     func popupDidDismiss(id: String) {
         dismissHandlers.removeValue(forKey: id)?()
+        prewarmFlags.removeValue(forKey: id)
     }
+
+    /// The prewarm cancellation flag for a card, shared by reference between
+    /// the card's loop and the presenter's press monitor.
+    func prewarmFlag(id: String) -> SettingsPrewarmFlag {
+        if let flag = prewarmFlags[id] {
+            return flag
+        }
+        let flag = SettingsPrewarmFlag()
+        prewarmFlags[id] = flag
+        return flag
+    }
+
+    /// Stops a card's prewarm loop at the next slice boundary. Idempotent:
+    /// every press calls it, only the first changes anything.
+    func cancelPrewarm(id: String) {
+        prewarmFlags[id]?.cancelled = true
+    }
+}
+
+/// Cancellation flag for a settings card's prewarm loop.
+///
+/// Reference type on purpose: the card's task reads it between slices while
+/// the presenter's event monitor sets it, and a value would snapshot.
+@MainActor
+final class SettingsPrewarmFlag {
+    var cancelled = false
 }
 
 /// Bridges the window to Mijick/Popups for the settings card.
@@ -330,6 +384,7 @@ final class SettingsModalPresenter {
     private weak var container: NSView?
     private var hostingView: NSHostingView<SettingsModalRootView>?
     private var stackID: PopupStackID?
+    private var popupID: String?
     private var escapeMonitor: Any?
 
     /// Swallows the release that ends a backdrop drag, so press-and-drag on
@@ -381,6 +436,7 @@ final class SettingsModalPresenter {
 
         self.hostingView = hostingView
         self.stackID = stackID
+        self.popupID = popupID
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             if event.keyCode == 53 {
@@ -427,6 +483,13 @@ final class SettingsModalPresenter {
     private func filterBackdropDrag(_ event: NSEvent) -> NSEvent? {
         switch event.type {
         case .leftMouseDown:
+            // Any press means an interacting user: stop the prewarm loop at
+            // its next slice so no pane build can stall the click behind
+            // this press. Idempotent, and the monitor already sees every
+            // press, inside the card or out, so this adds no new observation.
+            if let popupID {
+                SettingsModalCoordinator.shared.cancelPrewarm(id: popupID)
+            }
             // Screen coordinates, so a window move mid-gesture cannot skew
             // the distance measured at release time.
             backdropPressPoint = pressIsOnBackdrop(event) ? NSEvent.mouseLocation : nil
@@ -482,6 +545,7 @@ final class SettingsModalPresenter {
         hostingView?.removeFromSuperview()
         hostingView = nil
         stackID = nil
+        popupID = nil
     }
 
     deinit {
