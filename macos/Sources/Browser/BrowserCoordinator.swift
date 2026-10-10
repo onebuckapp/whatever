@@ -124,6 +124,8 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     private(set) var recentlyClosed: [ClosedTab] = []
     private let maxRecentlyClosed = 25
     private var closeObserver: NSObjectProtocol?
+    /// Held for the app's life; removal is teardown that never comes.
+    private var tabCycleMonitor: Any?
 
     private override init() {
         super.init()
@@ -138,6 +140,48 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                 self?.windowWillClose(window)
             }
         }
+        // Ctrl+Tab walks tabs forward, Ctrl+Shift+Tab and Cmd+Shift+Tab
+        // walk back. A local monitor, because one menu item holds one key
+        // equivalent and these need three across two items. It runs before
+        // the responder chain, so the spotlight's own Tab walking (dropdown
+        // open) and the password cards' form cycling never see these, and
+        // plain Tab is untouched. Confined to browser windows, so panels
+        // and sheets keep their keys.
+        tabCycleMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 48,
+                  let offset = Self.tabCycleDirection(modifiers: event.modifierFlags)
+            else {
+                return event
+            }
+            return MainActor.assumeIsolated { () -> NSEvent? in
+                guard let self,
+                      let window = event.window,
+                      self.windows.contains(where: { $0.window === window })
+                else {
+                    return event
+                }
+                if offset > 0 {
+                    self.selectNextTab()
+                } else {
+                    self.selectPreviousTab()
+                }
+                return nil
+            }
+        }
+    }
+
+    /// Tab-cycle direction for a Tab keypress's modifiers: +1 forward, -1
+    /// back, nil when the press is not tab cycling at all. Static so the
+    /// mapping is testable without synthesizing key events.
+    static func tabCycleDirection(modifiers: NSEvent.ModifierFlags) -> Int? {
+        let mods = modifiers.intersection([.control, .shift, .command, .option])
+        if mods == [.control] {
+            return 1
+        }
+        if mods == [.control, .shift] || mods == [.command, .shift] {
+            return -1
+        }
+        return nil
     }
 
     // MARK: - Session
