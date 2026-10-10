@@ -55,6 +55,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Whatever needs camera access for video calls and other pages that use your camera, and only when you allow a site to use it.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Whatever needs microphone access for voice calls and other pages that use your microphone, and only when you allow a site to use it.</string>
 	<key>XPCServices</key>
 	<array>
 		<string>WhateverStore</string>

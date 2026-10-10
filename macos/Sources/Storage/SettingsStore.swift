@@ -38,12 +38,13 @@ struct AppSettings: Codable, Equatable {
     var web = WebSettings()
     var search = SearchSettings()
     var adblock = AdBlockSettings()
+    var mediaCapture = MediaCaptureSettings()
     var feeds = FeedSettings()
     var addressBar = AddressBarSettings()
     var bookmarks = BookmarkSettings()
 
     enum CodingKeys: String, CodingKey {
-        case general, appearance, web, search, adblock, feeds, addressBar, bookmarks
+        case general, appearance, web, search, adblock, mediaCapture, feeds, addressBar, bookmarks
     }
 
     init() {}
@@ -59,6 +60,8 @@ struct AppSettings: Codable, Equatable {
             ?? SearchSettings()
         adblock = try container.decodeIfPresent(AdBlockSettings.self, forKey: .adblock)
             ?? AdBlockSettings()
+        mediaCapture = try container.decodeIfPresent(MediaCaptureSettings.self, forKey: .mediaCapture)
+            ?? MediaCaptureSettings()
         feeds = try container.decodeIfPresent(FeedSettings.self, forKey: .feeds)
             ?? FeedSettings()
         addressBar = try container.decodeIfPresent(AddressBarSettings.self, forKey: .addressBar)
@@ -94,6 +97,10 @@ struct AppSettings: Codable, Equatable {
         /// and the page. Drawn capped at half the view height where a cap
         /// applies, so no setting can invert the arcs.
         var tabCornerRadius = 8.0
+        /// How tab cells sit in the strip: attached to the page, or
+        /// floating pills. Pills take the full stadium radius and ignore
+        /// `tabCornerRadius`.
+        var tabShape = TabShape.attached
         var crawlCornerRadius = 8.0
         /// Bottom corners only: the page meets the tab bar squarely at the top.
         var pageCornerRadius = 10.0
@@ -110,7 +117,7 @@ struct AppSettings: Codable, Equatable {
 
         enum CodingKeys: String, CodingKey {
             case noise, background, tabTheme, activeTabTheme
-            case tabCornerRadius, crawlCornerRadius, pageCornerRadius
+            case tabCornerRadius, tabShape, crawlCornerRadius, pageCornerRadius
             case linkHoverOpacity
         }
 
@@ -133,6 +140,7 @@ struct AppSettings: Codable, Equatable {
             activeTabTheme = try container.decodeIfPresent(TabThemeConfiguration.self, forKey: .activeTabTheme)
                 ?? TabThemeConfiguration()
             tabCornerRadius = try container.decodeIfPresent(Double.self, forKey: .tabCornerRadius) ?? 8.0
+            tabShape = try container.decodeIfPresent(TabShape.self, forKey: .tabShape) ?? .attached
             crawlCornerRadius = try container.decodeIfPresent(Double.self, forKey: .crawlCornerRadius) ?? 8.0
             pageCornerRadius = try container.decodeIfPresent(Double.self, forKey: .pageCornerRadius) ?? 10.0
             linkHoverOpacity = try container.decodeIfPresent(Double.self, forKey: .linkHoverOpacity) ?? 0.75
@@ -377,6 +385,100 @@ struct AppSettings: Codable, Equatable {
         var compiledChunks = 0
         /// Version string shipped with the bundled snapshot.
         var snapshotVersion: String?
+    }
+
+    /// Microphone and camera permission, remembered per site.
+    ///
+    /// WebKit asks the host app for every capture request and offers no
+    /// handle on a running capture, so this stores verdicts, not sessions:
+    /// a stored allow answers the next request without prompting, a stored
+    /// block denies it, and anything unstored asks. Private tabs read these
+    /// but never write them. Screen sharing is absent: it never reaches the
+    /// host app (the system picker answers per share).
+    struct MediaCaptureSettings: Codable, Equatable {
+        /// Stored verdict per host (lowercased) per kind. A missing host or
+        /// kind means no verdict, which asks.
+        var decisions: [String: [MediaCaptureKind: MediaCaptureDecision]] = [:]
+
+        /// Tolerant like every other group: a document written before this
+        /// existed lacks the key, and that falls back to asking rather than
+        /// taking the document down with it.
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            decisions = try container.decodeIfPresent(
+                [String: [MediaCaptureKind: MediaCaptureDecision]].self,
+                forKey: .decisions
+            ) ?? [:]
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case decisions
+        }
+
+        /// The verdict for `host` and `kind`, or `.ask` when none is stored.
+        func decision(for host: String, kind: MediaCaptureKind) -> MediaCaptureDecision {
+            decisions[host.lowercased()]?[kind] ?? .ask
+        }
+
+        /// Stores `decision`, dropping the host entry when nothing remains.
+        /// Storing `.ask` clears any stored verdict back to asking.
+        mutating func setDecision(
+            _ decision: MediaCaptureDecision,
+            for host: String,
+            kind: MediaCaptureKind
+        ) {
+            let key = host.lowercased()
+            if decision == .ask {
+                decisions[key]?[kind] = nil
+                if decisions[key]?.isEmpty == true {
+                    decisions[key] = nil
+                }
+                return
+            }
+            var kinds = decisions[key] ?? [:]
+            kinds[kind] = decision
+            decisions[key] = kinds
+        }
+    }
+
+    /// Verdict for one capture kind on one site.
+    enum MediaCaptureDecision: String, Codable, Equatable, CaseIterable, Identifiable {
+        case ask
+        case allow
+        case block
+
+        /// For pickers, which want each option to be a stable item.
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .ask: "Ask"
+            case .allow: "Allow"
+            case .block: "Block"
+            }
+        }
+    }
+
+    /// What a page can capture. WebKit-free: the permission delegate maps
+    /// its own type onto this before touching the store. Camera and
+    /// microphone only: screen sharing never reaches the host app on macOS
+    /// (the system picker answers per share), so there is nothing to
+    /// remember for it.
+    enum MediaCaptureKind: String, Codable, Equatable, CaseIterable, Identifiable {
+        case microphone
+        case camera
+
+        /// For pickers, which want each option to be a stable item.
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .microphone: "Microphone"
+            case .camera: "Camera"
+            }
+        }
     }
 
     /// Feed-reader preferences.
@@ -655,6 +757,7 @@ final class SettingsStore: ObservableObject {
         if old.web != new.web { keys.insert("web") }
         if old.search != new.search { keys.insert("search") }
         if old.adblock != new.adblock { keys.insert("adblock") }
+        if old.mediaCapture != new.mediaCapture { keys.insert("mediaCapture") }
         if old.feeds != new.feeds { keys.insert("feeds") }
         return keys
     }

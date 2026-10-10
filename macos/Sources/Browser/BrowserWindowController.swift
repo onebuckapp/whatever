@@ -360,6 +360,8 @@ final class BrowserWindowController: NSWindowController {
     private var menuTargets: [UUID: TabMenuTarget] = [:]
     /// Held while a group menu is on screen: `NSMenuItem` targets are weak.
     private var groupMenuTarget: TabGroupMenuTarget?
+    /// Held while a strip menu is on screen, for the same reason.
+    private var stripMenuTarget: TabStripMenuTarget?
     /// Observers for the frame notifications, held so they can be removed.
     private var frameObservers: [NSObjectProtocol] = []
 
@@ -590,6 +592,9 @@ final class BrowserWindowController: NSWindowController {
         }
         toolbarController.onFeed = { [weak self] candidates in
             self?.presentFeedReader(candidates: candidates)
+        }
+        toolbarController.onMediaCapture = { [weak self] in
+            self?.presentMediaCapture()
         }
         contentController.onOpenFeedArticle = { [weak self] url, newTab in
             self?.openFeedArticle(url, inNewTab: newTab)
@@ -1262,6 +1267,11 @@ final class BrowserWindowController: NSWindowController {
         groupMenuTarget = target
     }
 
+    /// Holds a strip menu's target for the menu's lifetime.
+    func retainStripMenuTarget(_ target: TabStripMenuTarget) {
+        stripMenuTarget = target
+    }
+
     // MARK: - Content
 
     /// Rehosts the tab's replacement view after a navigation swapped it:
@@ -1498,6 +1508,21 @@ final class BrowserWindowController: NSWindowController {
         contentController.presentFeedReader(candidates: candidates, tab: tab)
     }
 
+    /// Opens the capture popup for the selected tab's live page.
+    ///
+    /// Behind the toolbar's capture button, which only shows while the page
+    /// asked for or holds a capture — so there is always something to show.
+    /// The pane answers pending requests; the popup only offers verdicts.
+    func presentMediaCapture() {
+        guard let tab = selectedTab,
+              tab.tabController.captureState.hasActivity
+        else {
+            SystemBeep.play()
+            return
+        }
+        contentController.presentMediaCapture(tab: tab, pane: pane(for: tab))
+    }
+
     /// Opens the print preview for the selected tab's live page.
     ///
     /// Behind the app menu's Print item. Nothing to show without a loaded
@@ -1513,6 +1538,34 @@ final class BrowserWindowController: NSWindowController {
             return
         }
         contentController.presentPrintPreview(for: tab)
+    }
+
+    /// Opens the window-size card over this window, prefilled with the
+    /// current content size.
+    ///
+    /// Behind the tab strip's empty-area menu. Window-level, so it needs no
+    /// tab; the card resizes through `resizeWindowContent`.
+    func presentWindowSize() {
+        guard let window, let contentSize = window.contentView?.bounds.size else {
+            SystemBeep.play()
+            return
+        }
+        contentController.presentWindowSize(initial: contentSize) { [weak self] size in
+            self?.resizeWindowContent(to: size)
+        }
+    }
+
+    /// Resizes the window to the given *content* size, keeping the top-left
+    /// corner where it was so the toolbar stays put and the window grows
+    /// downward. The card already clamped the size; `setFrame` additionally
+    /// yields to the window's own minimum and maximum.
+    func resizeWindowContent(to size: NSSize) {
+        guard let window else { return }
+        let contentRect = NSRect(origin: .zero, size: size)
+        let frame = window.frameRect(forContentRect: contentRect)
+        var origin = window.frame.origin
+        origin.y += window.frame.height - frame.height
+        window.setFrame(NSRect(origin: origin, size: frame.size), display: true, animate: true)
     }
 
     /// Opens one reader article, either in place or in a new tab.
@@ -1678,6 +1731,10 @@ extension BrowserWindowController: TabBarViewDelegate {
 
     func tabBarGroupMenu(_ tabBar: TabBarView) -> NSMenu? {
         BrowserTabGroupMenu.menu(controller: self)
+    }
+
+    func tabBarEmptyAreaMenu(_ tabBar: TabBarView) -> NSMenu? {
+        BrowserTabStripMenu.menu(controller: self)
     }
 
     /// Moves the sticky group into a fresh window, keeping it grouped.

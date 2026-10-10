@@ -39,6 +39,8 @@ final class BrowserWindowContentViewController: NSViewController {
     private var passwordManagerPresenter: PasswordManagerPresenter?
     private var feedReaderPresenter: FeedReaderPresenter?
     private var printPreviewPresenter: PrintPreviewPresenter?
+    private var windowSizePresenter: WindowSizePresenter?
+    private var mediaCapturePresenter: MediaCapturePresenter?
     /// Internal for layout tests, which drive visibility through the
     /// controller's testing seams.
     var crawlBarController: CrawlBarController?
@@ -350,6 +352,80 @@ final class BrowserWindowContentViewController: NSViewController {
     func dismissPrintPreview() {
         printPreviewPresenter?.dismiss()
         printPreviewPresenter = nil
+    }
+
+    /// Opens the window-size card, or closes it when already open.
+    ///
+    /// Shielded like every other card, with click semantics rather than
+    /// press semantics: the card holds text fields, so a selection drag that
+    /// ends outside it must not dismiss the card (same rule as settings and
+    /// the bookmark editor).
+    func presentWindowSize(initial: NSSize, onApply: @escaping (NSSize) -> Void) {
+        guard isViewLoaded else { return }
+        if windowSizePresenter != nil {
+            dismissWindowSize()
+            // Fall through and reopen: the size belongs to this press, not
+            // to whatever the previous card was showing.
+        }
+        let presenter = WindowSizePresenter(container: view, onApply: onApply) { [weak self] in
+            self?.windowSizePresenter = nil
+            self?.releaseShield(id: "window-size")
+        }
+        windowSizePresenter = presenter
+        claimShield(id: "window-size", dismissOnPress: false) { [weak self] in
+            Task { @MainActor in
+                self?.dismissWindowSize()
+            }
+        }
+        presenter.present(initial: initial)
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            windowSizePresenter = nil
+            releaseShield(id: "window-size")
+        }
+        noiseOverlay?.moveToFront()
+    }
+
+    func dismissWindowSize() {
+        windowSizePresenter?.dismiss()
+        windowSizePresenter = nil
+    }
+
+    /// Opens the capture popup for `tab`'s pending or live captures, or
+    /// closes it when already open.
+    ///
+    /// Shielded like every other card, with press semantics: the card holds
+    /// no text fields, so any press on the backdrop dismisses it (same rule
+    /// as the feed reader and print preview).
+    func presentMediaCapture(tab: BrowserTab, pane: BrowserPaneController) {
+        guard isViewLoaded else { return }
+        if mediaCapturePresenter != nil {
+            dismissMediaCapture()
+            // Fall through and reopen: the verdicts belong to this press,
+            // not to whatever the previous card was showing.
+        }
+        let presenter = MediaCapturePresenter(container: view, tab: tab, pane: pane) { [weak self] in
+            self?.mediaCapturePresenter = nil
+            self?.releaseShield(id: "media-capture")
+        }
+        mediaCapturePresenter = presenter
+        claimShield(id: "media-capture", dismissOnPress: true) { [weak self] in
+            self?.dismissMediaCapture()
+        }
+        presenter.present()
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            mediaCapturePresenter = nil
+            releaseShield(id: "media-capture")
+        }
+        noiseOverlay?.moveToFront()
+    }
+
+    func dismissMediaCapture() {
+        mediaCapturePresenter?.dismiss()
+        mediaCapturePresenter = nil
     }
 
     /// Opens the bookmark editor card for `mode`, or closes it when already

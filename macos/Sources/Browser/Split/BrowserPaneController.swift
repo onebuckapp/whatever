@@ -40,6 +40,50 @@ final class BrowserPaneController: NSViewController {
     private var findController: FindController?
     private var linkHoverBubble: LinkHoverBubble?
     private var clickMonitor: Any?
+    /// A verdict awaiting the user. One instance can sit under two kinds (a
+    /// combined camera+mic request answers both with one decision), so
+    /// answering goes through `resolve`, which delivers the held decision
+    /// exactly once no matter how many kinds point at it.
+    private final class PendingCaptureRequest {
+        let kinds: Set<AppSettings.MediaCaptureKind>
+        /// Siblings a combined request already cleared by stored verdict,
+        /// granted alongside when the answer grants.
+        let preGranted: Set<AppSettings.MediaCaptureKind>
+        /// Origin host that asked. Verdicts persist under it rather than the
+        /// top page, so an embedded frame's answer matches its next ask.
+        let host: String
+        private let answer: (WKPermissionDecision) -> Void
+        private var answered = false
+
+        init(
+            kinds: Set<AppSettings.MediaCaptureKind>,
+            preGranted: Set<AppSettings.MediaCaptureKind>,
+            host: String,
+            answer: @escaping (WKPermissionDecision) -> Void
+        ) {
+            self.kinds = kinds
+            self.preGranted = preGranted
+            self.host = host
+            self.answer = answer
+        }
+
+        func resolve(_ decision: WKPermissionDecision) {
+            guard !answered else { return }
+            answered = true
+            answer(decision)
+        }
+    }
+
+    /// Capture verdicts awaiting the user, by kind.
+    private var pendingCaptureRequests: [AppSettings.MediaCaptureKind: PendingCaptureRequest] = [:]
+    /// Kinds a combined request already cleared by stored verdict, waiting
+    /// on their sibling's answer. Marked granted only if the answer grants;
+    /// a denial leaves them unnoted, which is the truth (nothing captured).
+    private var preGrantedCaptureKinds: Set<AppSettings.MediaCaptureKind> = []
+    /// Host the pending handlers above belong to. Any change answers them
+    /// denied: their page is gone.
+    private var lastCaptureHost: String?
+    private var captureCancellable: AnyCancellable?
 
     /// Where this pane sits: alone, or flush against its sibling in a split.
     ///
@@ -69,6 +113,7 @@ final class BrowserPaneController: NSViewController {
         if let clickMonitor {
             NSEvent.removeMonitor(clickMonitor)
         }
+        denyPendingCaptures()
     }
 
     override func loadView() {
@@ -128,6 +173,22 @@ final class BrowserPaneController: NSViewController {
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.applyPageCornerRadius() }
+        // Capture requests belong to a page, not to the tab in the
+        // abstract: a navigation strands their handlers, so the leftovers
+        // are answered denied here while the tab controller drops the
+        // published requests the same way (see its host carrying).
+        captureCancellable = tab.tabController.$url
+            .map { $0?.host?.lowercased() }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] host in
+                guard let self else { return }
+                if host != lastCaptureHost {
+                    lastCaptureHost = host
+                    denyPendingCaptures()
+                }
+            }
+        lastCaptureHost = tab.tabController.url?.host?.lowercased()
     }
 
     private func applyPageCornerRadius() {
@@ -664,5 +725,142 @@ extension BrowserPaneController: WKUIDelegate {
             return
         }
         alert.beginSheetModal(for: window, completionHandler: finish)
+    }
+
+    // MARK: - Media capture
+
+    /// Camera and microphone capture. Without this WebKit denies every
+    /// request, so WebRTC never starts; with it the stored per-site verdict
+    /// answers immediately and anything unstored waits for the user in the
+    /// toolbar popup (see `resolveCapture`). Screen sharing never arrives
+    /// here: the system picker answers it per share.
+    func webView(
+        _ webView: WKWebView,
+        requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+        initiatedByFrame frame: WKFrameInfo,
+        type: WKMediaCaptureType,
+        decisionHandler: @escaping (WKPermissionDecision) -> Void
+    ) {
+        let kinds: [AppSettings.MediaCaptureKind]
+        switch type {
+        case .camera:
+            kinds = [.camera]
+        case .microphone:
+            kinds = [.microphone]
+        case .cameraAndMicrophone:
+            kinds = [.camera, .microphone]
+        @unknown default:
+            decisionHandler(.deny)
+            return
+        }
+        guard ["http", "https"].contains(origin.protocol.lowercased()),
+              let host = URL(string: origin.protocol + "://" + origin.host)?.host?.lowercased(),
+              !host.isEmpty
+        else {
+            decisionHandler(.deny)
+            return
+        }
+        let stored = SettingsStore.shared.settings.mediaCapture
+        // Any stored block denies the whole call: a combined request gets
+        // one decision, and half a grant is not a thing.
+        guard !kinds.contains(where: { stored.decision(for: host, kind: $0) == .block }) else {
+            decisionHandler(.deny)
+            return
+        }
+        let asking = kinds.filter { stored.decision(for: host, kind: $0) == .ask }
+        guard !asking.isEmpty else {
+            kinds.forEach { tab.tabController.noteCaptureGranted($0) }
+            decisionHandler(.grant)
+            return
+        }
+        // A re-ask supersedes whatever waited before: the old page context
+        // moved on, so its handlers are answered denied and their entries
+        // dropped rather than leaked. Purged first, so no dict entry can
+        // ever point at an already-answered request.
+        for kind in asking {
+            if let old = pendingCaptureRequests[kind] {
+                for member in old.kinds {
+                    pendingCaptureRequests[member] = nil
+                }
+                preGrantedCaptureKinds.subtract(old.kinds.union(old.preGranted))
+                old.kinds.forEach { tab.tabController.noteCaptureDenied($0) }
+                old.resolve(.deny)
+            }
+        }
+        let cleared = Set(kinds.filter { !asking.contains($0) })
+        let request = PendingCaptureRequest(kinds: Set(asking), preGranted: cleared, host: host, answer: decisionHandler)
+        for kind in asking {
+            pendingCaptureRequests[kind] = request
+            tab.tabController.noteCaptureRequest(kind)
+        }
+        preGrantedCaptureKinds.formUnion(cleared)
+    }
+
+    /// Answers a pending request from the toolbar popup: resolves the held
+    /// handler and records the grant or denial on the tab. `persist` stores
+    /// the verdict for the site; private tabs never persist. A combined
+    /// request answers both kinds with the one verdict.
+    func resolveCapture(
+        kind: AppSettings.MediaCaptureKind,
+        granted: Bool,
+        persist: Bool
+    ) {
+        guard let request = pendingCaptureRequests[kind] else {
+            // No waiting request (a stored verdict changed for an idle
+            // kind): persist under the page when there is one.
+            if persist,
+               tab.privacyMode == .regular,
+               let host = tab.displayURL.host?.lowercased(),
+               !host.isEmpty
+            {
+                SettingsStore.shared.update {
+                    $0.mediaCapture.setDecision(granted ? .allow : .block, for: host, kind: kind)
+                }
+            }
+            return
+        }
+        if persist, tab.privacyMode == .regular {
+            let host = request.host
+            SettingsStore.shared.update {
+                $0.mediaCapture.setDecision(granted ? .allow : .block, for: host, kind: kind)
+            }
+        }
+        for member in request.kinds {
+            pendingCaptureRequests[member] = nil
+        }
+        preGrantedCaptureKinds.subtract(request.kinds.union(request.preGranted))
+        if granted {
+            request.kinds.union(request.preGranted).forEach { tab.tabController.noteCaptureGranted($0) }
+            request.resolve(.grant)
+        } else {
+            request.kinds.forEach { tab.tabController.noteCaptureDenied($0) }
+            request.resolve(.deny)
+        }
+    }
+
+    /// Origin hosts behind the currently waiting requests, by kind. The
+    /// popup keys its stored-verdict segments off these rather than the top
+    /// page, so an embedded frame's row shows its own verdict.
+    func pendingCaptureHosts() -> [AppSettings.MediaCaptureKind: String] {
+        var hosts: [AppSettings.MediaCaptureKind: String] = [:]
+        for (kind, request) in pendingCaptureRequests {
+            hosts[kind] = request.host
+        }
+        return hosts
+    }
+
+    /// Answers every waiting request denied. Navigation strands them and
+    /// teardown orphans them; either way a request nobody will ever answer
+    /// hangs the page's device prompt forever.
+    func denyPendingCaptures() {
+        var seen: [PendingCaptureRequest] = []
+        for request in pendingCaptureRequests.values {
+            guard !seen.contains(where: { $0 === request }) else { continue }
+            seen.append(request)
+            request.kinds.forEach { tab.tabController.noteCaptureDenied($0) }
+            request.resolve(.deny)
+        }
+        pendingCaptureRequests = [:]
+        preGrantedCaptureKinds = []
     }
 }

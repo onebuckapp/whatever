@@ -62,6 +62,17 @@ final class BrowserTabController: ObservableObject {
     /// or has no committed HTTP(S) address yet.
     @Published private(set) var feedCandidates: [FeedCandidate] = []
 
+    /// What the page is doing with the camera and microphone.
+    /// Published from the hosting pane's permission delegate rather than
+    /// read from the view, so the toolbar can follow capture without
+    /// knowing whether a page exists. Cleared like every other page-owned
+    /// state when the page goes away; grants are assumed live until then,
+    /// which is the honest limit of the public API (see `MediaCaptureState`).
+    @Published private(set) var captureState = MediaCaptureState()
+    /// Host the capture state above belongs to. A navigation to a new host
+    /// drops it; same-host walks keep their grants.
+    private var captureHost: String?
+
     /// Whether feed discovery may run for the current page. Set from the
     /// toolbar binding because settings live on the main actor and this
     /// controller does not.
@@ -171,6 +182,9 @@ final class BrowserTabController: ObservableObject {
         // not to the tab in the abstract.
         feedPage = nil
         feedCandidates = []
+        // And for its captures: a view that is gone holds no microphone.
+        captureHost = nil
+        captureState = MediaCaptureState()
         // Clears the audio flag and drops the poll. The mute stays: it belongs to
         // the tab, and is re-applied to whichever view comes next.
         audioMonitor.detach()
@@ -226,6 +240,21 @@ final class BrowserTabController: ObservableObject {
         audioMonitor.attach(to: webView)
     }
 
+    /// Notes a capture request awaiting the user's verdict.
+    func noteCaptureRequest(_ kind: AppSettings.MediaCaptureKind) {
+        captureState.noteRequest(kind)
+    }
+
+    /// Notes a granted request: answered, and assumed live.
+    func noteCaptureGranted(_ kind: AppSettings.MediaCaptureKind) {
+        captureState.noteGranted(kind)
+    }
+
+    /// Notes a denied request: answered, and gone.
+    func noteCaptureDenied(_ kind: AppSettings.MediaCaptureKind) {
+        captureState.noteDenied(kind)
+    }
+
     private func syncAll() {
         if let loaded = webView?.title {
             placeholderTitle = nil
@@ -234,10 +263,20 @@ final class BrowserTabController: ObservableObject {
             publishTitle()
         }
         url = webView?.url
+        carryCaptureState(to: url?.host?.lowercased())
         isLoading = webView?.isLoading ?? false
         estimatedProgress = webView?.estimatedProgress ?? 0
         updateFavicon()
         updateFeedCandidates()
+    }
+
+    /// Carries capture grants across same-host navigations and drops them
+    /// on host changes. Pending requests never survive the move: their
+    /// page is gone, and the pane answers them denied (see `carried`).
+    private func carryCaptureState(to host: String?) {
+        let carried = MediaCaptureState.carried(from: captureHost, to: host, state: captureState)
+        captureHost = host
+        captureState = carried
     }
 
     /// Asks for the site's icon once the tab has settled on a page.

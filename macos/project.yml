@@ -96,6 +96,11 @@ targets:
         # with "failed at lookup with error 3 - No such process".
         XPCServices:
           - WhateverStore
+        # WebRTC needs these before WebKit will even ask: without them a
+        # granted capture fails silently. Camera and microphone only when the
+        # user allows a site, never otherwise.
+        NSCameraUsageDescription: Whatever needs camera access for video calls and other pages that use your camera, and only when you allow a site to use it.
+        NSMicrophoneUsageDescription: Whatever needs microphone access for voice calls and other pages that use your microphone, and only when you allow a site to use it.
     entitlements:
       path: Resources/Whatever.entitlements
     settings:
