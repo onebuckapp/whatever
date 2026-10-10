@@ -153,31 +153,31 @@ struct GeneralSettingsView: View {
     }
 }
 
-/// The app icon for SwiftUI, retina-sharp at a 32pt frame.
+/// The app icon for SwiftUI, retina-sharp at any point size.
 ///
 /// Two traps, both taken: `Image(nsImage:)` on the raw app icon snapshots
 /// at point resolution (soft on retina), and adding `.resizable()` keeps it
 /// soft — the image is rasterized once at 1x and upscaled, ignoring any
 /// extra representations. So the icon is rasterized up front with explicit
-/// 1x/2x/3x bitmaps at a 32pt size and drawn without `.resizable()`, which
-/// is what lets the renderer pick the 64px bitmap on a retina screen.
+/// 1x/2x/3x bitmaps at the requested size and drawn without `.resizable()`,
+/// which is what lets the renderer pick the 2x bitmap on a retina screen.
 /// (An `NSImageView` representable was tried between the two and cropped:
 /// the 512pt intrinsic size won over the frame.)
 struct AppIconView: View {
+    var points: CGFloat = 32
+
     var body: some View {
-        Image(nsImage: Self.iconImage)
-            .frame(width: 32, height: 32)
+        Image(nsImage: Self.iconImage(points: points))
+            .frame(width: points, height: points)
     }
 
-    /// Cached: three tiny bitmaps, rendered once rather than per body
-    /// evaluation. First touched from a body, so always on the main thread.
-    static var iconImage: NSImage { rasterized }
+    /// First touched from a body, so always on the main thread.
+    static var iconImage: NSImage { iconImage(points: 32) }
 
-    private static let rasterized: NSImage = {
-        let points: CGFloat = 32
+    static func iconImage(points: CGFloat) -> NSImage {
         let image = NSImage(size: NSSize(width: points, height: points))
-        // Nil in principle (no icon set); then this stays a blank 32pt
-        // image rather than crashing the settings pane.
+        // Nil in principle (no icon set); then this stays a blank image
+        // rather than crashing the pane.
         guard let source = NSApplication.shared.applicationIconImage else {
             return image
         }
@@ -211,7 +211,7 @@ struct AppIconView: View {
             image.addRepresentation(rep)
         }
         return image
-    }()
+    }
 }
 
 // MARK: - Appearance

@@ -77,8 +77,7 @@ struct WhateverApp: App {
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
             }
-            CommandMenu("View") {
-                Button("Reload Page") {
+            CommandMenu("View") {                Button("Reload Page") {
                     BrowserCoordinator.shared.keyController?.reloadPage()
                 }
                 .keyboardShortcut("r", modifiers: .command)
@@ -92,6 +91,14 @@ struct WhateverApp: App {
                     isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
                 )
                 .keyboardShortcut("b", modifiers: [.command, .shift])
+            }
+            // After, not replacing: the stock Help menu is just its search
+            // field, which stays. Credits gets its own window rather than
+            // joining the About panel so it can carry the full list.
+            CommandGroup(after: .help) {
+                Button("Credits") {
+                    AppDelegate.showCredits()
+                }
             }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings\u{2026}") {
@@ -129,6 +136,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// version come from the bundle — only the credits are ours.
     static func showAbout() {
         NSApp.orderFrontStandardAboutPanel(options: [.credits: AboutContent.credits()])
+    }
+
+    private static var creditsController: CreditsWindowController?
+
+    /// Opens the Credits window, focusing it when already open. Single
+    /// instance: the controller is created on first use and held while its
+    /// window lives (it nils itself on close).
+    @MainActor
+    static func showCredits() {
+        if creditsController == nil {
+            creditsController = CreditsWindowController()
+        }
+        creditsController?.show()
     }
 
     /// Opens the settings modal on whichever browser window is frontmost.
