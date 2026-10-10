@@ -23,11 +23,10 @@ import SwiftUI
 struct TabCommands: Commands {
     var body: some Commands {
         CommandMenu("Tab") {
-            Button("New Tab") {
-                BrowserCoordinator.shared.newTab()
-            }
-            .keyboardShortcut("t", modifiers: .command)
-
+            // New Tab, New Window and New Incognito Window live in File (see
+            // `WhateverApp`), where people reach for them. They used to be
+            // here, but a shortcut cannot be shown in two menus: SwiftUI gives
+            // it to whichever comes first and strips the other, like ⌘W below.
             Button("Search History") {
                 BrowserCoordinator.shared.keyController?.focusAddressBar()
             }
@@ -37,11 +36,6 @@ struct TabCommands: Commands {
                 BrowserCoordinator.shared.keyController?.focusAddressBar()
             }
             .keyboardShortcut("l", modifiers: .command)
-
-            Button("New Window") {
-                BrowserCoordinator.shared.newWindow()
-            }
-            .keyboardShortcut("n", modifiers: .command)
 
             // Deliberately no "Close Tab" item here. Declaring one with ⌘W used to
             // get its key equivalent silently stripped, because SwiftUI gives a

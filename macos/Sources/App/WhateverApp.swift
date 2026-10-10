@@ -41,6 +41,18 @@ struct WhateverApp: App {
                 }
             }
             CommandGroup(replacing: .newItem) {
+                Button("New Tab") {
+                    BrowserCoordinator.shared.newTab()
+                }
+                .keyboardShortcut("t", modifiers: .command)
+                Button("New Window") {
+                    BrowserCoordinator.shared.newWindow()
+                }
+                .keyboardShortcut("n", modifiers: .command)
+                Button("New Incognito Window") {
+                    BrowserCoordinator.shared.newPrivateWindow()
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
                 Divider()
                 Button("Print…") {
                     BrowserCoordinator.shared.keyController?.presentPrintPreview()
@@ -255,5 +267,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// The Dock's right-click menu. The same three constructors as the File
+    /// menu, so they work with no windows open too: New Tab falls back to a
+    /// fresh window when there is nothing to add it to, exactly like ⌘T.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        let newTab = NSMenuItem(
+            title: "New Tab",
+            action: #selector(dockNewTab),
+            keyEquivalent: ""
+        )
+        let newWindow = NSMenuItem(
+            title: "New Window",
+            action: #selector(dockNewWindow),
+            keyEquivalent: ""
+        )
+        let newPrivateWindow = NSMenuItem(
+            title: "New Incognito Window",
+            action: #selector(dockNewPrivateWindow),
+            keyEquivalent: ""
+        )
+        for item in [newTab, newWindow, newPrivateWindow] {
+            item.target = self
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    @objc @MainActor private func dockNewTab() {
+        BrowserCoordinator.shared.newTab()
+    }
+
+    @objc @MainActor private func dockNewWindow() {
+        BrowserCoordinator.shared.newWindow()
+    }
+
+    @objc @MainActor private func dockNewPrivateWindow() {
+        BrowserCoordinator.shared.newPrivateWindow()
     }
 }

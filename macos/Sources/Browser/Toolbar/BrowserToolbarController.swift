@@ -47,6 +47,29 @@ final class BrowserToolbarController: NSObject {
     private let forwardButton = BrowserToolbarButton()
     private let reloadButton = BrowserToolbarButton()
     private let bookmarkButton = BrowserToolbarButton()
+    /// Shown first in the leading cluster of incognito windows only: a small
+    /// marker so a private window is distinguishable from a regular one.
+    /// A label has no padding of its own, so it sits in a pill with insets.
+    private static func makeIncognitoBadge() -> NSView {
+        let label = NSTextField(labelWithString: "Incognito")
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = .secondaryLabelColor
+        label.alignment = .center
+        let pill = NSView()
+        pill.wantsLayer = true
+        pill.layer?.backgroundColor = NSColor.quaternaryLabelColor.cgColor
+        pill.layer?.cornerRadius = 8
+        pill.toolTip = "This window is incognito: its tabs are not saved to history."
+        pill.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: pill.leadingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: pill.trailingAnchor, constant: -8),
+            label.topAnchor.constraint(equalTo: pill.topAnchor, constant: 3),
+            label.bottomAnchor.constraint(equalTo: pill.bottomAnchor, constant: -3),
+        ])
+        return pill
+    }
 
     private weak var controller: BrowserWindowController?
     private var cancellables = Set<AnyCancellable>()
@@ -89,7 +112,9 @@ final class BrowserToolbarController: NSObject {
         // can be handed them here; their targets, images and delegate need `self`
         // and are set just after.
         let toolbar = BrowserToolbarView(
-            leading: [backButton, forwardButton, reloadButton, bookmarkButton],
+            leading: controller.isIncognito
+                ? [Self.makeIncognitoBadge(), backButton, forwardButton, reloadButton, bookmarkButton]
+                : [backButton, forwardButton, reloadButton, bookmarkButton],
             center: centerStack,
             trailing: [adblockButton, passwordButton, bookmarksButton, downloadsButton, settingsButton]
         )

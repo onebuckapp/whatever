@@ -248,9 +248,10 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     // MARK: - Windows
 
     @discardableResult
-    func newWindow(url: URL? = nil) -> BrowserWindowController {
+    func newWindow(url: URL? = nil, privacyMode: BrowserPrivacyMode = .regular) -> BrowserWindowController {
         let controller = BrowserWindowController(
             initialURL: url,
+            privacyMode: privacyMode,
             history: history
         )
         windows.append(controller)
@@ -264,6 +265,14 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             controller.focusAddressBar()
         }
         return controller
+    }
+
+    /// Opens a window whose tabs are all private: nothing opened in it reaches
+    /// history or the session document. The window carries the incognito flag,
+    /// so tabs it creates later stay private too.
+    @discardableResult
+    func newPrivateWindow() -> BrowserWindowController {
+        newWindow(privacyMode: .privateBrowsing)
     }
 
     /// Moves a tab into a brand new window, keeping its web view.
@@ -311,6 +320,13 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     /// Adds a tab to `controller`, or to the key window's controller,
     /// falling back to a new window.
     ///
+    /// A nil `privacyMode` inherits the target window: an incognito window
+    /// mints private tabs, a regular window regular ones. Callers that must
+    /// keep a specific mode — a popup owned by a private tab, a reopened
+    /// closed tab — pass it explicitly and it always wins. With no target
+    /// window the fallback builds a fresh window around the tab, which is
+    /// regular unless the caller said otherwise.
+    ///
     /// `focusesAddressBar` defaults to true because every path here is somebody
     /// asking for a new tab and then wanting to type in it. The one caller that is
     /// not is `BrowserPaneController`'s `createWebViewWith`, which is WebKit
@@ -320,12 +336,16 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     @discardableResult
     func newTab(
         url: URL? = nil,
-        privacyMode: BrowserPrivacyMode = .regular,
+        privacyMode: BrowserPrivacyMode? = nil,
         in controller: BrowserWindowController? = nil,
         focusesAddressBar: Bool = true
     ) -> BrowserTab? {
         let target = controller ?? keyController
-        let tab = BrowserTab(privacyMode: privacyMode, history: history, initialURL: url)
+        let tab = BrowserTab(
+            privacyMode: Self.resolvedPrivacyMode(explicit: privacyMode, in: target),
+            history: history,
+            initialURL: url
+        )
         if let target {
             target.addTab(tab)
             // After `addTab`, which selects the tab. See `focusAddressBar`.
@@ -336,6 +356,17 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             newWindow(containing: tab, focusesAddressBar: focusesAddressBar)
         }
         return tab
+    }
+
+    /// The privacy mode for a tab nobody pinned down: an explicit mode always
+    /// wins, otherwise the target window's default (private in an incognito
+    /// window), otherwise regular. Static and window-free so the rule itself
+    /// is testable without building a window.
+    static func resolvedPrivacyMode(
+        explicit: BrowserPrivacyMode?,
+        in controller: BrowserWindowController?
+    ) -> BrowserPrivacyMode {
+        explicit ?? controller?.defaultPrivacyMode ?? .regular
     }
 
     func recordClosedTab(_ tab: BrowserTab) {

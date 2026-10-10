@@ -325,6 +325,19 @@ final class BrowserWindowController: NSWindowController {
     private(set) var tabs: [BrowserTab] = []
     private(set) var selectedTabID: UUID?
     private(set) var layout: ContentLayout
+    /// Whether this window keeps everything private. Fixed at creation from
+    /// the seed tab — tab modes never change — so tabs the window creates
+    /// later (shortcuts, the `+` button, links) default to private too.
+    ///
+    /// A moved tab keeps its own mode, so a mixed window is possible: a
+    /// regular tab dragged into an incognito window stays regular, and a
+    /// private tab dragged out takes an incognito window with it. The flag
+    /// names the window's default, not a guarantee about every tab in it.
+    let isIncognito: Bool
+    /// The privacy mode for tabs this window creates on its own behalf.
+    var defaultPrivacyMode: BrowserPrivacyMode {
+        isIncognito ? .privateBrowsing : .regular
+    }
     /// The sticky split group: the pair (and ratio) that renders joined in
     /// the tab bar and side by side in the page area.
     ///
@@ -353,6 +366,7 @@ final class BrowserWindowController: NSWindowController {
     // MARK: - Init
 
     init(tab: BrowserTab) {
+        self.isIncognito = tab.privacyMode == .privateBrowsing
         self.layout = .single(tabID: tab.id)
         let content = BrowserWindowContentViewController()
         self.contentController = content
@@ -419,6 +433,9 @@ final class BrowserWindowController: NSWindowController {
                 : .single(tabID: restoredTabs.first?.id ?? UUID())
         }
         self.layout = layout
+        // Restored tabs are always regular — private tabs never reach the
+        // session document — so a restored window is never incognito.
+        self.isIncognito = false
         // The sticky group comes back with the window, so a split hidden
         // behind another tab at quit still renders joined and reselects
         // into view. An old document without one falls back to the shown
