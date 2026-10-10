@@ -62,7 +62,7 @@ It also happens to be beautiful and weird: a start page and window you theme you
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-27-25.png" width="100%"><br>
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-28-08.png" width="100%"><br>
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-29-54.png" width="100%"><br>
-<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-29-54.png" width="100%"><br>
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-57-10.png" width="100%"><br>
 
 ### 🗺 Roadmap
 Where this goes next — tab groups and workspaces, profiles, a reader mode, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
