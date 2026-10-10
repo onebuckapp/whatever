@@ -34,6 +34,9 @@ final class BrowserToolbarController: NSObject {
     private let addressContainer = NSView()
     private let centerStack = NSStackView()
     private let feedButton = BrowserToolbarButton()
+    /// Camera/mic indicator for the selected tab. Hidden unless the
+    /// page asked for or holds a capture; opens the capture popup.
+    private let webrtcButton = BrowserToolbarButton()
     /// The drawn spotlight and the dropdown under it. The old `AddressSearchField`
     /// is gone: see `SpotlightField` for why a stock search field could not do this.
     private let spotlight = SpotlightField()
@@ -102,6 +105,9 @@ final class BrowserToolbarController: NSObject {
     /// Opens the bookmark editor for the current page: add when the page is
     /// not saved yet, edit when it is.
     var onBookmark: ((BookmarkEditorMode) -> Void)?
+    /// Opens the capture popup for the selected tab's pending or live
+    /// camera and microphone requests.
+    var onMediaCapture: (() -> Void)?
     /// Offers the selected tab's advertised feeds. Empty when hidden.
     var onFeed: (([FeedCandidate]) -> Void)?
 
@@ -235,6 +241,12 @@ final class BrowserToolbarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncFeedButton() }
             .store(in: &cancellables)
+        // Capture grants and pending requests light the toolbar button
+        // until the page goes away; the popup answers the pending ones.
+        tab.tabController.$captureState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncMediaCaptureButton() }
+            .store(in: &cancellables)
         // Finished downloads badge the button until the popup is opened.
         DownloadsBadgeCenter.shared.$unseenCount
             .receive(on: DispatchQueue.main)
@@ -265,6 +277,7 @@ final class BrowserToolbarController: NSObject {
             syncFeedButton()
             syncAdBlockButton()
             syncBookmarkButton()
+            syncMediaCaptureButton()
             return
         }
 
@@ -300,6 +313,7 @@ final class BrowserToolbarController: NSObject {
         syncFeedButton()
         syncAdBlockButton()
         syncBookmarkButton()
+        syncMediaCaptureButton()
     }
 
     /// Shows the feed control exactly when the selected tab advertises feeds.
@@ -334,12 +348,17 @@ final class BrowserToolbarController: NSObject {
                 in: SettingsStore.shared.settings.adblock.exceptions
             )
         } ?? false
-        let image = NSImage(named: isBlocking ? "ShieldCheck" : "ShieldX")
+        // One ratio for both states so toggling blocker state never moves
+        // the glyph: it boxes both at 13pt, where the check paints 11pt
+        // of ink and the cross 11.5pt — both inside the system glyphs'
+        // 10–11.5pt band.
+        let image = BrowserToolbarButton.bundledGlyphImage(
+            named: isBlocking ? "ShieldCheck" : "ShieldX",
+            inkRatio: 0.88
+        )
         image?.accessibilityDescription = isBlocking
             ? "Content blocker active on this site"
             : "Content blocker paused on this site"
-        image?.isTemplate = true
-        image?.size = NSSize(width: 18, height: 18)
         adblockButton.image = image
         adblockButton.toolTip = isBlocking
             ? "Content Blocker — active on this site"
@@ -398,6 +417,11 @@ final class BrowserToolbarController: NSObject {
         onAdBlock?()
     }
 
+    @objc private func openMediaCapture() {
+        guard tab?.tabController.captureState.hasActivity == true else { return }
+        onMediaCapture?()
+    }
+
     @objc private func openFeed() {
         guard SettingsStore.shared.settings.feeds.isEnabled else { return }
         let candidates = tab?.tabController.feedCandidates ?? []
@@ -447,6 +471,7 @@ final class BrowserToolbarController: NSObject {
         )
         configurePasswordButton()
         configureAdBlockButton()
+        configureWebRTCButton()
     }
 
     private func configureCenterStack() {
@@ -463,7 +488,24 @@ final class BrowserToolbarController: NSObject {
         // keeps it put while the container takes the extra space.
         centerStack.distribution = .fill
         centerStack.addArrangedSubview(addressContainer)
+        // Capture controls sit between the field and the feed button, and
+        // only while the page holds or wants a capture; hiding the button
+        // removes its arranged space too, like the feed button.
+        centerStack.addArrangedSubview(webrtcButton)
         centerStack.addArrangedSubview(feedButton)
+    }
+
+    /// Shows the capture button exactly while the selected tab's page asked
+    /// for or holds a capture. A pending request names itself; a live grant
+    /// does.
+    private func syncMediaCaptureButton() {
+        let state = tab?.tabController.captureState ?? MediaCaptureState()
+        webrtcButton.isHidden = !state.hasActivity
+        if !state.requests.isEmpty {
+            webrtcButton.toolTip = "Camera or microphone requested — open capture controls"
+        } else {
+            webrtcButton.toolTip = "Camera or microphone in use — open capture controls"
+        }
     }
 
     /// Bundled Tabler vectors rather than a system glyph, so the control can
@@ -475,10 +517,11 @@ final class BrowserToolbarController: NSObject {
     /// `syncPasswordButton` does not exist because the button carries no
     /// state — the vault's lock state lives inside the manager card.
     private func configurePasswordButton() {
-        let image = NSImage(named: "PasswordFingerprint")
+        let image = BrowserToolbarButton.bundledGlyphImage(
+            named: "PasswordFingerprint",
+            inkRatio: 0.75
+        )
         image?.accessibilityDescription = "Password Manager"
-        image?.isTemplate = true
-        image?.size = NSSize(width: 18, height: 18)
         passwordButton.image = image
         passwordButton.toolTip = "Password Manager"
         passwordButton.target = self
@@ -491,13 +534,26 @@ final class BrowserToolbarController: NSObject {
         syncAdBlockButton()
     }
 
+    /// Bundled access-point vector rather than a system glyph, so the
+    /// control reads as broadcast rather than any one device. Boxed by ink
+    /// like the other bundled glyphs. Hidden until a capture request or
+    /// grant lights it; `syncMediaCaptureButton` owns this from here on.
+    private func configureWebRTCButton() {
+        let image = BrowserToolbarButton.bundledGlyphImage(named: "AccessPoint", inkRatio: 0.556)
+        image?.accessibilityDescription = "Capture controls"
+        webrtcButton.image = image
+        webrtcButton.toolTip = "Capture controls"
+        webrtcButton.target = self
+        webrtcButton.action = #selector(openMediaCapture)
+        webrtcButton.isHidden = true
+    }
+
     private func configureFeedButton() {        // Bundled vector rather than a system glyph, so the control always
         // shows the project’s RSS mark. It is a template image, matching the
-        // toolbar’s label color, and is sized like the neighboring glyphs.
-        let image = NSImage(named: "RSS")
+        // toolbar’s label color, and is boxed by ink like the other bundled
+        // glyphs rather than at its 18pt box.
+        let image = BrowserToolbarButton.bundledGlyphImage(named: "RSS", inkRatio: 0.75)
         image?.accessibilityDescription = "Available feeds"
-        image?.isTemplate = true
-        image?.size = NSSize(width: 18, height: 18)
         feedButton.image = image
         feedButton.toolTip = "Available feeds"
         feedButton.target = self

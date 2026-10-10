@@ -47,6 +47,38 @@ final class BrowserToolbarButton: NSButton {
     private var hoverTrackingArea: NSTrackingArea?
     private var isHovering = false
 
+    /// Ink height every toolbar glyph paints at, bundled or system.
+    /// Measured, not guessed: the 13.5pt medium system cuts render
+    /// 10–11.5pt of ink, while the bundled vectors boxed at 18pt painted
+    /// 13.5–16pt — visibly larger, with tighter padding than their
+    /// neighbors. Vectors are boxed per asset below to land in the same
+    /// band instead.
+    static let glyphInkHeight: CGFloat = 11.5
+
+    /// Loads a bundled vector as a toolbar glyph, boxed so its ink height
+    /// lands on `glyphInkHeight`.
+    ///
+    /// `inkRatio` is the asset's ink height over its box height, measured
+    /// per asset from an 18pt render (RSS 0.75, shields ~0.83–0.88,
+    /// fingerprint 0.75). The box rounds to whole points: a fractional box
+    /// paints the vector soft, the same disease the tab strip's edge
+    /// snapping cures.
+    ///
+    /// The image is copied before sizing: `NSImage(named:)` returns a
+    /// shared instance, so sizing it in place would move every other use
+    /// of the asset to the last size set.
+    static func bundledGlyphImage(named name: String, inkRatio: CGFloat) -> NSImage? {
+        guard inkRatio > 0,
+              let image = NSImage(named: name)?.copy() as? NSImage
+        else {
+            return nil
+        }
+        image.isTemplate = true
+        let box = (glyphInkHeight / inkRatio).rounded()
+        image.size = NSSize(width: box, height: box)
+        return image
+    }
+
     /// Unseen finished downloads for the badge. Zero hides it. Set by the
     /// toolbar controller from the shared badge center.
     var badgeCount = 0 {
