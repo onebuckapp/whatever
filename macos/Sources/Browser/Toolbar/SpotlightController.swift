@@ -92,6 +92,9 @@ final class SpotlightController {
             self.queryChanged(field.textField.stringValue, preopen: false)
         }
         field.onMoveSelection = { [weak self] offset in self?.moveSelection(by: offset) }
+        field.onTabThroughSelection = { [weak self] forward in
+            self?.tabThroughSelection(forward: forward) ?? false
+        }
         field.onDismiss = { [weak self] in self?.close() }
     }
 
@@ -383,6 +386,40 @@ final class SpotlightController {
         // The arrows pull the list with the selection; hover leaves the scroll
         // position alone for the mouse user to drive by hand.
         refreshResults(scrollToSelection: true)
+    }
+
+    /// Walks the selection with wraparound for Tab (`forward`) and
+    /// Shift+Tab: past the last row back to the first, past the first to
+    /// the last. Arrows deliberately do not wrap (see `moveSelection`).
+    /// Returns whether the key was consumed: with no rows to walk, Tab
+    /// keeps its normal meaning and leaves the field.
+    @discardableResult
+    func tabThroughSelection(forward: Bool) -> Bool {
+        guard let next = Self.nextWrappingIndex(
+            current: selectedIndex,
+            count: results.count,
+            forward: forward
+        ) else {
+            return false
+        }
+        selectedIndex = next
+        // Like the arrows: the list follows the selection.
+        refreshResults(scrollToSelection: true)
+        return true
+    }
+
+    /// Next index walking `count` rows with wraparound, or nil when there
+    /// is nothing to walk. No selection starts before the first row going
+    /// forward and on it going backward, so Tab opens on the first row and
+    /// Shift+Tab on the last. Static so the rule is testable without a
+    /// panel, a field, or any history.
+    static func nextWrappingIndex(current: Int?, count: Int, forward: Bool) -> Int? {
+        guard count > 0 else { return nil }
+        let base = current ?? (forward ? -1 : 0)
+        if forward {
+            return (base + 1) % count
+        }
+        return (base - 1 + count) % count
     }
 
     @discardableResult

@@ -98,6 +98,11 @@ final class SpotlightField: NSView {
     /// Set by `SpotlightController`. The arrow keys move the dropdown's selection
     /// only while one is open, and the caret otherwise.
     var onMoveSelection: ((Int) -> Void)?
+    /// Set by `SpotlightController`. Tab and Shift+Tab walk the dropdown's
+    /// selection with wraparound while one is open. Returns whether the key
+    /// was consumed: an open-but-empty dropdown must not trap Tab, which
+    /// otherwise leaves the field for the next control.
+    var onTabThroughSelection: ((Bool) -> Bool)?
     var onDismiss: (() -> Void)?
     var onSubmit: ((String) -> Void)?
 
@@ -486,6 +491,19 @@ extension SpotlightField: NSTextFieldDelegate {
             guard isOpen, let onMoveSelection else { return false }
             onMoveSelection(-1)
             return true
+        }
+        if commandSelector == #selector(NSResponder.insertTab(_:)) {
+            // Tab walks the open dropdown and wraps past the last row back
+            // to the first; with no dropdown it keeps its normal meaning
+            // and leaves the field.
+            guard isOpen, let onTabThroughSelection else { return false }
+            return onTabThroughSelection(true)
+        }
+        if commandSelector == #selector(NSResponder.insertBacktab(_:)) {
+            // Shift+Tab walks backwards and wraps past the first row to
+            // the last, with the same open-dropdown gating as Tab.
+            guard isOpen, let onTabThroughSelection else { return false }
+            return onTabThroughSelection(false)
         }
         if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
             // Escape, consumed only when there is a dropdown to close.
