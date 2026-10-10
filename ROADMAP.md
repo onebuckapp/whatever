@@ -7,13 +7,16 @@ before starting what's new.
 
 ## Finishing what's started
 
-- **History.** Searchable history works; still to come are full-text search,
+- [x] **History.** Searchable history works; still to come are full-text search,
   smart folders (e.g. "this week"), and bulk cleanup tools.
-- **Downloads.** The history popup, retry, and badge are in; missing are
+- [x] **Downloads.** The history popup, retry, and badge are in; missing are
   bandwidth limits, automatic file sorting by type, and resuming interrupted
   transfers where the server allows it.
-- **Feeds.** The reader, discovery, and crawl ticker are solid; planned are
+- [x] **Feeds.** The reader, discovery, and crawl ticker are solid; planned are
   OPML import/export, per-feed retention, and article search.
+- [x] **Bookmarks.** The bookmarks bar with folders, the editor, starring from
+  the toolbar, drag reordering, and saving tabs by dragging them onto the bar
+  are in.
 
 ## Browsing
 
@@ -33,16 +36,24 @@ before starting what's new.
   extend it to browser commands ("mute this tab", "bookmark this page").
 - **Per-site settings.** One panel per site: zoom, JavaScript, blocker, and
   sleep exemptions together, instead of scattered toggles.
-- **Print to PDF and screenshots.** Full-page capture and clean PDF export
+- [x] **Print to PDF and screenshots.** Full-page capture and clean PDF export
   from the page menu.
 - **Built-in torrent client.** Magnet links and .torrent files download
   in-app with progress, seeding controls, and selective file picking —
   peer-to-peer, no servers, in line with everything else.
+- **Native media player.** A real macOS audio/video player for remote and
+  local sources: playlists and queues, background playback, playback speed,
+  picture-in-picture, and full subtitle support (external files, embedded
+  tracks, styling, and sync adjustment) — everything a movie player needs,
+  no web-page chrome around it.
 
 ## Privacy and safety
 
-- **Local password manager.** The encrypted on-device vault with generation
+- [x] **Local password manager.** The encrypted on-device vault with generation
   is in; still to come is autofill. No cloud, in line with everything else.
+- [x] **Private windows.** Window-scoped private browsing from the File and
+  Dock menus is in; private tabs keep no history and leave nothing in the
+  session document.
 - **Fingerprinting resistance.** Optional canvas/font/user-agent hardening
   per site, next to the existing blocker exceptions.
 - **Cookie management.** See and clear per-site storage without nuking all
