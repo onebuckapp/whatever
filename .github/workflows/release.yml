@@ -128,23 +128,17 @@ jobs:
         run: |
           set -eu
           # A debuggable sibling of the release DMG: unoptimized, with the
-          # DEBUG-only diagnostics compiled in. Ships both as its own zip and
-          # its own DMG (not inside the release DMG) so each stays
-          # independently downloadable, and the bundle inside is renamed so
-          # both copies can live side by side in /Applications without
-          # overwriting each other.
+          # DEBUG-only diagnostics compiled in. Ships as its own DMG (not
+          # inside the release DMG) so each stays independently downloadable,
+          # and the bundle inside is renamed so both copies can live side by
+          # side in /Applications without overwriting each other.
           app="macos/Build/Build/Products/Debug/Whatever.app"
           [[ -d "${app}" ]] || { echo "ERROR: app not found: ${app}"; exit 1; }
           tag="${GITHUB_REF_NAME//\//-}"
-          zip="Whatever_${tag}_macos-${{ matrix.arch }}-debug.zip"
           dmg="Whatever_${tag}_macos-${{ matrix.arch }}-debug.dmg"
-          rm -rf debug-staging "${zip}"
+          rm -rf debug-staging
           mkdir -p debug-staging
           cp -R "${app}" "debug-staging/Whatever Debug.app"
-          # ditto, not zip: it keeps the bundle's symlinks and resource
-          # forks intact, which plain zip does not.
-          ditto -c -k --sequesterRsrc --keepParent \
-            "debug-staging/Whatever Debug.app" "${zip}"
           rm -rf dmg-staging-debug "${dmg}"
           mkdir -p dmg-staging-debug
           cp -R "debug-staging/Whatever Debug.app" dmg-staging-debug/
@@ -157,9 +151,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: whatever-debug-macos-${{ matrix.arch }}
-          path: |
-            *-debug.zip
-            *-debug.dmg
+          path: '*-debug.dmg'
 
   release:
     name: Release
@@ -192,9 +184,9 @@ jobs:
           set -eu
           shopt -s nullglob
           tag="${{ github.ref_name }}"
-          assets=(dist/*.dmg dist/*.zip)
+          assets=(dist/*.dmg)
           if (( ${#assets[@]} == 0 )); then
-            echo "ERROR: no DMGs or zips found in dist/"
+            echo "ERROR: no DMGs found in dist/"
             exit 1
           fi
           echo ">> Releasing ${tag}: ${assets[*]}"
