@@ -204,4 +204,65 @@ struct TabStripScrollTests {
         container.strip.refreshHover(at: nil)
         #expect(container.strip.hoveredTabIDsForTesting.isEmpty)
     }
+
+    @Test("cell edges snap to whole points without gaps or overlaps")
+    func cellEdgesSnap() {
+        let frames = TabBarView.cellFrames(widths: [108.57, 108.57, 108.57], startX: 6, gap: 4)
+        #expect(frames.count == 3)
+        for frame in frames {
+            #expect(frame.x == frame.x.rounded())
+            #expect(frame.width == frame.width.rounded())
+            #expect(frame.width > 0)
+        }
+        // Contiguous: the gap after each cell is the exact gap.
+        #expect(frames[0].x == 6)
+        #expect(frames[1].x - (frames[0].x + frames[0].width) == 4)
+        #expect(frames[2].x - (frames[1].x + frames[1].width) == 4)
+        // Total preserved: the last edge equals the exact total, snapped
+        // (within a float bit: the running sum is not decimal-exact).
+        let total = 6 + 3 * 108.57 + 2 * 4
+        #expect(abs((frames[2].x + frames[2].width) - total.rounded()) < 0.001)
+    }
+
+    @Test("scroll offsets clamp and rest on whole points")
+    func scrollOffsetsSnap() {
+        #expect(TabBarContainerView.snappedOffset(200.6, max: 1000) == 201)
+        #expect(TabBarContainerView.snappedOffset(200, max: 1000) == 200)
+        #expect(TabBarContainerView.snappedOffset(-3.2, max: 1000) == 0)
+        // The ceiling floors: resting past the strip's end would show
+        // blank chrome.
+        #expect(TabBarContainerView.snappedOffset(10_000.7, max: 2068.7) == 2068)
+        #expect(TabBarContainerView.snappedOffset(100.4, max: 100.4) == 100)
+    }
+
+    @Test("laid-out cells rest on whole points at fractional widths")
+    func laidOutCellsSnap() {
+        let container = makeContainer()
+        // Seven tabs in 800pt divide fractionally, so unsnapped edges
+        // would sit between pixels and the titles would paint soft.
+        let tabs = makeTabs(7)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        let frames = container.strip.cellFramesForTesting
+        #expect(frames.count == 7)
+        #expect(frames[0].minX == 6)
+        for frame in frames {
+            #expect(frame.minX == frame.minX.rounded())
+            #expect(frame.maxX == frame.maxX.rounded())
+        }
+        for index in 1..<frames.count {
+            let gap = frames[index].minX - frames[index - 1].maxX
+            #expect(gap >= 3 && gap <= 5)
+        }
+    }
+
+    @Test("a fractional scroll rests on a whole point")
+    func fractionalScrollRestsWhole() {
+        let container = makeContainer()
+        let tabs = makeTabs(30)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        container.scrollHorizontallyForTesting(200.6)
+        #expect(container.scrollOriginXForTesting == 201)
+    }
 }

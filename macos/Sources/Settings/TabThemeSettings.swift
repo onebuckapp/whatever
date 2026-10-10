@@ -41,8 +41,20 @@ struct TabThemeSettingsGroups: View {
             theme: store.binding(\.appearance.activeTabTheme)
         )
         SettingsGroup(
+            title: "Tab Shape",
+            footnote: "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+        ) {
+            SettingsPickerRow(
+                title: "Shape",
+                options: TabShape.allCases,
+                selection: store.binding(\.appearance.tabShape),
+                isSegmented: true,
+                label: { $0.title }
+            )
+        }
+        SettingsGroup(
             title: "Tab Corners",
-            footnote: "Roundness of every tab cell, active and inactive alike. Follows live as it changes."
+            footnote: "Roundness of every attached tab cell. Follows live as it changes."
         ) {
             SettingsSliderRow(
                 title: "Corner Radius",

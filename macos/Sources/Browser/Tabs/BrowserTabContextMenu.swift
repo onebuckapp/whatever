@@ -207,6 +207,85 @@ enum BrowserTabContextMenu {
     }
 }
 
+/// Identifies a tab-strip context-menu command: the menu over the bar's
+/// empty area, where there is no tab to act on. Strings are stored on the
+/// menu items so items stay independent of the menu's target lifetime.
+enum TabStripMenuAction: String {
+    case newTab
+    case newWindow
+    case newPrivateWindow
+    case setWindowSize
+}
+
+/// Retained by the window controller so `NSMenuItem`'s weak target stays
+/// alive while a strip menu is on screen. Window-level, unlike
+/// `TabMenuTarget`: there is no tab here.
+@MainActor
+final class TabStripMenuTarget: NSObject {
+    private weak var controller: BrowserWindowController?
+
+    init(controller: BrowserWindowController) {
+        self.controller = controller
+    }
+
+    @objc func handleMenuItem(_ sender: NSMenuItem) {
+        guard let action = sender.representedObject as? String,
+              let command = TabStripMenuAction(rawValue: action),
+              let controller
+        else {
+            return
+        }
+        BrowserTabStripMenu.perform(command, controller: controller)
+    }
+}
+
+/// Builds the right-click menu for the tab bar's empty area: window-level
+/// commands only, nothing tab-specific.
+@MainActor
+enum BrowserTabStripMenu {
+    static func menu(controller: BrowserWindowController) -> NSMenu {
+        let target = TabStripMenuTarget(controller: controller)
+        // Held like the per-tab targets so the weak item target above
+        // stays alive while the menu is on screen.
+        controller.retainStripMenuTarget(target)
+        let menu = NSMenu()
+        add("New Tab", .newTab, to: menu, target: target)
+        add("New Window", .newWindow, to: menu, target: target)
+        add("New Incognito Window", .newPrivateWindow, to: menu, target: target)
+        menu.addItem(.separator())
+        add("Set Window Size\u{2026}", .setWindowSize, to: menu, target: target)
+        return menu
+    }
+
+    static func perform(
+        _ command: TabStripMenuAction,
+        controller: BrowserWindowController
+    ) {
+        let coordinator = BrowserCoordinator.shared
+        switch command {
+        case .newTab:
+            coordinator.newTab(url: nil, in: controller)
+        case .newWindow:
+            _ = coordinator.newWindow()
+        case .newPrivateWindow:
+            _ = coordinator.newPrivateWindow()
+        case .setWindowSize:
+            controller.presentWindowSize()
+        }
+    }
+
+    private static func add(
+        _ title: String,
+        _ command: TabStripMenuAction,
+        to menu: NSMenu,
+        target: TabStripMenuTarget
+    ) {
+        let item = NSMenuItem(title: title, action: #selector(TabStripMenuTarget.handleMenuItem(_:)), keyEquivalent: "")
+        item.target = target
+        item.representedObject = command.rawValue
+        menu.addItem(item)
+    }
+}
 /// Retained by the window controller so `NSMenuItem`'s weak target stays
 /// alive while a group menu is on screen. The group, not a tab: every
 /// command here operates on the whole pair.

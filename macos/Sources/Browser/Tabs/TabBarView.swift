@@ -31,6 +31,9 @@ protocol TabBarViewDelegate: AnyObject {
     func tabBarDidCloseGroup(_ tabBar: TabBarView)
     /// Context menu for the merged group cell.
     func tabBarGroupMenu(_ tabBar: TabBarView) -> NSMenu?
+    /// Context menu for the strip's empty area, where there is no tab or
+    /// group cell to act on. Nil means no menu.
+    func tabBarEmptyAreaMenu(_ tabBar: TabBarView) -> NSMenu?
 }
 
 /// Thin accent line drawn between tabs while a drag hovers the bar.
@@ -113,6 +116,16 @@ final class TabBarView: NSView {
         // — grows to satisfy it and can never shrink back.
         translatesAutoresizingMaskIntoConstraints = false
         registerForDraggedTypes([TabDragPayload.type])
+    }
+
+    /// Right-clicks on tab and group cells never reach here — the cells
+    /// show their own menus — so this is the empty area only.
+    override func rightMouseDown(with event: NSEvent) {
+        guard let menu = delegate?.tabBarEmptyAreaMenu(self) else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        menu.popUp(positioning: nil, at: convert(event.locationInWindow, from: nil), in: self)
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -255,16 +268,54 @@ final class TabBarView: NSView {
 
     // MARK: - Layout
 
+    /// Cell vertical metrics for a bar of `barHeight`: attached cells run
+    /// flush to the bar's bottom edge so they stick to the page below,
+    /// pills float with the same breathing room top and bottom, leaving a
+    /// gap between the pills and the webview. Static so the insets are
+    /// testable without laying out views.
+    static func cellVerticalMetrics(barHeight: CGFloat, shape: TabShape) -> (y: CGFloat, height: CGFloat) {
+        switch shape {
+        case .attached:
+            return (4, max(0, barHeight - 4))
+        case .pills:
+            return (4, max(0, barHeight - 8))
+        }
+    }
+
+    /// Cell edges snapped to whole points, from exact widths. The strip
+    /// divides its width between cells, so edges are routinely fractional —
+    /// and a cell sitting half a point off the pixel grid paints its title
+    /// soft, intermittently: sharp whenever an edge happens to land whole,
+    /// soft everywhere else. Rounding each edge independently would open
+    /// gaps and overlaps; rounding the running edge keeps every cell whole
+    /// while the total stays exact. Static so the snapping is testable
+    /// without laying out views.
+    static func cellFrames(
+        widths: [CGFloat],
+        startX: CGFloat,
+        gap: CGFloat
+    ) -> [(x: CGFloat, width: CGFloat)] {
+        var edge = startX
+        return widths.map { width in
+            let x = edge.rounded()
+            edge += width + gap
+            return (x, max(0, (edge - gap).rounded() - x))
+        }
+    }
+
     override func layout() {
         super.layout()
-        // Cells run flush to the bar's bottom edge so they stick to the
-        // page below; only the top keeps an inset.
-        let tabHeight = max(0, bounds.height - 4)
-        var x: CGFloat = 6
-        for tab in visualTabs() {
+        let shape = SettingsStore.shared.settings.appearance.tabShape
+        let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape)
+        let tabs = visualTabs()
+        let frames = Self.cellFrames(
+            widths: tabs.map { visualWidth(for: $0) },
+            startX: 6,
+            gap: 4
+        )
+        for (tab, frame) in zip(tabs, frames) {
             guard let view = viewForVisualTab(tab) else { continue }
-            view.frame = NSRect(x: x, y: 4, width: visualWidth(for: tab), height: tabHeight)
-            x += view.frame.width + 4
+            view.frame = NSRect(x: frame.x, y: metrics.y, width: frame.width, height: metrics.height)
         }
         if insertionIndex != nil {
             layoutInsertionMarker()
@@ -326,6 +377,12 @@ final class TabBarView: NSView {
             }
             return (view as? TabGroupCellView)?.isHoveredForTesting == true
         }.map(\.id)
+    }
+
+    /// Cell frames in display order, for tests: layout must keep every
+    /// edge on whole points or titles paint soft.
+    var cellFramesForTesting: [NSRect] {
+        visualTabs().compactMap { viewForVisualTab($0)?.frame }
     }
 
     private func width(for tab: BrowserTab) -> CGFloat {
@@ -394,6 +451,8 @@ final class TabBarView: NSView {
 
     private func layoutInsertionMarker() {
         guard let index = insertionIndex else { return }
+        let shape = SettingsStore.shared.settings.appearance.tabShape
+        let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape)
         let x: CGFloat
         if index >= tabs.count {
             if let last = visualTabs().last, let view = viewForVisualTab(last) {
@@ -421,9 +480,9 @@ final class TabBarView: NSView {
         }
         insertionMarker.frame = NSRect(
             x: x,
-            y: 4,
+            y: metrics.y,
             width: 2,
-            height: max(0, bounds.height - 4)
+            height: metrics.height
         )
     }
 
@@ -621,7 +680,7 @@ final class TabBarContainerView: NSView {
     /// Scrolls the strip so `offset` becomes the visible origin. For tests.
     func scrollToForTesting(_ offset: CGFloat) {
         let maxX = max(0, strip.preferredWidth - scrollView.contentView.bounds.width)
-        scrollView.contentView.scroll(to: NSPoint(x: min(max(offset, 0), maxX), y: 0))
+        scrollView.contentView.scroll(to: NSPoint(x: Self.snappedOffset(offset, max: maxX), y: 0))
         // A headless test host may not deliver the bounds notification, so
         // refresh directly; in the app the observer covers this too.
         refreshFades()
@@ -724,7 +783,7 @@ final class TabBarContainerView: NSView {
                 return
             }
             let maxX = max(0, self.strip.preferredWidth - visibleWidth)
-            originX = min(max(originX, 0), maxX)
+            originX = Self.snappedOffset(originX, max: maxX)
             guard originX != clip.bounds.origin.x else { return }
             clip.scroll(to: NSPoint(x: originX, y: 0))
             self.strip.needsLayout = true
@@ -751,10 +810,7 @@ final class TabBarContainerView: NSView {
             }
             guard delta != 0, self.scrollView.documentView != nil else { return 0 }
             let maxX = max(0, self.strip.preferredWidth - visible.bounds.width)
-            let next = min(
-                max(visible.bounds.origin.x + delta, 0),
-                maxX
-            )
+            let next = Self.snappedOffset(visible.bounds.origin.x + delta, max: maxX)
             guard next != visible.bounds.origin.x else { return 0 }
             visible.scroll(to: NSPoint(x: next, y: 0))
             self.strip.needsLayout = true
@@ -786,6 +842,16 @@ final class TabBarContainerView: NSView {
         return -dy * (precise ? 1 : 40)
     }
 
+    /// Clamps a strip offset into range and rests it on a whole point.
+    /// Trackpad and wheel deltas are fractional, so an unrounded offset
+    /// parks the strip between pixels and every title paints soft until
+    /// the next scroll happens to land whole. The ceiling floors rather
+    /// than rounds: overshooting the strip's end would show blank chrome.
+    /// Static so the convention is testable without synthesizing NSEvents.
+    static func snappedOffset(_ offset: CGFloat, max maxX: CGFloat) -> CGFloat {
+        min(max(offset, 0), max(0, maxX.rounded(.down))).rounded()
+    }
+
     private func handleScrollWheel(_ event: NSEvent) {
         scrollStrip(by: Self.stripDelta(
             dx: event.scrollingDeltaX,
@@ -800,7 +866,7 @@ final class TabBarContainerView: NSView {
         let clip = scrollView.contentView
         let maxX = max(0, strip.preferredWidth - clip.bounds.width)
         guard maxX > 0, dx != 0 else { return }
-        let next = min(max(clip.bounds.origin.x + dx, 0), maxX)
+        let next = Self.snappedOffset(clip.bounds.origin.x + dx, max: maxX)
         guard next != clip.bounds.origin.x else { return }
         clip.scroll(to: NSPoint(x: next, y: 0))
         strip.needsLayout = true

@@ -314,7 +314,7 @@ final class TabGroupCellView: NSView {
         // every other cell the shared one. `removeDuplicates` keeps slider
         // drags in Settings from rebuilding media layers per tick.
         SettingsStore.shared.$settings
-            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius) }
+            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius, $0.appearance.tabShape) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -343,18 +343,22 @@ final class TabGroupCellView: NSView {
     /// Corner roundness from Settings, shared with lone cells. Capped at
     /// half the cell height wherever it is used.
     private var cornerRadius: CGFloat = 8
+    /// Cell shape from Settings, shared with lone cells.
+    private var tabShape = TabShape.attached
 
     private func applyCornerRadius() {
         cornerRadius = CGFloat(
             SettingsStore.shared.settings.appearance.tabCornerRadius)
-        // Layout too, like the lone cell: fills take their corners there.
+        tabShape = SettingsStore.shared.settings.appearance.tabShape
+        // Layout too, like the lone cell: fills take their corners there,
+        // and the shape moves the cell's own frame in the strip.
         needsLayout = true
+        superview?.needsLayout = true
         needsDisplay = true
     }
 
     private func resolvedCornerRadius() -> CGFloat {
-        guard bounds.height > 0 else { return max(cornerRadius, 0) }
-        return min(max(cornerRadius, 0), bounds.height / 2)
+        tabShape.cornerRadius(setting: cornerRadius, height: bounds.height)
     }
 
     private func updateAppearance() {
@@ -531,8 +535,13 @@ final class TabGroupCellView: NSView {
             let maxY = round(rect.maxY * scale) / scale
             rect = NSRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
         }
-        let path = SpotlightField.topSidesPath(
-            in: rect, topRadius: max(resolvedCornerRadius() - 0.5, 0))
+        let outlineRadius = max(resolvedCornerRadius() - 0.5, 0)
+        let path: NSBezierPath
+        if tabShape.roundsBottomCorners {
+            path = NSBezierPath(roundedRect: rect, xRadius: outlineRadius, yRadius: outlineRadius)
+        } else {
+            path = SpotlightField.topSidesPath(in: rect, topRadius: outlineRadius)
+        }
         NSColor.separatorColor.setStroke()
         path.lineWidth = 1
         path.stroke()
@@ -543,6 +552,11 @@ final class TabGroupCellView: NSView {
         let radius = resolvedCornerRadius()
         layer?.cornerRadius = radius
         backgroundView.layer?.cornerRadius = radius
+        // Pills round every corner; attached cells keep the bottom square
+        // so the group reads as joined to the page.
+        let rounding = tabShape.layerRounding
+        layer?.maskedCorners = rounding
+        backgroundView.layer?.maskedCorners = rounding
         backgroundView.frame = bounds
         // Gradient and video geometry is unit space or live, so only the
         // frame needs tracking. Images carry an explicit fitted frame,
@@ -574,13 +588,16 @@ final class TabGroupCellView: NSView {
             height: closeSize
         )
         // Two equal halves between the leading edge and the close button,
-        // with a 1pt divider where they meet.
+        // with a 1pt divider where they meet. The split lands on a whole
+        // point: a fractional middle puts both titles half a pixel off
+        // the grid and they paint soft, like lone cells with fractional
+        // edges do.
         let halvesWidth = max(0, closeButton.frame.minX - 4)
         let halves = NSRect(
             x: 0, y: 0,
             width: halvesWidth,
             height: bounds.height
-        ).divided(atDistance: halvesWidth / 2, from: .minXEdge)
+        ).divided(atDistance: (halvesWidth / 2).rounded(), from: .minXEdge)
         divider.frame = NSRect(
             x: halves.slice.maxX - 0.5,
             y: 6,

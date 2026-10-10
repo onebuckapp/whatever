@@ -71,24 +71,29 @@ final class TabBarItemView: NSView {
     /// drawn outline alike. Capped at half the cell height wherever it is
     /// used, so no setting can invert the arcs.
     private var cornerRadius: CGFloat = 8
+    /// Cell shape from Settings: attached cells keep square bottom corners
+    /// and sit flush to the page, pills round everything and float.
+    private var tabShape = TabShape.attached
 
     /// Reads the roundness setting onto the cell. Layers take it in `layout`,
     /// which also runs before the first paint; the outline reads it in `draw`.
     private func applyCornerRadius() {
         cornerRadius = CGFloat(
             SettingsStore.shared.settings.appearance.tabCornerRadius)
+        tabShape = SettingsStore.shared.settings.appearance.tabShape
         // Layout, not just display: the fill layers take their corners there,
         // so display alone would redraw the outline while the fill kept the
         // old curve — which is why existing tabs ignored the slider until
-        // a new tab laid out fresh.
+        // a new tab laid out fresh. The strip lays out too: the shape moves
+        // the cell's own frame, not just its paint.
         needsLayout = true
+        superview?.needsLayout = true
         needsDisplay = true
     }
 
     /// Roundness drawn and clipped at this size.
     private func resolvedCornerRadius() -> CGFloat {
-        guard bounds.height > 0 else { return max(cornerRadius, 0) }
-        return min(max(cornerRadius, 0), bounds.height / 2)
+        tabShape.cornerRadius(setting: cornerRadius, height: bounds.height)
     }
 
     init(tab: BrowserTab) {
@@ -294,7 +299,15 @@ final class TabBarItemView: NSView {
             rect = NSRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
         }
         // Concentric with the layer's own corners: inset half the stroke.
-        let path = SpotlightField.topSidesPath(in: rect, topRadius: max(resolvedCornerRadius() - 0.5, 0))
+        // Pills outline the whole stadium; attached cells only the top and
+        // sides, leaving the bottom edge open onto the page.
+        let outlineRadius = max(resolvedCornerRadius() - 0.5, 0)
+        let path: NSBezierPath
+        if tabShape.roundsBottomCorners {
+            path = NSBezierPath(roundedRect: rect, xRadius: outlineRadius, yRadius: outlineRadius)
+        } else {
+            path = SpotlightField.topSidesPath(in: rect, topRadius: outlineRadius)
+        }
         NSColor.separatorColor.setStroke()
         path.lineWidth = 1
         path.stroke()
@@ -391,7 +404,7 @@ final class TabBarItemView: NSView {
         // every other cell the shared one. `removeDuplicates` keeps slider
         // drags in Settings from rebuilding media layers per tick.
         SettingsStore.shared.$settings
-            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius) }
+            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius, $0.appearance.tabShape) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -649,6 +662,11 @@ final class TabBarItemView: NSView {
         let radius = resolvedCornerRadius()
         layer?.cornerRadius = radius
         backgroundView.layer?.cornerRadius = radius
+        // Pills round every corner; attached cells keep the bottom square
+        // so they read as joined to the page.
+        let rounding = tabShape.layerRounding
+        layer?.maskedCorners = rounding
+        backgroundView.layer?.maskedCorners = rounding
         backgroundView.frame = bounds
         // Gradient and video geometry is unit space or live, so only the
         // frame needs tracking. Images carry an explicit fitted frame,
