@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import Combine
+import Security
 import WebKit
 
 /// Observable wrapper around a tab's `WKWebView`. Publishes navigation
@@ -72,6 +73,11 @@ final class BrowserTabController: ObservableObject {
     /// Host the capture state above belongs to. A navigation to a new host
     /// drops it; same-host walks keep their grants.
     private var captureHost: String?
+    /// The page's TLS certificate, snapshotted from the server-trust
+    /// challenge during the handshake — the only moment WebKit hands over
+    /// the trust object. Read by the site-information card; cleared with
+    /// the rest of the page-owned state.
+    @Published private(set) var siteCertificate: SiteCertificateInfo?
 
     /// Whether feed discovery may run for the current page. Set from the
     /// toolbar binding because settings live on the main actor and this
@@ -185,6 +191,8 @@ final class BrowserTabController: ObservableObject {
         // And for its captures: a view that is gone holds no microphone.
         captureHost = nil
         captureState = MediaCaptureState()
+        // And for its certificate: the chain belonged to that page's handshake.
+        siteCertificate = nil
         // Clears the audio flag and drops the poll. The mute stays: it belongs to
         // the tab, and is re-applied to whichever view comes next.
         audioMonitor.detach()
@@ -255,6 +263,13 @@ final class BrowserTabController: ObservableObject {
         captureState.noteDenied(kind)
     }
 
+    /// Snapshots the server's certificate for the site-information card.
+    /// Called from the navigation delegate's authentication challenge,
+    /// during the handshake that serves the chain.
+    func noteServerTrust(_ trust: SecTrust, host: String) {
+        siteCertificate = SiteCertificateInfo.make(trust: trust, host: host)
+    }
+
     private func syncAll() {
         if let loaded = webView?.title {
             placeholderTitle = nil
@@ -273,10 +288,18 @@ final class BrowserTabController: ObservableObject {
     /// Carries capture grants across same-host navigations and drops them
     /// on host changes. Pending requests never survive the move: their
     /// page is gone, and the pane answers them denied (see `carried`).
+    /// The certificate drops with a real host change too — but only then:
+    /// the challenge lands before the new address commits, so dropping on
+    /// any mismatch would discard a certificate its own page has not
+    /// reached yet.
     private func carryCaptureState(to host: String?) {
+        let moved = captureHost != host
         let carried = MediaCaptureState.carried(from: captureHost, to: host, state: captureState)
         captureHost = host
         captureState = carried
+        if moved, siteCertificate?.host != host {
+            siteCertificate = nil
+        }
     }
 
     /// Asks for the site's icon once the tab has settled on a page.

@@ -593,6 +593,9 @@ final class BrowserWindowController: NSWindowController {
         toolbarController.onFeed = { [weak self] candidates in
             self?.presentFeedReader(candidates: candidates)
         }
+        toolbarController.onSiteInfo = { [weak self] in
+            self?.presentSiteInfo()
+        }
         toolbarController.onMediaCapture = { [weak self] in
             self?.presentMediaCapture()
         }
@@ -1517,6 +1520,18 @@ final class BrowserWindowController: NSWindowController {
             return
         }
         contentController.presentFeedReader(candidates: candidates, tab: tab)
+    }
+
+    /// Opens the site-information popup for the selected tab.
+    ///
+    /// Behind the toolbar's adjustments button, which always shows: the
+    /// card itself explains when there is nothing to inspect.
+    func presentSiteInfo() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        contentController.presentSiteInfo(tab: tab)
     }
 
     /// Opens the capture popup for the selected tab's live page.

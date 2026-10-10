@@ -68,7 +68,15 @@ final class SpotlightField: NSView {
     let textField = NSTextField()
     /// The glyph at the bar's leading edge: a magnifier while editing, a
     /// lock (or broken lock) showing the page's connection state otherwise.
-    private let leadingGlyph = NSImageView()
+    /// The leading glyph, and the site-information button: a magnifier
+    /// while editing (inert), the connection lock otherwise (opens the
+    /// card). A button rather than an image view so the lock is clickable;
+    /// hit-testing picks it over this view, so glyph clicks never focus
+    /// the field or open the dropdown.
+    private let leadingGlyph = NSButton()
+    /// The lock was pressed. Wired by the toolbar controller to the site
+    /// information popup.
+    var onLockTapped: (() -> Void)?
     private let clearButton = NSButton()
 
     /// Whether the dropdown is showing. Squared-off bottom corners and the hairline
@@ -199,6 +207,12 @@ final class SpotlightField: NSView {
         leadingGlyph.translatesAutoresizingMaskIntoConstraints = false
         // Secondary so it recedes behind the text, which is what it is for.
         leadingGlyph.contentTintColor = .secondaryLabelColor
+        leadingGlyph.isBordered = false
+        leadingGlyph.imagePosition = .imageOnly
+        leadingGlyph.focusRingType = .none
+        leadingGlyph.toolTip = "Site information"
+        leadingGlyph.target = self
+        leadingGlyph.action = #selector(lockTapped)
         addSubview(leadingGlyph)
         NSLayoutConstraint.activate([
             leadingGlyph.centerXAnchor.constraint(
@@ -213,8 +227,11 @@ final class SpotlightField: NSView {
     }
 
     /// Swaps the leading glyph for the current state: the magnifier while
-    /// the field holds focus, the connection lock otherwise.
+    /// the field holds focus, the connection lock otherwise. The lock is
+    /// the site-information button; the magnifier is inert, so editing
+    /// never offers a card instead of a caret.
     func updateLeadingGlyph() {
+        leadingGlyph.isEnabled = !isEditing
         if isEditing {
             leadingGlyph.image = NSImage(
                 systemSymbolName: "magnifyingglass",
@@ -228,6 +245,10 @@ final class SpotlightField: NSView {
         image?.isTemplate = true
         image?.size = NSSize(width: Self.glyphSide, height: Self.glyphSide)
         leadingGlyph.image = image
+    }
+
+    @objc private func lockTapped() {
+        onLockTapped?()
     }
 
     private func configureClearButton() {
@@ -278,8 +299,9 @@ final class SpotlightField: NSView {
 
     // MARK: Clicking
 
-    /// A click on the chrome — anywhere that is not the text field or the clear
-    /// button — focuses the input and reports the click so the dropdown can open.
+    /// A click on the chrome — anywhere that is not the text field, the clear
+    /// button, or the lock button — focuses the input and reports the click
+    /// so the dropdown can open.
     ///
     /// Without this the spotlight would only be clickable in the dead space around
     /// the glyphs, because a borderless text field's hit area is its own text.

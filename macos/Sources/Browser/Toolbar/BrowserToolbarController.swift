@@ -105,6 +105,8 @@ final class BrowserToolbarController: NSObject {
     /// Opens the bookmark editor for the current page: add when the page is
     /// not saved yet, edit when it is.
     var onBookmark: ((BookmarkEditorMode) -> Void)?
+    /// Opens the site-information popup for the selected tab.
+    var onSiteInfo: (() -> Void)?
     /// Opens the capture popup for the selected tab's pending or live
     /// camera and microphone requests.
     var onMediaCapture: (() -> Void)?
@@ -163,6 +165,10 @@ final class BrowserToolbarController: NSObject {
         // would: the dropdown completes the address, it does not bypass it.
         spotlightController.onNavigate = { [weak self] url in
             self?.onAddressSubmitted?(url)
+        }
+        // The lock opens the site-information card for the selected tab.
+        spotlight.onLockTapped = { [weak self] in
+            self?.onSiteInfo?()
         }
     }
 

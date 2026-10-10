@@ -111,6 +111,23 @@ extension NavigationController: WKNavigationDelegate {
         owner?.reloadAfterContentProcessTermination()
     }
 
+    /// Server trust: snapshots the served chain for the site-information
+    /// card, then gets out of TLS's way. Default handling performs the
+    /// real validation; answering anything else here would either weaken
+    /// it or break every https page, and neither is this method's job.
+    func webView(
+        _ webView: WKWebView,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust
+        {
+            owner?.tabController.noteServerTrust(trust, host: challenge.protectionSpace.host.lowercased())
+        }
+        completionHandler(.performDefaultHandling, nil)
+    }
+
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationResponse: WKNavigationResponse,

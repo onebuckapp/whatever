@@ -41,6 +41,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var printPreviewPresenter: PrintPreviewPresenter?
     private var windowSizePresenter: WindowSizePresenter?
     private var mediaCapturePresenter: MediaCapturePresenter?
+    private var siteInfoPresenter: SiteInfoPopupPresenter?
     /// Internal for layout tests, which drive visibility through the
     /// controller's testing seams.
     var crawlBarController: CrawlBarController?
@@ -426,6 +427,38 @@ final class BrowserWindowContentViewController: NSViewController {
     func dismissMediaCapture() {
         mediaCapturePresenter?.dismiss()
         mediaCapturePresenter = nil
+    }
+
+    /// Opens the site-information card for `tab`, or closes it when already
+    /// open.
+    ///
+    /// Shielded like every other card, with press semantics: the card holds
+    /// no text fields, so any press on the backdrop dismisses it (same rule
+    /// as the content-blocker card it mirrors).
+    func presentSiteInfo(tab: BrowserTab) {
+        guard isViewLoaded else { return }
+        if siteInfoPresenter != nil {
+            dismissSiteInfo()
+            // Fall through and reopen: the counts belong to this press, not
+            // to whatever the previous card was showing.
+        }
+        let presenter = SiteInfoPopupPresenter(container: view, tab: tab) { [weak self] in
+            self?.siteInfoPresenter = nil
+            self?.releaseShield(id: "site-info")
+        } onManage: { [weak self] in
+            self?.presentSettings()
+        }
+        siteInfoPresenter = presenter
+        claimShield(id: "site-info", dismissOnPress: true) { [weak self] in
+            self?.dismissSiteInfo()
+        }
+        presenter.present()
+        noiseOverlay?.moveToFront()
+    }
+
+    func dismissSiteInfo() {
+        siteInfoPresenter?.dismiss()
+        siteInfoPresenter = nil
     }
 
     /// Opens the bookmark editor card for `mode`, or closes it when already

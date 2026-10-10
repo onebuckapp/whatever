@@ -106,6 +106,14 @@ final class BrowserTab: NSObject {
     private let dataStore: WKWebsiteDataStore
     private let navigationController: NavigationController
 
+    /// The website data store backing this tab's pages: the shared
+    /// persistent store for regular tabs, an isolated ephemeral one per
+    /// private tab. Read by the site-information card to count and clear
+    /// the site's cookies and data.
+    var websiteDataStore: WKWebsiteDataStore {
+        dataStore
+    }
+
     /// Committed addresses in visit order and the current position. A value
     /// type on purpose: every mutation goes through `TabHistory`, whose rules
     /// are unit-tested, so this file only decides _when_ to record or move.
