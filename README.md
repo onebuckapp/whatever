@@ -4,7 +4,7 @@
   Powered by WebKit &bullet; Written in Nim and Swift
 </p>
 
-<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/2026-10-10-1-1506PM.png" width="1024"><br>
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/2026-10-10-1-1506PM.png" width="100%"><br>
 
 ## 😍 Key Features
 
@@ -52,9 +52,17 @@
 - Open Source | `GPLv3` License
 
 ### About
-**Whatever is the browser for the dead internet** Popular browsers sell your data: feeds full of ads, trackers on every click, your tabs and history synced to somebody's cloud. Whatever goes the other way. Pages render on WebKit behind a blocker that compiles 13,000+ rules on your own machine. Your tabs come back where you left them. Your bookmarks, feeds, history, and downloads live in on-device databases — no accounts, no sync servers, ever.
+**Whatever is the browser for the dead internet**. Popular browsers sell your data: feeds full of ads, trackers on every click, your tabs and history synced to somebody's cloud. Whatever goes the other way. Pages render on WebKit behind a blocker that compiles 13,000+ rules on your own machine. Your tabs come back where you left them. Your bookmarks, feeds, history, and downloads live in on-device databases — no accounts, no sync servers, ever.
 
 It also happens to be beautiful and weird: a start page and window you theme yourself, a headline crawl for your RSS, film grain over the whole web if you want it, and a Spotlight-grade address bar that keeps up with you.
+
+
+### Previews
+
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-27-25.png" width="100%"><br>
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-28-08.png" width="100%"><br>
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-29-54.png" width="100%"><br>
+<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-29-54.png" width="100%"><br>
 
 ### 🗺 Roadmap
 Where this goes next — tab groups and workspaces, profiles, a reader mode, user scripts, importing from other browsers, and native Linux and Windows editions that reuse the portable Nim core. See [ROADMAP.md](ROADMAP.md) for the full list.
