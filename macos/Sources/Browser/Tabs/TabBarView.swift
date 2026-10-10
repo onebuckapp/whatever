@@ -71,6 +71,12 @@ final class TabBarView: NSView {
     /// them onto the strip.
     var scrollWheelHandler: ((NSEvent) -> Void)?
 
+    /// Called when the tab set changes, so the container re-lays out and
+    /// re-parks the new-tab button. The strip only marks itself and its
+    /// superview (the clip view) otherwise, which moves the cells but never
+    /// the button — a new tab then lands under the stale button.
+    var tabsDidChange: (() -> Void)?
+
     /// Window that owns this bar; drops are routed back through the
     /// coordinator using it as the destination.
     weak var owner: BrowserWindowController?
@@ -214,6 +220,7 @@ final class TabBarView: NSView {
         hideInsertionMarker()
         needsLayout = true
         superview?.needsLayout = true
+        tabsDidChange?()
     }
 
     /// The sticky pair with its tabs, only when it sits adjacent in pane
@@ -377,6 +384,16 @@ final class TabBarView: NSView {
             }
             return (view as? TabGroupCellView)?.isHoveredForTesting == true
         }.map(\.id)
+    }
+
+    /// Strip-local x just past the last cell, so the container can park the
+    /// new-tab button against it when nothing overflows. The leading inset
+    /// when there are no cells.
+    var trailingContentX: CGFloat {
+        guard let last = visualTabs().last, let view = viewForVisualTab(last) else {
+            return 6
+        }
+        return view.frame.maxX
     }
 
     /// Cell frames in display order, for tests: layout must keep every
@@ -636,8 +653,9 @@ extension TabBarView {
 }
 
 /// Window chrome around the strip: horizontal scrolling with no visible
-/// bar, a fade at each hidden edge, and the new-tab button pinned at the
-/// visible trailing edge so it never scrolls away with the tabs.
+/// bar, a fade at each hidden edge, and a new-tab button that rides just
+/// past the last tab while everything fits and pins at the visible
+/// trailing edge once tabs overflow and scroll.
 final class TabBarContainerView: NSView {
     let strip = TabBarView()
     private let scrollView = NSScrollView()
@@ -645,6 +663,10 @@ final class TabBarContainerView: NSView {
     /// scrolls underneath nothing, and the right fade ends at its gutter.
     private let newTabButton = BrowserToolbarButton()
     var newTabAction: (() -> Void)?
+
+    /// Gap between the last cell and a floating new-tab button: the same
+    /// breathing room cells keep between each other.
+    private static let newTabGap: CGFloat = 4
 
     /// Gutter reserved for the pinned button: its width plus breathing room
     /// on each side.
@@ -797,6 +819,13 @@ final class TabBarContainerView: NSView {
             self?.handleScrollWheel(event)
         }
 
+        // The button parks against the last cell, so every tab open and
+        // close re-lays the container — the strip's own invalidation stops
+        // at the clip view and would leave the button a change behind.
+        strip.tabsDidChange = { [weak self] in
+            self?.needsLayout = true
+        }
+
         // Scroll the strip when a drag hovers near either visible edge.
         strip.autoScroll = { [weak self] stripX in
             guard let self else { return 0 }
@@ -881,19 +910,14 @@ final class TabBarContainerView: NSView {
     override func layout() {
         super.layout()
         // The scroll view stops at the pinned button's gutter; the button
-        // sits in the gutter, vertically centered on the strip.
+        // either floats in the strip's own space or sits in the gutter,
+        // vertically centered on the strip either way.
         let reserve = Self.newTabReserve
         scrollView.frame = NSRect(
             x: 0,
             y: 0,
             width: max(0, bounds.width - reserve),
             height: bounds.height
-        )
-        newTabButton.frame = NSRect(
-            x: bounds.width - reserve + (reserve - BrowserToolbarButton.outerWidth) / 2,
-            y: 4 + (max(0, bounds.height - 4) - BrowserToolbarButton.outerHeight) / 2,
-            width: BrowserToolbarButton.outerWidth,
-            height: BrowserToolbarButton.outerHeight
         )
         // The strip's height comes from the container, which the window pins to
         // `tabBarHeight`, rather than being read back from the clip view. Reading
@@ -904,6 +928,38 @@ final class TabBarContainerView: NSView {
             y: 0,
             width: max(strip.preferredWidth, scrollView.contentSize.width),
             height: bounds.height
+        )
+        // Laid out now, not on the next pass: the button parks against the
+        // last cell below, and stale frames would leave it a pass behind
+        // every tab open and close.
+        strip.needsLayout = true
+        strip.layoutSubtreeIfNeeded()
+        let clip = scrollView.contentView
+        let overflowing = strip.preferredWidth - clip.bounds.width > 0.5
+        if !overflowing, clip.bounds.origin.x != 0 {
+            // The window widened past the overflow: re-zero a scroll offset
+            // nothing clamps anymore, or the strip sits shifted with blank
+            // chrome at its leading edge.
+            clip.scroll(to: NSPoint(x: 0, y: 0))
+        }
+        let fixedX = bounds.width - reserve + (reserve - BrowserToolbarButton.outerWidth) / 2
+        // Fitting tabs get the button right past the last cell; overflowing
+        // ones keep it pinned at the trailing edge, clear of the scrolled
+        // strip. The reserve math leaves room for the floating button short
+        // of the fixed slot, and the min holds that even so.
+        let buttonX = overflowing
+            ? fixedX
+            : min(strip.trailingContentX - clip.bounds.origin.x + Self.newTabGap, fixedX)
+        newTabButton.frame = NSRect(
+            x: buttonX,
+            // Centered on the cell band, in the container's own
+            // bottom-origin coordinates: the band runs flush to the bottom
+            // edge up to 4pt from the top, so its midpoint is
+            // (height - 4) / 2. The old formula added 4 on top, which
+            // centers only in flipped space and parked the button high.
+            y: (max(0, bounds.height - 4) - BrowserToolbarButton.outerHeight) / 2,
+            width: BrowserToolbarButton.outerWidth,
+            height: BrowserToolbarButton.outerHeight
         )
         scrollView.reflectScrolledClipView(scrollView.contentView)
         refreshFades()

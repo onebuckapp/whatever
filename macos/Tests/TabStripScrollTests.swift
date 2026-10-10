@@ -74,8 +74,7 @@ struct TabStripScrollTests {
     }
 
     @Test("the + button stays at the visible trailing edge when scrolled")
-    func plusButtonPinned() {
-        let container = makeContainer()
+    func plusButtonPinned() {        let container = makeContainer()
         let tabs = makeTabs(30)
         container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
         container.layoutSubtreeIfNeeded()
@@ -264,5 +263,86 @@ struct TabStripScrollTests {
         container.layoutSubtreeIfNeeded()
         container.scrollHorizontallyForTesting(200.6)
         #expect(container.scrollOriginXForTesting == 201)
+    }
+
+    @Test("the + button rides past the last tab when everything fits")
+    func plusButtonFloats() {
+        let container = makeContainer()
+        let tabs = makeTabs(3)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        let lastMaxX = container.strip.cellFramesForTesting.last!.maxX
+        let button = container.newTabButtonFrameForTesting
+        // One cell gap past the last cell, in strip space: nothing scrolled.
+        #expect(abs(button.minX - (lastMaxX + 4)) < 0.5)
+        // Vertically centered on the tab cells: the strip is flipped
+        // (midY from the top) and the container is not (midY from the
+        // bottom), so the button's midpoint is mirrored for comparison.
+        let lastMidY = container.strip.cellFramesForTesting.last!.midY
+        #expect(abs((container.bounds.height - button.midY) - lastMidY) < 0.5)
+        // Well short of the trailing edge it would pin to on overflow.
+        #expect(button.maxX < container.bounds.width - 4)
+    }
+
+    @Test("the + button pins to the trailing edge on overflow at rest")
+    func plusButtonPinsAtRest() {
+        let container = makeContainer()
+        let tabs = makeTabs(30)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        let button = container.newTabButtonFrameForTesting
+        #expect(abs(button.maxX - (container.bounds.width - 4)) < 1)
+    }
+
+    @Test("widening past the overflow re-zeroes the scroll and floats the button")
+    func wideningHomesAndFloats() {
+        let container = makeContainer()
+        let tabs = makeTabs(30)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        container.scrollToForTesting(1_000_000)
+        #expect(container.scrollOriginXForTesting > 0)
+        // Wide enough for thirty minimum-width tabs: no overflow left.
+        container.frame = NSRect(x: 0, y: 0, width: 3200, height: 36)
+        container.layoutSubtreeIfNeeded()
+        #expect(container.scrollOriginXForTesting == 0)
+        let lastMaxX = container.strip.cellFramesForTesting.last!.maxX
+        #expect(abs(container.newTabButtonFrameForTesting.minX - (lastMaxX + 4)) < 0.5)
+    }
+
+    @Test("an empty strip parks the button at the leading inset")
+    func plusButtonEmptyStrip() {
+        let container = makeContainer()
+        container.strip.setTabs([], selectedTabID: nil)
+        container.layoutSubtreeIfNeeded()
+        #expect(abs(container.newTabButtonFrameForTesting.minX - 10) < 0.5)
+    }
+
+    @Test("adding a tab re-lays the container so the button clears the new tab")
+    func plusButtonFollowsAddedTab() {
+        let container = makeContainer()
+        let tabs = makeTabs(4)
+        container.strip.setTabs(Array(tabs.prefix(3)), selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        // The change alone must schedule the container: the strip's own
+        // invalidation stops at the clip view and the button would sit
+        // under the new tab.
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        #expect(container.needsLayout)
+        container.layoutSubtreeIfNeeded()
+        let lastMaxX = container.strip.cellFramesForTesting.last!.maxX
+        #expect(abs(container.newTabButtonFrameForTesting.minX - (lastMaxX + 4)) < 0.5)
+    }
+
+    @Test("removing a tab pulls the button back with the last tab")
+    func plusButtonFollowsRemovedTab() {
+        let container = makeContainer()
+        let tabs = makeTabs(4)
+        container.strip.setTabs(tabs, selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        container.strip.setTabs(Array(tabs.prefix(3)), selectedTabID: tabs[0].id)
+        container.layoutSubtreeIfNeeded()
+        let lastMaxX = container.strip.cellFramesForTesting.last!.maxX
+        #expect(abs(container.newTabButtonFrameForTesting.minX - (lastMaxX + 4)) < 0.5)
     }
 }
