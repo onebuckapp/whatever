@@ -367,24 +367,43 @@ suite "store c abi":
     check hits[0]["url"].getStr == "https://rank.example.com/tight"
     check hits[0]["score"].getFloat > hits[1]["score"].getFloat
 
-  test "history fuzzy search ranks a tight title match on a long url above a scattered one":
-    ## "real" has to put "Is it real" first even though "Stream and listen"
-    ## matches four scattered characters. The two rows differ in URL length on
-    ## purpose: scores are normalised by candidate length, so ranking the title
-    ## and URL joined let the short URL win on a worse match. Regression for
-    ## that, and the reason `bestScoreFor` scores each field on its own.
+  test "history fuzzy search ranks shorter urls first regardless of score":
+    ## Typing "ghub" must put ghub.example.com above a deeper page even
+    ## though the deep page's title matches better: it is titled exactly
+    ## "Ghub" while the homepage carries a long title, so score-first would
+    ## prefer the subpage. The bar is navigation — the shorter URL wins.
     check historyRecord(
-      "https://example.com/questions/is-it-real".cstring,
-      "Is it real".cstring, 1_700_000_270, -1) == Ok
+      "https://ghub.example.com".cstring,
+      "Ghub Example With A Much Longer Descriptive Title".cstring, 1_700_000_270, -1) == Ok
     check historyRecord(
-      "https://a.co".cstring,
-      "Stream and listen".cstring, 1_700_000_271, -1) == Ok
+      "https://ghub.example.com/deep/page".cstring,
+      "Ghub".cstring, 1_700_000_271, -1) == Ok
 
     let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
-      historyFuzzySearch("real".cstring, 50, buffer, capacity, needed))
+      historyFuzzySearch("ghub".cstring, 50, buffer, capacity, needed))
     check hits.len >= 2
-    check hits[0]["url"].getStr == "https://example.com/questions/is-it-real"
-    check hits[0]["score"].getFloat > hits[1]["score"].getFloat
+    check hits[0]["url"].getStr == "https://ghub.example.com"
+
+  test "history fuzzy search ranks more visited rows above shorter ones":
+    ## Visits outrank length: the long page opened every morning beats the
+    ## short one seen once, even though both match the query the same way.
+    ## The revisit lands inside the collapse window, so it bumps the row's
+    ## visit count instead of adding a near-duplicate.
+    check historyRecord(
+      "https://freqv.example.com/a-much-longer-page".cstring,
+      "Freqv Long".cstring, 1_700_000_290, -1) == Ok
+    check historyRecord(
+      "https://freqv.example.com/a-much-longer-page".cstring,
+      "Freqv Long".cstring, 1_700_000_295, -1) == Ok
+    check historyRecord(
+      "https://freqv.example.com/x".cstring,
+      "Freqv".cstring, 1_700_000_296, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("freqv".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 2
+    check hits[0]["url"].getStr == "https://freqv.example.com/a-much-longer-page"
+    check hits[0]["visitCount"].getInt == 2
 
   test "history fuzzy search still matches across title into url":
     ## The joined scoring is what makes a query run off the end of a title and

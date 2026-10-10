@@ -432,8 +432,9 @@ proc bestScoreFor(candidate: Candidate, query: string): ScoredMatch =
   ## five, so "Is it real" at a deep URL scored 2.04 while "Stream and listen" at
   ## a short one scored 2.60 and outranked it despite matching four scattered
   ## characters against a perfect contiguous run at a word start. Scoring each
-  ## half on its own puts those at 10.40 and 4.59, which is the order a person
-  ## expects.
+  ## half on its own puts those at 10.40 and 4.59. The score no longer
+  ## decides the order on its own — visits and URL length rank first — but
+  ## it still breaks ties and still places the highlight.
   ##
   ## Ties keep the earlier field, so a match good in both halves reports the title
   ## and highlights there rather than in the URL.
@@ -509,9 +510,11 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
   ##
   ## Every query character must appear in the row, in order but not necessarily
   ## contiguously, which is what `openparser/fuzzy` scores: consecutive runs,
-  ## word-boundary hits and gap penalties. Ranking comes from the matcher rather
-  ## than from recency, so a page visited once and named exactly what you typed
-  ## can outrank the one you open every morning.
+  ## word-boundary hits and gap penalties. The matcher only decides what
+  ## matches; the ranking is visits first, then URL length, then score. The
+  ## bar is navigation, not search: the page opened every morning outranks a
+  ## better-matching stranger, and typing "github" puts github.com above
+  ## github.com/anything because the shorter URL wins among equals.
   ##
   ## Each row is scored three ways — its title, its URL, and the two joined — and
   ## keeps the best, so one row is one result however many fields matched and a
@@ -567,12 +570,25 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
         if best.score > 0.0'f32:
           ranked.add((index, best))
       let order = proc(a, b: tuple[index: int, match: ScoredMatch]): int =
-        # Score first, then the joined text, which is the order the library used
-        # and what keeps equally-scoring rows stable across runs.
-        if a.match.score != b.match.score:
-          cmp(b.match.score, a.match.score)
+        # Visits first, then URL length, then score. The address bar is
+        # navigation, not search: the page you open every morning outranks a
+        # better-matching stranger, and among equals the shorter URL wins —
+        # typing "github" must put github.com above github.com/anything.
+        # Score only breaks ties between equally visited, equally long rows,
+        # and the joined text keeps those stable across runs.
+        let visitA = byText[texts[a.index]].visitCount
+        let visitB = byText[texts[b.index]].visitCount
+        if visitA != visitB:
+          cmp(visitB, visitA)
         else:
-          cmp(texts[a.index], texts[b.index])
+          let lenA = byText[texts[a.index]].url.len
+          let lenB = byText[texts[b.index]].url.len
+          if lenA != lenB:
+            cmp(lenA, lenB)
+          elif a.match.score != b.match.score:
+            cmp(b.match.score, a.match.score)
+          else:
+            cmp(texts[a.index], texts[b.index])
       ranked.sort(order)
       if ranked.len > wanted:
         ranked.setLen(wanted)
