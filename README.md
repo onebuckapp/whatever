@@ -60,7 +60,6 @@ It also happens to be beautiful and weird: a start page and window you theme you
 ### Previews
 
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-27-25.png" width="100%"><br>
-<img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-28-08.png" width="100%"><br>
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-29-54.png" width="100%"><br>
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/22-57-10.png" width="100%"><br>
 
