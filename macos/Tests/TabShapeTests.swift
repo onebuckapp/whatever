@@ -55,6 +55,16 @@ struct TabShapeTests {
         #expect(TabShape.attached.layerRounding == [.layerMinXMaxYCorner, .layerMaxXMaxYCorner])
     }
 
+    @Test("pills round the page top too, attached leaves it square")
+    func pageRounding() {
+        let pills = TabShape.pills.pageRounding
+        #expect(pills.contains(.layerMinXMinYCorner))
+        #expect(pills.contains(.layerMaxXMinYCorner))
+        #expect(pills.contains(.layerMinXMaxYCorner))
+        #expect(pills.contains(.layerMaxXMaxYCorner))
+        #expect(TabShape.attached.pageRounding == [.layerMinXMinYCorner, .layerMaxXMinYCorner])
+    }
+
     @Test("attached cells sit flush, pills float with a gap above the page")
     func verticalMetrics() {
         let attached = TabBarView.cellVerticalMetrics(barHeight: 36, shape: .attached)

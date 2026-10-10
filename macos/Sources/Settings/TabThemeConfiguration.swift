@@ -71,6 +71,17 @@ enum TabShape: String, Codable, Equatable, CaseIterable, Identifiable {
         }
     }
 
+    /// Corner mask for the page container. Attached pages meet the tab bar
+    /// squarely at the top; pills round the top to the same radius as the
+    /// bottom, so the floating page reads as one rounded card.
+    var pageRounding: CACornerMask {
+        if roundsBottomCorners {
+            [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        } else {
+            [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        }
+    }
+
     /// Roundness drawn and clipped at `height` under `setting`.
     ///
     /// Pills ignore the slider and take the full stadium radius instead.

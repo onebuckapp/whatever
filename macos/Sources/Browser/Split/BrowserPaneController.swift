@@ -166,11 +166,13 @@ final class BrowserPaneController: NSViewController {
         applySplitPosition()
         installClickToFocus()
         applyPageCornerRadius()
-        // Bottom-corner roundness from Settings. No half-height cap: the
-        // page is orders of magnitude larger than any sane radius.
+        // Page roundness from Settings: the radius, and whether the top
+        // corners join it (pills) or meet the tab bar squarely (attached).
+        // No half-height cap: the page is orders of magnitude larger than
+        // any sane radius.
         radiusCancellable = SettingsStore.shared.$settings
-            .map(\.appearance.pageCornerRadius)
-            .removeDuplicates()
+            .map { ($0.appearance.pageCornerRadius, $0.appearance.tabShape) }
+            .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.applyPageCornerRadius() }
         // Capture requests belong to a page, not to the tab in the
@@ -194,6 +196,28 @@ final class BrowserPaneController: NSViewController {
     private func applyPageCornerRadius() {
         pageContainer?.layer?.cornerRadius = CGFloat(max(
             SettingsStore.shared.settings.appearance.pageCornerRadius, 0))
+        pageContainer?.layer?.maskedCorners = pageMaskedCorners()
+    }
+
+    /// Which page corners round: the split owns the inner sides (flush and
+    /// square where panes meet), the tab shape owns the top (square while
+    /// attached to the tab bar, rounded with the rest while pilled). Read
+    /// live from Settings, so both this and `applySplitPosition` converge
+    /// whichever runs last.
+    private func pageMaskedCorners() -> CACornerMask {
+        let pills = SettingsStore.shared.settings.appearance.tabShape.roundsBottomCorners
+        switch splitPosition {
+        case .single:
+            return SettingsStore.shared.settings.appearance.tabShape.pageRounding
+        case .leading:
+            return pills
+                ? [.layerMinXMinYCorner, .layerMinXMaxYCorner]
+                : [.layerMinXMinYCorner]
+        case .trailing:
+            return pills
+                ? [.layerMaxXMinYCorner, .layerMaxXMaxYCorner]
+                : [.layerMaxXMinYCorner]
+        }
     }
 
     /// Lays the page out for the current split position: flush inner sides
@@ -205,16 +229,14 @@ final class BrowserPaneController: NSViewController {
         case .single:
             pageLeadingConstraint?.constant = 6
             pageTrailingConstraint?.constant = -6
-            pageContainer.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         case .leading:
             pageLeadingConstraint?.constant = 6
             pageTrailingConstraint?.constant = 0
-            pageContainer.layer?.maskedCorners = [.layerMinXMinYCorner]
         case .trailing:
             pageLeadingConstraint?.constant = 0
             pageTrailingConstraint?.constant = -6
-            pageContainer.layer?.maskedCorners = [.layerMaxXMinYCorner]
         }
+        pageContainer.layer?.maskedCorners = pageMaskedCorners()
     }
 
     /// Clicking a pane's page focuses its tab, so the address bar and the
