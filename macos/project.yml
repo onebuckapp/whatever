@@ -20,7 +20,7 @@ packages:
 
 settings:
   base:
-    MARKETING_VERSION: 0.2.0
+    MARKETING_VERSION: 0.2.1
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
@@ -66,7 +66,7 @@ targets:
         # Declared here (not hardcoded in the plist) because xcodegen
         # rewrites the file at `path` on every `generate`, restoring any
         # values set there. Build-setting references survive: Xcode expands
-        # them when it processes the plist, so 0.2.0 stays defined once in
+        # them when it processes the plist, so 0.2.1 stays defined once in
         # `settings.base.MARKETING_VERSION` above.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
