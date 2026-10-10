@@ -53,11 +53,21 @@ struct GeneralSettingsView: View {
                 title: "Software Update",
                 footnote: "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
             ) {
-                SettingsButtonRow(
-                    title: updater.title,
-                    subtitle: updater.subtitle
-                ) {
-                    updateAccessory
+                HStack(spacing: 12) {
+                    // The app's own icon, fixed at 32pt: it names what the
+                    // row updates without spending any words on it. An
+                    // NSImageView rather than `Image(nsImage:)`, because
+                    // SwiftUI rasterizes the NSImage at point size and
+                    // upscales it — visibly soft on retina — while AppKit
+                    // picks the 64px representation for a 32pt frame.
+                    AppIconView()
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    SettingsButtonRow(
+                        title: updater.title,
+                        subtitle: updater.subtitle
+                    ) {
+                        updateAccessory
+                    }
                 }
             }
 
@@ -141,6 +151,67 @@ struct GeneralSettingsView: View {
             .controlSize(.small)
         }
     }
+}
+
+/// The app icon for SwiftUI, retina-sharp at a 32pt frame.
+///
+/// Two traps, both taken: `Image(nsImage:)` on the raw app icon snapshots
+/// at point resolution (soft on retina), and adding `.resizable()` keeps it
+/// soft — the image is rasterized once at 1x and upscaled, ignoring any
+/// extra representations. So the icon is rasterized up front with explicit
+/// 1x/2x/3x bitmaps at a 32pt size and drawn without `.resizable()`, which
+/// is what lets the renderer pick the 64px bitmap on a retina screen.
+/// (An `NSImageView` representable was tried between the two and cropped:
+/// the 512pt intrinsic size won over the frame.)
+struct AppIconView: View {
+    var body: some View {
+        Image(nsImage: Self.iconImage)
+            .frame(width: 32, height: 32)
+    }
+
+    /// Cached: three tiny bitmaps, rendered once rather than per body
+    /// evaluation. First touched from a body, so always on the main thread.
+    static var iconImage: NSImage { rasterized }
+
+    private static let rasterized: NSImage = {
+        let points: CGFloat = 32
+        let image = NSImage(size: NSSize(width: points, height: points))
+        // Nil in principle (no icon set); then this stays a blank 32pt
+        // image rather than crashing the settings pane.
+        guard let source = NSApplication.shared.applicationIconImage else {
+            return image
+        }
+        for scale in [1, 2, 3] {
+            let pixels = Int(points) * scale
+            guard let rep = NSBitmapImageRep(
+                bitmapDataPlanes: nil,
+                pixelsWide: pixels,
+                pixelsHigh: pixels,
+                bitsPerSample: 8,
+                samplesPerPixel: 4,
+                hasAlpha: true,
+                isPlanar: false,
+                colorSpaceName: .deviceRGB,
+                bytesPerRow: 0,
+                bitsPerPixel: 0
+            ) else {
+                continue
+            }
+            rep.size = NSSize(width: points, height: points)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            NSGraphicsContext.current?.imageInterpolation = .high
+            source.draw(
+                in: NSRect(x: 0, y: 0, width: points, height: points),
+                from: NSRect.zero,
+                operation: .copy,
+                fraction: 1
+            )
+            NSGraphicsContext.restoreGraphicsState()
+            image.addRepresentation(rep)
+        }
+        return image
+    }()
 }
 
 // MARK: - Appearance
