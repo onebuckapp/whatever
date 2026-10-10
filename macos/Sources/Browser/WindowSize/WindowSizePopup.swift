@@ -87,8 +87,8 @@ struct WindowSizePopup: CenterPopup {
                 WindowSizePopupCoordinator.shared.apply(id: popupID, size: size)
             },
             onCancel: {
-                Task {
-                    await PopupStack.dismissPopup(popupID, popupStackID: stackID)
+                Task { @MainActor in
+                    WindowSizePopupCoordinator.shared.cancelTapped(id: popupID)
                 }
             }
         )
@@ -106,8 +106,8 @@ struct WindowSizePopup: CenterPopup {
         // closes the popup.
         .onTapGesture {}
         .onExitCommand {
-            Task {
-                await PopupStack.dismissPopup(popupID, popupStackID: stackID)
+            Task { @MainActor in
+                WindowSizePopupCoordinator.shared.cancelTapped(id: popupID)
             }
         }
     }
@@ -363,6 +363,9 @@ final class WindowSizePresenter {
         WindowSizePopupCoordinator.shared.registerApply(id: popupID) { [weak self] size in
             self?.apply(size: size)
         }
+        WindowSizePopupCoordinator.shared.registerCancel(id: popupID) { [weak self] in
+            self?.dismiss()
+        }
         WindowSizePopupCoordinator.shared.registerDismiss(id: popupID) { [weak self] in
             self?.tearDown()
         }
@@ -421,15 +424,26 @@ final class WindowSizePresenter {
 /// Routes Mijick's popup lifecycle callbacks and the card's Apply back to
 /// the presenter that owns the hosting view. Popup structs must stay
 /// `Sendable`, so they cannot hold the presenter directly.
+///
+/// Cancel travels the same road on purpose: `PopupStack.dismissPopup` with
+/// our `popupID` string removes nothing — Mijick keys presented popups by
+/// their type name (`WindowSizePopup`), never by our property — so a
+/// direct dismiss silently does nothing, which is exactly how this Cancel
+/// broke. The presenter owns dismissal instead, like every sibling card.
 @MainActor
 final class WindowSizePopupCoordinator {
     static let shared = WindowSizePopupCoordinator()
 
     private var applyHandlers: [String: (NSSize) -> Void] = [:]
+    private var cancelHandlers: [String: () -> Void] = [:]
     private var dismissHandlers: [String: () -> Void] = [:]
 
     func registerApply(id: String, handler: @escaping (NSSize) -> Void) {
         applyHandlers[id] = handler
+    }
+
+    func registerCancel(id: String, handler: @escaping () -> Void) {
+        cancelHandlers[id] = handler
     }
 
     func registerDismiss(id: String, handler: @escaping () -> Void) {
@@ -440,8 +454,13 @@ final class WindowSizePopupCoordinator {
         applyHandlers[id]?(size)
     }
 
+    func cancelTapped(id: String) {
+        cancelHandlers.removeValue(forKey: id)?()
+    }
+
     func popupDidDismiss(id: String) {
         applyHandlers.removeValue(forKey: id)
+        cancelHandlers.removeValue(forKey: id)
         dismissHandlers.removeValue(forKey: id)?()
     }
 }
