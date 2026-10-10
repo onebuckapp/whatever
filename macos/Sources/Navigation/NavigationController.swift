@@ -237,9 +237,9 @@ extension NavigationController: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        // Same-tab file link: directories open the native browser popup over
-        // the page instead of WebKit's own listing; files navigate like any
-        // other link so they render with history.
+        // Same-tab file link: files navigate like any other link so they
+        // render with history; directories are refused (see `openFileLink`)
+        // because the native browser is address-bar-only.
         if navigationAction.navigationType == .linkActivated,
            navigationAction.targetFrame?.isMainFrame == true,
            url.scheme?.lowercased() == "file",

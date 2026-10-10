@@ -1359,13 +1359,24 @@ final class BrowserWindowController: NSWindowController {
         return isDirectory.boolValue
     }
 
-    /// Opens a clicked `file://` link for the tab that owns the click:
-    /// directories in that tab's popup, files through the tab so they render
-    /// with history. Split from `openAddress`, where only the selection is
-    /// known rather than the tab.
+    /// Whether a clicked `file://` link may load in the tab. Files yes;
+    /// directories never: the native file browser opens from the address
+    /// bar only, and a page link reaching it would hand any site — local
+    /// or remote — a filesystem viewer past WebKit's own blocking. Static
+    /// so the rule is testable without a window.
+    static func allowsContentFileLink(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "file" && !isFileDirectory(url)
+    }
+
+    /// Opens a clicked `file://` link for the tab that owns the click.
+    ///
+    /// Files go through the tab so they render with history. Directories
+    /// are refused with a beep: only `openAddress` — the address bar —
+    /// opens the native browser. Split from `openAddress`, where only the
+    /// selection is known rather than the tab.
     func openFileLink(_ url: URL, for tab: BrowserTab) {
-        if Self.isFileDirectory(url) {
-            pane(for: tab).presentFileBrowser(url: url)
+        guard Self.allowsContentFileLink(url) else {
+            SystemBeep.play()
             return
         }
         tab.navigate(to: url)
