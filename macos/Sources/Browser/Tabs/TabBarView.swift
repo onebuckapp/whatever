@@ -59,12 +59,26 @@ final class TabBarView: NSView {
     /// pointer is near a visible edge. Returns the applied scroll offset.
     var autoScroll: ((CGFloat) -> CGFloat)?
 
+    /// Given a strip-local rect, scrolls it into the visible area. Set by
+    /// the container, which owns the scroll view; mirrors `autoScroll`.
+    var scrollIntoView: ((NSRect) -> Void)?
+
+    /// Receives wheel and gesture events the strip does not scroll natively
+    /// (mouse wheels, vertical gestures). Set by the container, which maps
+    /// them onto the strip.
+    var scrollWheelHandler: ((NSEvent) -> Void)?
+
     /// Window that owns this bar; drops are routed back through the
     /// coordinator using it as the destination.
     weak var owner: BrowserWindowController?
 
     private(set) var tabs: [BrowserTab] = []
     private var selectedTabID: UUID?
+    /// Set when the selection changes and cleared once `layout` has scrolled
+    /// it into view. Selection repaints happen on every `setTabs`, but only
+    /// a changed selection may move the scroll position — otherwise a
+    /// background title update would yank the strip out from under the user.
+    private var pendingScrollToSelection = false
     /// The sticky split pair, in pane order. The bar renders it as one
     /// merged cell only while the pair sits adjacent; anything else draws
     /// two lone cells.
@@ -73,11 +87,6 @@ final class TabBarView: NSView {
     private var groupCell: TabGroupCellView?
     private var itemViews: [UUID: TabBarItemView] = [:]
     private let insertionMarker = TabInsertionMarkerView()
-
-    /// New-tab button riding after the last cell, scrolling with the strip.
-    /// A toolbar button, so hover and press read exactly like the top bar's.
-    private let newTabButton = BrowserToolbarButton()
-    var newTabAction: (() -> Void)?
 
     /// Tabs in display order. The window keeps `tabs` sorted with
     /// pinned tabs leading, so this is the same as `tabs` and the drop
@@ -104,18 +113,22 @@ final class TabBarView: NSView {
         // — grows to satisfy it and can never shrink back.
         translatesAutoresizingMaskIntoConstraints = false
         registerForDraggedTypes([TabDragPayload.type])
-        // Same glyph treatment as the top bar buttons: the default cut
-        // renders ~16pt tall, and 13.5 lands ~18 with a medium weight.
-        newTabButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "New Tab")?
-            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
-        newTabButton.toolTip = "New Tab"
-        newTabButton.target = self
-        newTabButton.action = #selector(newTabTapped)
-        addSubview(newTabButton)
     }
 
-    @objc private func newTabTapped() {
-        newTabAction?()
+    override func scrollWheel(with event: NSEvent) {
+        // A trackpad horizontal gesture scrolls natively — smooth, with
+        // momentum and rubber-banding — through the scroll view. Everything
+        // else reaches the container's mapping: a mouse wheel only speaks
+        // vertical, which a horizontal-only scroll view would swallow.
+        if event.hasPreciseScrollingDeltas && event.scrollingDeltaX != 0 {
+            super.scrollWheel(with: event)
+            return
+        }
+        if let scrollWheelHandler {
+            scrollWheelHandler(event)
+        } else {
+            super.scrollWheel(with: event)
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -130,6 +143,9 @@ final class TabBarView: NSView {
         splitPair: (leading: UUID, trailing: UUID)? = nil
     ) {
         self.tabs = tabs
+        if self.selectedTabID != selectedTabID {
+            pendingScrollToSelection = true
+        }
         self.selectedTabID = selectedTabID
         self.splitPair = splitPair
 
@@ -227,14 +243,13 @@ final class TabBarView: NSView {
     }
 
     /// Width the strip wants; the container scrolls when this exceeds
-    /// the visible width. Includes the new-tab button riding after the
-    /// last cell.
+    /// the visible width. The new-tab button is pinned by the container
+    /// now, so it no longer reserves space here.
     var preferredWidth: CGFloat {
         var total: CGFloat = 0
         for tab in visualTabs() {
             total += visualWidth(for: tab) + 4
         }
-        total += 4 + BrowserToolbarButton.outerWidth
         return max(0, total + 12)
     }
 
@@ -251,17 +266,66 @@ final class TabBarView: NSView {
             view.frame = NSRect(x: x, y: 4, width: visualWidth(for: tab), height: tabHeight)
             x += view.frame.width + 4
         }
-        // After the last cell, vertically centered on it. The button's own
-        // constraints fix its size, so the frame only places it.
-        newTabButton.frame = NSRect(
-            x: x,
-            y: 4 + (tabHeight - BrowserToolbarButton.outerHeight) / 2,
-            width: BrowserToolbarButton.outerWidth,
-            height: BrowserToolbarButton.outerHeight
-        )
         if insertionIndex != nil {
             layoutInsertionMarker()
         }
+        if pendingScrollToSelection {
+            pendingScrollToSelection = false
+            scrollSelectedIntoView()
+        }
+        // Cells moved; the cursor did not. Re-resolve hover from where it
+        // is, or stale hovers accumulate on every scrolled-past cell.
+        refreshHoverForCurrentMouse()
+    }
+
+    /// Scrolls the selected cell into the visible area, if it is not there.
+    /// Runs from `layout` so the frames are current; the container performs
+    /// the scroll.
+    private func scrollSelectedIntoView() {
+        guard let id = selectedTabID,
+              let tab = tabs.first(where: { $0.id == id }),
+              let view = viewForVisualTab(tab)
+        else { return }
+        scrollIntoView?(view.frame)
+    }
+
+    /// Re-resolves which cell the cursor is over from a strip-local point.
+    /// Scrolling, resizing, and tab changes all move cells under a
+    /// stationary cursor without entered/exited events, so `layout` calls
+    /// the cursor-based variant below on every pass; this point-based one
+    /// is the testable core. Nil clears every hover.
+    func refreshHover(at point: NSPoint?) {
+        for tab in visualTabs() {
+            guard let view = viewForVisualTab(tab) else { continue }
+            let hovered = point.map { view.frame.contains($0) } ?? false
+            if let cell = view as? TabBarItemView {
+                cell.setHovered(hovered)
+            } else if let group = view as? TabGroupCellView {
+                group.setHovered(hovered)
+            }
+        }
+    }
+
+    /// Re-resolves hover from the live cursor position. A no-window strip
+    /// (tests, teardown) clears instead of guessing.
+    private func refreshHoverForCurrentMouse() {
+        guard let window, window.isKeyWindow else {
+            refreshHover(at: nil)
+            return
+        }
+        refreshHover(at: convert(window.mouseLocationOutsideOfEventStream, from: nil))
+    }
+
+    /// IDs of the cells currently hovered, in display order. For tests —
+    /// at most one, which is the point of the refresh.
+    var hoveredTabIDsForTesting: [UUID] {
+        visualTabs().filter {
+            guard let view = viewForVisualTab($0) else { return false }
+            if let cell = view as? TabBarItemView {
+                return cell.isHoveredForTesting
+            }
+            return (view as? TabGroupCellView)?.isHoveredForTesting == true
+        }.map(\.id)
     }
 
     private func width(for tab: BrowserTab) -> CGFloat {
@@ -512,14 +576,55 @@ extension TabBarView {
     }
 }
 
-/// Window chrome around the strip: horizontal scrolling, with the new-tab
-/// button riding after the last cell inside the strip itself.
+/// Window chrome around the strip: horizontal scrolling with no visible
+/// bar, a fade at each hidden edge, and the new-tab button pinned at the
+/// visible trailing edge so it never scrolls away with the tabs.
 final class TabBarContainerView: NSView {
     let strip = TabBarView()
     private let scrollView = NSScrollView()
-    var newTabAction: (() -> Void)? {
-        get { strip.newTabAction }
-        set { strip.newTabAction = newValue }
+    /// Pinned at the trailing edge, outside the scroll view: the strip
+    /// scrolls underneath nothing, and the right fade ends at its gutter.
+    private let newTabButton = BrowserToolbarButton()
+    var newTabAction: (() -> Void)?
+
+    /// Gutter reserved for the pinned button: its width plus breathing room
+    /// on each side.
+    private static let newTabReserve = BrowserToolbarButton.outerWidth + 8
+
+    /// Feather width of each edge fade, in points.
+    private static let fadeFeather: CGFloat = 24
+
+    /// Masks the clip view's content: transparent where more tabs hide off
+    /// that edge, opaque elsewhere. Rebuilt by `refreshFades` whenever the
+    /// scroll position, strip width, or container width changes.
+    private let fadeMask = CAGradientLayer()
+    private var boundsObserver: NSObjectProtocol?
+
+    /// The fade state, for tests: whether the left / right edge currently
+    /// shows its fade.
+    var fadesVisibleForTesting: (left: Bool, right: Bool) {
+        (leftFadeVisible, rightFadeVisible)
+    }
+
+    private var leftFadeVisible = false
+    private var rightFadeVisible = false
+
+    /// Scroll offset and button frame, for tests.
+    var scrollOriginXForTesting: CGFloat {
+        scrollView.contentView.bounds.origin.x
+    }
+
+    var newTabButtonFrameForTesting: NSRect {
+        newTabButton.frame
+    }
+
+    /// Scrolls the strip so `offset` becomes the visible origin. For tests.
+    func scrollToForTesting(_ offset: CGFloat) {
+        let maxX = max(0, strip.preferredWidth - scrollView.contentView.bounds.width)
+        scrollView.contentView.scroll(to: NSPoint(x: min(max(offset, 0), maxX), y: 0))
+        // A headless test host may not deliver the bounds notification, so
+        // refresh directly; in the app the observer covers this too.
+        refreshFades()
     }
 
     override var intrinsicContentSize: NSSize {
@@ -531,12 +636,18 @@ final class TabBarContainerView: NSView {
         // Auto Layout positions this container; autoresizing masks would
         // fight the height constraint the window chrome installs.
         translatesAutoresizingMaskIntoConstraints = false
-        setUpSubviews()
         self.newTabAction = newTabAction
+        setUpSubviews()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        if let boundsObserver {
+            NotificationCenter.default.removeObserver(boundsObserver)
+        }
     }
 
     private func setUpSubviews() {
@@ -564,6 +675,69 @@ final class TabBarContainerView: NSView {
         scrollView.documentView = strip
         addSubview(scrollView)
 
+        // Same glyph treatment as the top bar buttons: the default cut
+        // renders ~16pt tall, and 13.5 lands ~18 with a medium weight.
+        newTabButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "New Tab")?
+            .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
+        newTabButton.toolTip = "New Tab"
+        newTabButton.target = self
+        newTabButton.action = #selector(newTabTapped)
+        addSubview(newTabButton)
+
+        // The mask lives on the scroll view, whose bounds never move: only
+        // the clip view's bounds origin changes as the strip scrolls. The
+        // fades therefore sit at the visible edges, not at the strip's ends
+        // — the same arrangement as the crawl ticker's container mask.
+        scrollView.wantsLayer = true
+        scrollView.layer?.mask = fadeMask
+        fadeMask.startPoint = CGPoint(x: 0, y: 0.5)
+        fadeMask.endPoint = CGPoint(x: 1, y: 0.5)
+
+        // Refresh the fades whenever the strip scrolls: drags, wheel,
+        // trackpad, and the programmatic scrolls below all move the clip
+        // view's bounds origin.
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        boundsObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshFades()
+        }
+
+        // Scrolls a strip-local rect into the visible area with a small
+        // margin, clamped to the strip. The strip asks for this when the
+        // selection changes; the y origin stays put, this bar scrolls
+        // horizontally only.
+        strip.scrollIntoView = { [weak self] rect in
+            guard let self else { return }
+            let clip = self.scrollView.contentView
+            let visibleWidth = clip.bounds.width
+            guard visibleWidth > 0 else { return }
+            let margin: CGFloat = 8
+            var originX = clip.bounds.origin.x
+            if rect.minX < originX + margin {
+                originX = rect.minX - margin
+            } else if rect.maxX > originX + visibleWidth - margin {
+                originX = rect.maxX - visibleWidth + margin
+            } else {
+                return
+            }
+            let maxX = max(0, self.strip.preferredWidth - visibleWidth)
+            originX = min(max(originX, 0), maxX)
+            guard originX != clip.bounds.origin.x else { return }
+            clip.scroll(to: NSPoint(x: originX, y: 0))
+            self.strip.needsLayout = true
+        }
+
+        // Maps wheel and gesture events onto the strip. Precise horizontal
+        // gestures scroll natively through the scroll view (see the strip's
+        // `scrollWheel`); this covers the rest, which reaches here either
+        // through the strip's handler or directly over the pinned button.
+        strip.scrollWheelHandler = { [weak self] event in
+            self?.handleScrollWheel(event)
+        }
+
         // Scroll the strip when a drag hovers near either visible edge.
         strip.autoScroll = { [weak self] stripX in
             guard let self else { return 0 }
@@ -588,9 +762,73 @@ final class TabBarContainerView: NSView {
         }
     }
 
+    @objc private func newTabTapped() {
+        newTabAction?()
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        // Events landing on the container itself — the pinned button and
+        // the gutter. Same mapping as the strip's.
+        handleScrollWheel(event)
+    }
+
+    /// Maps wheel deltas onto a horizontal strip offset. A device speaking
+    /// horizontal is trusted as-is; anything vertical rotates a quarter
+    /// turn, so wheel-down moves toward the trailing tabs exactly like
+    /// shift+wheel anywhere else. Static so the sign convention is testable
+    /// without synthesizing NSEvents.
+    static func stripDelta(dx: CGFloat, dy: CGFloat, precise: Bool) -> CGFloat {
+        if dx != 0 {
+            return dx
+        }
+        // A mouse notch reports ±1: scaled to a useful step, about half a
+        // minimum-width tab. Precise gestures already speak in points.
+        return -dy * (precise ? 1 : 40)
+    }
+
+    private func handleScrollWheel(_ event: NSEvent) {
+        scrollStrip(by: Self.stripDelta(
+            dx: event.scrollingDeltaX,
+            dy: event.scrollingDeltaY,
+            precise: event.hasPreciseScrollingDeltas
+        ))
+    }
+
+    /// Scrolls the strip by `dx`, clamped to the strip. No-op when every
+    /// tab fits.
+    private func scrollStrip(by dx: CGFloat) {
+        let clip = scrollView.contentView
+        let maxX = max(0, strip.preferredWidth - clip.bounds.width)
+        guard maxX > 0, dx != 0 else { return }
+        let next = min(max(clip.bounds.origin.x + dx, 0), maxX)
+        guard next != clip.bounds.origin.x else { return }
+        clip.scroll(to: NSPoint(x: next, y: 0))
+        strip.needsLayout = true
+        refreshFades()
+    }
+
+    /// Scrolls the strip by `dx`, clamped to the strip. For tests.
+    func scrollHorizontallyForTesting(_ dx: CGFloat) {
+        scrollStrip(by: dx)
+    }
+
     override func layout() {
         super.layout()
-        scrollView.frame = bounds
+        // The scroll view stops at the pinned button's gutter; the button
+        // sits in the gutter, vertically centered on the strip.
+        let reserve = Self.newTabReserve
+        scrollView.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: max(0, bounds.width - reserve),
+            height: bounds.height
+        )
+        newTabButton.frame = NSRect(
+            x: bounds.width - reserve + (reserve - BrowserToolbarButton.outerWidth) / 2,
+            y: 4 + (max(0, bounds.height - 4) - BrowserToolbarButton.outerHeight) / 2,
+            width: BrowserToolbarButton.outerWidth,
+            height: BrowserToolbarButton.outerHeight
+        )
         // The strip's height comes from the container, which the window pins to
         // `tabBarHeight`, rather than being read back from the clip view. Reading
         // it back let the scroll view decide the height, which is the coupling
@@ -602,5 +840,34 @@ final class TabBarContainerView: NSView {
             height: bounds.height
         )
         scrollView.reflectScrolledClipView(scrollView.contentView)
+        refreshFades()
+    }
+
+    /// Recomputes which edge fades show. Each side appears only while tabs
+    /// hide off that side; a fully visible strip stays crisp on both ends.
+    /// The mask's feather is a share of the *visible* width, so it keeps its
+    /// size as the window resizes rather than stretching with the strip.
+    private func refreshFades() {
+        let clip = scrollView.contentView
+        let visibleWidth = clip.bounds.width
+        guard visibleWidth > 0 else { return }
+        let originX = clip.bounds.origin.x
+        let hidden = strip.preferredWidth - visibleWidth
+        leftFadeVisible = originX > 0.5 && hidden > 0.5
+        rightFadeVisible = hidden > 0.5 && originX < hidden - 0.5
+        fadeMask.contentsScale = window?.backingScaleFactor ?? 2
+        // The scroll view's own bounds: origin zero, always. The mask is
+        // positioned in that space, so it never drifts with the scroll.
+        fadeMask.frame = CGRect(origin: .zero, size: scrollView.bounds.size)
+        let clear = NSColor.white.withAlphaComponent(0).cgColor
+        let solid = NSColor.white.cgColor
+        let feather = min(Self.fadeFeather / visibleWidth, 0.45)
+        fadeMask.colors = [
+            leftFadeVisible ? clear : solid,
+            solid,
+            solid,
+            rightFadeVisible ? clear : solid,
+        ]
+        fadeMask.locations = [0, feather, 1 - feather, 1] as [NSNumber]
     }
 }

@@ -257,6 +257,21 @@ final class TabBarItemView: NSView {
         updateAppearance()
     }
 
+    /// Sets the hover state directly. The strip calls this after scrolling:
+    /// a scroll moves the cell under a stationary cursor, so AppKit sends
+    /// no exited/entered events and every cell the cursor passed over would
+    /// keep a stale hover.
+    func setHovered(_ hovered: Bool) {
+        guard hover != hovered else { return }
+        hover = hovered
+        updateAppearance()
+    }
+
+    /// Whether the cell currently paints hovered. For tests.
+    var isHoveredForTesting: Bool {
+        hover
+    }
+
     // MARK: - Private
 
     /// A 1pt outline on the left, top and right edges, drawn like the spotlight's

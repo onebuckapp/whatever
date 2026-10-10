@@ -243,6 +243,19 @@ final class TabGroupCellView: NSView {
         updateAppearance()
     }
 
+    /// Sets the hover state directly. Same scroll-under-cursor case as the
+    /// lone cell's — see its `setHovered`.
+    func setHovered(_ hovered: Bool) {
+        guard hover != hovered else { return }
+        hover = hovered
+        updateAppearance()
+    }
+
+    /// Whether the cell currently paints hovered. For tests.
+    var isHoveredForTesting: Bool {
+        hover
+    }
+
     // MARK: - Private
 
     private func setUpContent() {
