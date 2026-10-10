@@ -38,6 +38,7 @@ final class BrowserWindowContentViewController: NSViewController {
     private var bookmarkEditorPresenter: BookmarkEditorPresenter?
     private var passwordManagerPresenter: PasswordManagerPresenter?
     private var feedReaderPresenter: FeedReaderPresenter?
+    private var printPreviewPresenter: PrintPreviewPresenter?
     /// Internal for layout tests, which drive visibility through the
     /// controller's testing seams.
     var crawlBarController: CrawlBarController?
@@ -314,6 +315,41 @@ final class BrowserWindowContentViewController: NSViewController {
     func dismissAdBlockPopup() {
         adBlockPresenter?.dismiss()
         adBlockPresenter = nil
+    }
+
+    /// Opens the print preview for `tab`'s live page, or closes it when
+    /// already open.
+    ///
+    /// Shielded like every other card, with press semantics: the card holds
+    /// no text fields, so any press on the backdrop dismisses it (same rule
+    /// as the feed reader).
+    func presentPrintPreview(for tab: BrowserTab) {
+        guard isViewLoaded else { return }
+        if printPreviewPresenter != nil {
+            dismissPrintPreview()
+            // Fall through and reopen: the page belongs to this press, not
+            // to whatever the previous card was showing.
+        }
+        let presenter = PrintPreviewPresenter(container: view) { [weak self] in
+            self?.printPreviewPresenter = nil
+            self?.releaseShield(id: "print-preview")
+        }
+        printPreviewPresenter = presenter
+        claimShield(id: "print-preview", dismissOnPress: true) { [weak self] in
+            self?.dismissPrintPreview()
+        }
+        presenter.present(webView: tab.webView, title: tab.tabController.title ?? "Untitled")
+        if !presenter.isPresented {
+            // The card never opened (a detached window): don't hold cover
+            // for it.
+            printPreviewPresenter = nil
+            releaseShield(id: "print-preview")
+        }
+    }
+
+    func dismissPrintPreview() {
+        printPreviewPresenter?.dismiss()
+        printPreviewPresenter = nil
     }
 
     /// Opens the bookmark editor card for `mode`, or closes it when already

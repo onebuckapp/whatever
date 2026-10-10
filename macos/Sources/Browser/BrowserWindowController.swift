@@ -1481,6 +1481,23 @@ final class BrowserWindowController: NSWindowController {
         contentController.presentFeedReader(candidates: candidates, tab: tab)
     }
 
+    /// Opens the print preview for the selected tab's live page.
+    ///
+    /// Behind the app menu's Print item. Nothing to show without a loaded
+    /// page: an unrealized tab has no web view to render, and chrome pages
+    /// have no paper equivalent.
+    func presentPrintPreview() {
+        guard let tab = selectedTab,
+              let webView = tab.webView,
+              let url = webView.url,
+              !url.isAddresslessPage
+        else {
+            SystemBeep.play()
+            return
+        }
+        contentController.presentPrintPreview(for: tab)
+    }
+
     /// Opens one reader article, either in place or in a new tab.
     ///
     /// The reader always closes first: opening in place would otherwise leave

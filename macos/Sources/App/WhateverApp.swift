@@ -40,6 +40,16 @@ struct WhateverApp: App {
                     AppDelegate.showAbout()
                 }
             }
+            CommandGroup(replacing: .newItem) {
+                Divider()
+                Button("Print…") {
+                    BrowserCoordinator.shared.keyController?.presentPrintPreview()
+                }
+                .keyboardShortcut("p", modifiers: .command)
+                // Deliberately no `.disabled` here: this system group is
+                // evaluated at launch before `NSApp` exists, so reading the
+                // key window crashes. No tab just beeps in the action.
+            }
             TabCommands()
             CommandMenu("Find") {
                 Button("Find in Page…") {
