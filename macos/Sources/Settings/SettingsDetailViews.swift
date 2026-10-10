@@ -816,10 +816,6 @@ struct SearchSettingsView: View {
                     isOn: store.binding(\.search.cleanResultLinks)
                 )
             }
-
-            if isAdding {
-                addForm
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -869,6 +865,13 @@ struct SearchSettingsView: View {
                 }
                 .controlSize(.small)
             }
+
+            // Toggled in place, inside this section: the form belongs to
+            // these engines, not after whatever group follows.
+            if isAdding {
+                Divider()
+                addForm
+            }
         }
     }
 
@@ -877,7 +880,7 @@ struct SearchSettingsView: View {
     /// In place keeps the validation message next to the field it is about, which
     /// is the whole reason to show it at all.
     private var addForm: some View {
-        SettingsGroup(title: "New Engine") {
+        VStack(alignment: .leading, spacing: 2) {
             labelledField("Name", text: $draft.name, placeholder: "My search")
             labelledField("Address", text: $draft.address, placeholder: "https://example.com/search")
             labelledField("Query parameter", text: $draft.queryItem, placeholder: "q")
@@ -913,10 +916,11 @@ struct SearchSettingsView: View {
         HStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 12))
+            // Same height as the master password inputs: rounded border at
+            // large control size, so every text input in Settings matches.
             TextField(placeholder, text: text)
                 .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
-                .font(.system(size: 11))
+                .controlSize(.large)
         }
         .padding(.vertical, 2)
     }
