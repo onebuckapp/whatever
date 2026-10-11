@@ -219,6 +219,7 @@ struct AppIconView: View {
 struct AppearanceSettingsView: View {
     @ObservedObject private var grain = NoiseOverlaySettings.shared
     @State private var filter = ""
+    @State private var confirmingReset = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -248,6 +249,9 @@ struct AppearanceSettingsView: View {
                 ) {
                     AddressBarSettingsGroups()
                 }
+                if matches("Reset Appearance", "reset restore defaults factory built-in appearance") {
+                    resetGroup
+                }
                 if !filter.isEmpty, !hasAnyMatch {
                     Text("No settings match “\(filter.trimmingCharacters(in: .whitespacesAndNewlines))”.")
                         .font(.system(size: 12))
@@ -258,6 +262,14 @@ struct AppearanceSettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .alert("Reset appearance settings?", isPresented: $confirmingReset) {
+            Button("Reset", role: .destructive) {
+                resetAppearance()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults.")
+        }
     }
 
     /// Pinned above the scrolling groups: typing narrows the pane to the
@@ -306,6 +318,7 @@ struct AppearanceSettingsView: View {
             || matches("Window Background", "background wallpaper backdrop image video fill")
             || matches("Inactive Tabs Current Tab", "tab tabs theme inactive current foreground text color colour")
             || matches("Address Bar", "address bar field width pill corner corners height rounded")
+            || matches("Reset Appearance", "reset restore defaults factory built-in appearance")
     }
 
     private var grainGroup: some View {
@@ -380,6 +393,32 @@ struct AppearanceSettingsView: View {
                 format: { String(format: "%.1f×", $0) }
             )
         }
+    }
+
+    private var resetGroup: some View {
+        SettingsGroup(
+            title: "Reset Appearance",
+            footnote: "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+        ) {
+            SettingsButtonRow(
+                title: "Reset appearance settings",
+                subtitle: "Back to the built-in look."
+            ) {
+                Button("Reset…") {
+                    confirmingReset = true
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
+    /// Restores the pane through the store, then the grain overlay's
+    /// in-memory copy, which mirrors the store rather than reading it.
+    /// The grain persist lands on already-default noise, so the store's
+    /// change detection swallows it and nothing saves twice.
+    private func resetAppearance() {
+        SettingsStore.shared.resetAppearance()
+        grain.reset()
     }
 }
 

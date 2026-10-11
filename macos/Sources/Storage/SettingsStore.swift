@@ -70,6 +70,21 @@ struct AppSettings: Codable, Equatable {
             ?? BookmarkSettings()
     }
 
+    /// Restores everything the Appearance pane shows — grain, background, tab
+    /// themes, corner radii, tab shape, link bubble, and the address bar
+    /// chrome that lives in the pane — to its built-in defaults. Every other
+    /// group is untouched, unlike `SettingsStore.reset()` which replaces the
+    /// whole document.
+    ///
+    /// A method on the document rather than the store so tests can pin the
+    /// scope without touching the shared instance. The grain overlay keeps
+    /// its own in-memory copy alongside the store, so callers sync it via
+    /// `NoiseOverlaySettings.reset()` after this.
+    mutating func resetAppearance() {
+        appearance = AppearanceSettings()
+        addressBar = AddressBarSettings()
+    }
+
     /// Startup and history defaults.
     struct GeneralSettings: Codable, Equatable {
         /// Restore the previous session's windows and tabs on launch.
@@ -766,6 +781,13 @@ final class SettingsStore: ObservableObject {
     func reset() {
         settings = AppSettings()
         scheduleSave()
+    }
+
+    /// Restores the Appearance pane to its built-in state, leaving every
+    /// other group alone. The grain overlay's in-memory copy follows through
+    /// `NoiseOverlaySettings`, which the caller resets alongside this.
+    func resetAppearance() {
+        update { $0.resetAppearance() }
     }
 
     /// A two-way binding onto one field, for SwiftUI controls.
