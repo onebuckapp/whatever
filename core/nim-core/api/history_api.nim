@@ -211,8 +211,9 @@ proc decodedHttpPrefix(value: string): bool =
 proc hasEmbeddedLink*(rawUrl: string): bool =
   ## Whether `rawUrl` is a click tracker carrying another link inside itself
   ## rather than a page: any query value — or the path tail — holding an
-  ## http(s) address, raw or percent-encoded. Nothing is decoded beyond one
-  ## pass and nothing is resolved: the answer is only ever keep or skip.
+  ## http(s) address, raw or percent-encoded. Query values chain-decode to a
+  ## fixpoint so wrapped hops still read as trackers. Nothing is resolved:
+  ## the answer is only ever keep or skip.
   if rawUrl.len == 0:
     return false
   let parsed =
@@ -221,13 +222,23 @@ proc hasEmbeddedLink*(rawUrl: string): bool =
   if parsed.isLocal or parsed.kind != pkWeb:
     return false
   for param in parsed.query:
-    if hasMarker(param.value) or hasMarker(decoded(param.value)):
-      return true
-    # Encoded destinations carry no literal marker: Bing's `u` parameter
-    # is base64 with a short prefix tag. Detection only — the value is
-    # never resolved or stored.
-    if decodedHttpPrefix(param.value) or decodedHttpPrefix(decoded(param.value)):
-      return true
+    # Destinations nest: a hop carrying another encoded hop (`?dest=<enc
+    # (?dest=<enc …>)>`) shows no literal marker until each layer is peeled.
+    # Bounded chain-decoding — a few passes to a fixpoint — so trackers that
+    # wrap trackers still read as trackers.
+    var seen = param.value
+    for _ in 0 .. 3:
+      if hasMarker(seen):
+        return true
+      # Encoded destinations carry no literal marker: Bing's `u` parameter
+      # is base64 with a short prefix tag. Detection only — the value is
+      # never resolved or stored.
+      if decodedHttpPrefix(seen):
+        return true
+      let next = decoded(seen)
+      if next == seen or next.len == 0:
+        break
+      seen = next
   if hasMarker(parsed.path) or hasMarker(decoded(parsed.path)):
     return true
   false

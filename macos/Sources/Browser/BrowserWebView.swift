@@ -402,7 +402,7 @@ final class BrowserWebView: WKWebView {
                 viewX: point?.x,
                 viewY: point.map { bounds.height - $0.y }
             )
-            let raw = try? await self.evaluateJavaScript(script)
+            let raw = try? await self.evaluateJavaScriptSafely(script)
             guard let href = raw as? String, !href.isEmpty, let url = URL(string: href) else {
                 return nil
             }
@@ -495,7 +495,7 @@ final class BrowserWebView: WKWebView {
                 viewX: point?.x,
                 viewY: point.map { bounds.height - $0.y }
             )
-            let raw = try? await self.evaluateJavaScript(script)
+            let raw = try? await self.evaluateJavaScriptSafely(script)
             guard let href = raw as? String, !href.isEmpty, let url = URL(string: href) else {
                 return nil
             }

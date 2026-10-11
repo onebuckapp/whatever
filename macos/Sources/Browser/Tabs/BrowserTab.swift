@@ -119,6 +119,123 @@ final class BrowserTab: NSObject {
     /// are unit-tested, so this file only decides _when_ to record or move.
     private var tabHistory = TabHistory()
 
+    /// Main-frame URLs with a began but unfinished navigation, oldest
+    /// first. A server redirect replaces its source without committing it;
+    /// the redirect callback carries no address, but redirects complete in
+    /// order, so the oldest unfinished URL is the hop: popping it drops
+    /// exactly the source, whenever the callback lands relative to commit
+    /// observations. Finished pages leave on `didFinish`; same-document
+    /// hops (fragments, `pushState`) never enter — they commit in place and
+    /// a later redirect must not eat them. Stale entries (cancelled loads)
+    /// are skipped when popped if they left the list, and re-appended
+    /// pages heal on their own commit. Tab-scoped; drains itself.
+    private var unfinishedQueue: [URL] = []
+
+    /// Main-frame POST targets not yet committed. A submission is not a
+    /// page: its address never records, and the form it leaves may leave
+    /// with the redirect answer (see `armedFormSkip`). One-shot entries,
+    /// consumed on commit, so a later unrelated GET to the same address
+    /// records normally. Cleared whenever the user takes over.
+    private var postedFormURLs = Set<String>()
+
+    /// The form whose POST is awaiting its redirect answer, with the POST
+    /// address itself. When the thanks-commit lands right after the form,
+    /// the form leaves history with the submission, so Back skips it
+    /// instead of redisplaying it. One-shot: consumed on the next append
+    /// either way, and voided the moment anything else happens first — a
+    /// rendered (unredirected) POST via `noteLoadFinished`, any user-driven
+    /// navigation via `navigate`/`goBack`/`goForward`.
+    private var armedFormSkip: (form: URL, post: URL)?
+
+    /// Back-list depth when the current navigation began, recorded on
+    /// every navigation action. A commit that does not grow it replaced
+    /// the current item (`location.replace`) instead of pushing.
+    private(set) var pendingBackListCount: Int?
+
+    /// Whether a server redirect was reported for the current flight.
+    /// Vetoes the replace fold: a landing after redirects is a redirect
+    /// destination, not a replace, even though neither grows the back
+    /// list. One-shot per finish; reset on every navigation start.
+    private var sawServerRedirect = false
+
+    /// Whether the current flight was started by the app itself: the
+    /// address bar, a routed link click, Back/Forward, or a recovery
+    /// reload. Vetoes the replace fold: the landing of an app-initiated
+    /// load keeps its entry even when the back list has not grown yet at
+    /// finish time (a programmatic load lands before WebKit files it).
+    /// One-shot per finish; cleared the moment a scripted commit takes
+    /// over the flight (see `noteCommitted`).
+    private var sawAppInitiatedNavigation = false
+
+    /// The last landing the replace fold consumed. Makes the fold
+    /// idempotent within one flight: a repeated finish re-reporting the
+    /// already-folded landing changes nothing. Re-armed by every new
+    /// commit and every new user navigation.
+    private var lastFoldedURL: URL?
+
+    /// Records the back-list depth a navigation starts from. Every action
+    /// re-records (subframe actions see the same depth — only commits move
+    /// it), so this is always the depth of the current flight.
+    func noteNavigationStarted(backListCount: Int) {
+        pendingBackListCount = backListCount
+        sawServerRedirect = false
+    }
+
+    /// Whether a redirect was reported since the last finish, consumed.
+    func consumeServerRedirectFlag() -> Bool {
+        defer { sawServerRedirect = false }
+        return sawServerRedirect
+    }
+
+    /// Marks the coming flight app-initiated (see
+    /// `sawAppInitiatedNavigation`). Called for every load the tab itself
+    /// starts; scripted page navigations never touch it.
+    func noteAppInitiatedNavigation() {
+        sawAppInitiatedNavigation = true
+    }
+
+    /// Whether the finished flight was app-initiated, consumed.
+    func consumeAppInitiatedFlag() -> Bool {
+        defer { sawAppInitiatedNavigation = false }
+        return sawAppInitiatedNavigation
+    }
+
+    /// Folds a replace landing into history. The landing is already
+    /// appended (see `noteCommitted`), so it takes its predecessor's place
+    /// first (positional — the predecessor is what the replace consumed),
+    /// then every other still-unfinished listed entry drops as a
+    /// superseded intermediary. Idempotent within one flight: a repeated
+    /// finish re-reporting the already-folded landing changes nothing. The
+    /// first entry is never swept: it is the origin Back must return to,
+    /// and a still-unfinished origin (a finish landing late) is settled,
+    /// not superseded. Back skips the whole replaced chain. Anything that
+    /// commits later re-appends on its own commit, so an over-eager drop
+    /// heals itself.
+    func foldReplaceLanding(url: URL) {
+        if let lastFoldedURL, url.hasSameAddress(as: lastFoldedURL) {
+            return
+        }
+        lastFoldedURL = url
+        tabHistory.foldLanding(url)
+        let origin = tabHistory.urls.first
+        for pending in unfinishedQueue where !pending.hasSameAddress(as: url) {
+            if let origin, pending.hasSameAddress(as: origin) { continue }
+            _ = tabHistory.drop(pending)
+        }
+        unfinishedQueue.removeAll()
+        updateHistoryNavigation()
+        BrowserCoordinator.shared.sessionDidChange()
+    }
+
+    /// Tracks a began navigation as unfinished until it finishes. Deduped:
+    /// the same address observed twice (load then commit observation) is
+    /// still one flight.
+    private func markUnfinished(_ url: URL) {
+        if !unfinishedQueue.contains(where: { url.hasSameAddress(as: $0) }) {
+            unfinishedQueue.append(url)
+        }
+    }
+
     /// A tab rebuilt from a stored session.
     struct RestoredState {
         var urls: [URL]
@@ -133,10 +250,12 @@ final class BrowserTab: NSObject {
         privacyMode: BrowserPrivacyMode = .regular,
         history: HistoryRecording,
         initialURL: URL? = nil,
-        restored: RestoredState? = nil
+        restored: RestoredState? = nil,
+        historyShouldRecord: @escaping (String) async throws -> Bool = BrowserCore.historyShouldRecord
     ) {
         self.id = id
         self.privacyMode = privacyMode
+        self.historyShouldRecord = historyShouldRecord
 
         let dataStore: WKWebsiteDataStore = privacyMode == .privateBrowsing
             ? .nonPersistent()
@@ -173,9 +292,28 @@ final class BrowserTab: NSObject {
         // never reports. Hops to the main actor: WebKit delivers these
         // observations on the main thread, and the hop keeps that an
         // assumption rather than a crash if it ever changes.
+        //
+        // Runs synchronously on the main thread: the history it feeds races
+        // redirect callbacks and later observations — hopping a Task here
+        // lets a provisional append land AFTER its own redirect was already
+        // reported (and missed), wedging chains into loops. The async hop
+        // stays only for off-main delivery, which has never been observed.
         tab.onURLChange = { [weak self] url in
-            Task { @MainActor in
+            if Thread.isMainThread {
                 self?.noteCommitted(url: url)
+            } else {
+                Task { @MainActor in
+                    self?.noteCommitted(url: url)
+                }
+            }
+        }
+        if restored != nil {
+            // Re-validate resurrected entries: a stored loop state holding a
+            // tracker would otherwise bounce forever, since nothing re-asks
+            // for it until a commit touches it. Fire-and-forget like every
+            // other check; drops converge on their own.
+            for url in tabHistory.urls {
+                resolveHistoryRegistration(url)
             }
         }
         updateHistoryNavigation()
@@ -226,6 +364,8 @@ final class BrowserTab: NSObject {
         fresh.takesMouseInput = acceptsMouseInput
         webView = fresh
         tabController.retarget(to: fresh)
+        // The first load is app-initiated too: its landing keeps its entry.
+        sawAppInitiatedNavigation = true
         tabController.load(currentURL)
         return fresh
     }
@@ -267,6 +407,8 @@ final class BrowserTab: NSObject {
     func reloadAfterContentProcessTermination() {
         guard let webView else { return }
         let url = webView.url ?? currentURL
+        // Recovery, not a replace: the re-landing keeps its entry.
+        sawAppInitiatedNavigation = true
         webView.load(URLRequest(url: url))
     }
 
@@ -276,6 +418,11 @@ final class BrowserTab: NSObject {
     /// replaces the page when it is not. See `load(_:from:)`.
     func navigate(to url: URL) {
         let previous = currentURL
+        // A deliberate move voids pending form bookkeeping: whatever a POST
+        // in flight does next belongs to the new navigation, not to the
+        // abandoned form.
+        armedFormSkip = nil
+        postedFormURLs.removeAll()
         tabHistory.navigate(to: url)
         load(url, from: previous)
         updateHistoryNavigation()
@@ -292,8 +439,42 @@ final class BrowserTab: NSObject {
     /// and back/forward loads (which move the index first) never duplicate.
     /// Deliberately unconditional: every new address access is logged, and
     /// nothing here collapses repeats.
+    ///
+    /// The list no-op still resolves: a tracker landed on without appending
+    /// — Back onto a redirector, a restored entry waking up, a re-committed
+    /// bounce — would otherwise never be re-asked and could never drop, and
+    /// Back would bounce off it forever. Resolving a plain reload answers
+    /// record and changes nothing.
+    ///
+    /// A committed POST target never records at all (see
+    /// `notePOSTRequest`); instead it arms the form-skip, and the landing
+    /// that follows takes its form with it.
     func noteCommitted(url: URL) {
-        guard tabHistory.noteCommitted(url) else { return }
+        if postedFormURLs.remove(url.absoluteString) != nil {
+            armedFormSkip = tabHistory.currentURL.map { ($0, url) }
+            return
+        }
+        let previous = tabHistory.currentURL
+        guard tabHistory.noteCommitted(url) else {
+            resolveHistoryRegistration(url)
+            return
+        }
+        // A genuinely new commit takes over the flight from the app: the
+        // navigation the tab started landed, and whatever runs next belongs
+        // to the page, so the app-initiated veto disarms and the fold
+        // re-arms. Commits that dedup (reloads, back/forward loads, the
+        // app's own target re-committing) leave both untouched.
+        sawAppInitiatedNavigation = false
+        lastFoldedURL = nil
+        // Same-document hops commit in place without finishing; tracking
+        // them as unfinished would let a later redirect eat a real page.
+        if previous.map({ !url.isSameDocument(as: $0) }) ?? true {
+            markUnfinished(url)
+        }
+        if let armed = armedFormSkip {
+            tabHistory.dropPredecessor(matching: armed.form)
+            armedFormSkip = nil
+        }
         updateHistoryNavigation()
         BrowserCoordinator.shared.sessionDidChange()
         resolveHistoryRegistration(url)
@@ -304,11 +485,36 @@ final class BrowserTab: NSObject {
     /// never blocks navigation — a tracker entry drops when Nim answers.
     /// Fail-open throughout: any failure keeps the entry, exactly as
     /// without the check.
+    ///
+    /// The check is a seam defaulting to the core so tests can answer
+    /// without the store service.
+    var historyShouldRecord: (String) async throws -> Bool = BrowserCore.historyShouldRecord
+
+    /// Records a main-frame POST submission for the commit to come: its
+    /// address never records, and the form it leaves may leave with the
+    /// redirect answer. Called from the navigation policy, which is what
+    /// sees the request method.
+    func notePOSTRequest(url: URL) {
+        postedFormURLs.insert(url.absoluteString)
+    }
+
+    /// Clears a pending form-skip when the POST answered 200 and rendered
+    /// instead of redirecting: no thanks-commit is coming, so a later
+    /// unrelated landing must not drop the form. Also retires the finished
+    /// page from the unfinished tracker. Called on every finish; only the
+    /// POST address itself disarms.
+    func noteLoadFinished(url: URL) {
+        unfinishedQueue.removeAll(where: { url.hasSameAddress(as: $0) })
+        if let armed = armedFormSkip, url.hasSameAddress(as: armed.post) {
+            armedFormSkip = nil
+        }
+    }
+
     func resolveHistoryRegistration(_ url: URL) {
         guard ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return }
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard let shouldRecord = try? await BrowserCore.historyShouldRecord(url.absoluteString),
+            guard let shouldRecord = try? await self.historyShouldRecord(url.absoluteString),
                   !shouldRecord
             else { return }
             self.dropHistoryEntry(url)
@@ -324,9 +530,35 @@ final class BrowserTab: NSObject {
         BrowserCoordinator.shared.sessionDidChange()
     }
 
+    /// Drops a server-redirect hop and bars it from recording. WebKit
+    /// reports the redirect with the hop's exact address, so this works no
+    /// matter which order commit observations arrive in: an already-appended
+    /// hop leaves at once, and a commit observation arriving later (or the
+    /// Drops the oldest unfinished navigation: server redirects complete
+    /// in order, so it is the hop being replaced — whenever this arrives
+    /// relative to commit observations. Entries that already left the list
+    /// (cancelled loads, deduped recommits) are skipped, not dropped, and
+    /// the queue drains itself through finishes and redirect reports, so
+    /// nothing here can take a committed page. Also arms the replace veto
+    /// for the coming finish (see `consumeServerRedirectFlag`).
+    func noteServerRedirect() {
+        sawServerRedirect = true
+        while let front = unfinishedQueue.first {
+            unfinishedQueue.removeFirst()
+            if tabHistory.drop(front) {
+                updateHistoryNavigation()
+                BrowserCoordinator.shared.sessionDidChange()
+                return
+            }
+        }
+    }
+
     /// Re-accesses the previous address with a new view. Nothing is
     /// restored from cache; the address is loaded anew.
     func goBack() {
+        // See `navigate(to:)` above: taking over voids pending form work.
+        armedFormSkip = nil
+        postedFormURLs.removeAll()
         // Captured before the move: `currentURL` already answers with the new
         // one by the time `load` runs, and `load` needs the old one.
         let previous = currentURL
@@ -341,6 +573,9 @@ final class BrowserTab: NSObject {
 
     /// Re-accesses the next address with a new view.
     func goForward() {
+        // See `navigate(to:)` above: taking over voids pending form work.
+        armedFormSkip = nil
+        postedFormURLs.removeAll()
         // Captured before the move, for the same reason as in `goBack`.
         let previous = currentURL
         guard let target = tabHistory.moveForward() else {
@@ -374,6 +609,12 @@ final class BrowserTab: NSObject {
     /// caller moved `historyIndex`, since `currentURL` already answers with the
     /// new one by then.
     private func load(_ url: URL, from previous: URL) {
+        markUnfinished(url)
+        // A load the tab starts is app-initiated, and a new flight: its
+        // landing keeps its entry (see `sawAppInitiatedNavigation`), and a
+        // previous flight's fold cannot repeat onto it (see `lastFoldedURL`).
+        sawAppInitiatedNavigation = true
+        lastFoldedURL = nil
         guard let webView, SiteIdentity.isSameSite(previous, url) else {
             replaceWebView()
             return

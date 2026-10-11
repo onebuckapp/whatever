@@ -32,7 +32,7 @@ struct HoverInstallTests {
         var installed = false
         for _ in 0..<100 {
             try await Task.sleep(for: .milliseconds(50))
-            let hit = try await view.evaluateJavaScript("window.__whateverLinkHover === true")
+            let hit = try await view.evaluateJavaScriptSafely("window.__whateverLinkHover === true")
             if (hit as? Bool) == true {
                 installed = true
                 break
@@ -45,7 +45,7 @@ struct HoverInstallTests {
         // break anywhere in script, relay, or handler shows up here.
         var seen: URL?
         view.onLinkHover = { seen = $0 }
-        try await view.evaluateJavaScript(
+        try await view.evaluateJavaScriptSafely(
             "document.querySelector('a').dispatchEvent(new MouseEvent('mouseover', {bubbles: true}))"
         )
         for _ in 0..<100 {

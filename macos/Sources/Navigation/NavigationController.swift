@@ -58,6 +58,28 @@ extension NavigationController: WKNavigationDelegate {
         // The tab's own history logs every commit regardless of recording
         // mode: back/forward has to work in private tabs too.
         owner.noteCommitted(url: url)
+        // A commit that did not grow the back list and saw no redirect
+        // replaced the current item (`location.replace`) instead of
+        // pushing: fold it into the previous entry so Back skips the
+        // replaced chain, Chrome-parity. A landing after redirects takes
+        // the normal path even though redirects do not grow the list
+        // either — the one-shot flag tells them apart — and so does the
+        // landing of a load the app itself started (address bar, routed
+        // link, Back/Forward), which WebKit may not have filed yet at
+        // finish time.
+        let sawRedirect = owner.consumeServerRedirectFlag()
+        let appInitiated = owner.consumeAppInitiatedFlag()
+        if let pending = owner.pendingBackListCount,
+           webView.backForwardList.backList.count <= pending,
+           !sawRedirect,
+           !appInitiated
+        {
+            owner.foldReplaceLanding(url: url)
+        }
+        // Retires the finished page from the unfinished tracker, and
+        // disarms a form-skip when the POST itself rendered instead of
+        // redirecting: no thanks-commit is coming.
+        owner.noteLoadFinished(url: url)
     }
 
     /// Opens a new tab for `url`, in the window `webView` is showing.
@@ -82,6 +104,17 @@ extension NavigationController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         webView.window?.title = "Failed to Load"
+    }
+
+    /// A server redirect replaced its source without committing it. The
+    /// callback carries no address, but redirects complete in order, so the
+    /// tab drops its oldest unfinished navigation — the hop — whenever this
+    /// arrives relative to commit observations.
+    func webView(
+        _ webView: WKWebView,
+        didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!
+    ) {
+        owner?.noteServerRedirect()
     }
 
     func webView(
@@ -220,27 +253,85 @@ extension NavigationController: WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
-        // A link that asks for a new window, whether `target="_blank"` or a
-        // scripted `window.open`, arrives here with no target frame. Both are
-        // handled by opening a real tab and cancelling, rather than by answering
-        // `createWebViewWith`: WebKit performs the navigation it delegates only
-        // after that call returns, by which point the new tab is already
-        // selected and loading its own address, so the popup lands on the
-        // homepage rather than the page that opened it.
+        // A main-frame POST is a submission, not a page: its address never
+        // records, and the form it leaves may leave with the redirect
+        // answer. Subframe POSTs need no marking — their commits never reach
+        // the tab's history. See `BrowserTab.notePOSTRequest`.
+        if navigationAction.targetFrame?.isMainFrame == true,
+           navigationAction.request.httpMethod?.uppercased() == "POST",
+           let owner {
+            owner.notePOSTRequest(url: url)
+        }
+        // Records the back-list depth the navigation starts from: a commit
+        // that does not grow it replaced the current item
+        // (`location.replace`). Main frame and frameless actions only — a
+        // subframe action interleaved in a redirect window must neither move
+        // the depth nor clear the redirect veto below.
+        if navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true,
+           let owner
+        {
+            owner.noteNavigationStarted(backListCount: webView.backForwardList.backList.count)
+        }
+        // Reloads and system back/forward loads are app-level moves, never
+        // replaces: their landings keep their entries even though neither
+        // grows the back list. Armed here because they never pass through
+        // the tab's own `load`.
+        if navigationAction.navigationType == .reload
+            || navigationAction.navigationType == .backForward,
+            let owner
+        {
+            owner.noteAppInitiatedNavigation()
+        }
+        // A link with no target frame asked for a new window: `target="_blank"`,
+        // a scripted `window.open`, or an explicit new-tab click (⌘/⇧ held).
+        // Only the last two open tabs — a bare `_blank` left-click, the shape
+        // search engines use for result links, navigates the current tab so
+        // Back keeps working there. See `NavigationPolicy.opensNewTab`.
         if navigationAction.targetFrame == nil,
            navigationAction.navigationType != .backForward,
-           let owner {
-            guard NavigationPolicy.canLoadInPage(navigationAction.request) else {
-                // A scheme the web view cannot draw, such as mailto: or tel:.
-                // The tab is never opened; the link goes to the app that handles
-                // it, which is what a click on it means anywhere else.
-                NavigationPolicy.handOffToSystem(url)
+           let owner
+        {
+            if NavigationPolicy.opensNewTab(
+                navigationType: navigationAction.navigationType,
+                modifierFlags: navigationAction.modifierFlags,
+                targetFrameIsNil: true
+            ) {
+                guard NavigationPolicy.canLoadInPage(navigationAction.request) else {
+                    // A scheme the web view cannot draw, such as mailto: or tel:.
+                    // The tab is never opened; the link goes to the app that handles
+                    // it, which is what a click on it means anywhere else.
+                    NavigationPolicy.handOffToSystem(url)
+                    decisionHandler(.cancel)
+                    return
+                }
+                // A real tab rather than answering `createWebViewWith`: WebKit
+                // performs the navigation it delegates only after that call
+                // returns, by which point the new tab is already selected and
+                // loading its own address, so the popup would land on the
+                // homepage rather than the page that opened it.
+                openPopup(url, from: webView, owner: owner)
                 decisionHandler(.cancel)
                 return
             }
-            openPopup(url, from: webView, owner: owner)
-            decisionHandler(.cancel)
-            return
+            // Same-tab below: the framed branches require a main frame, which a
+            // frameless action never has, so the schemes route here instead.
+            if navigationAction.navigationType == .linkActivated,
+               let scheme = url.scheme?.lowercased(),
+               ["http", "https", "w", "whtvr"].contains(scheme)
+            {
+                owner.navigate(to: url)
+                decisionHandler(.cancel)
+                return
+            }
+            if navigationAction.navigationType == .linkActivated,
+               url.scheme?.lowercased() == "file"
+            {
+                let controller = BrowserCoordinator.shared.controller(for: webView.window)
+                    ?? BrowserCoordinator.shared.keyController
+                controller?.openFileLink(url, for: owner)
+                decisionHandler(.cancel)
+                return
+            }
         }
         // Same-tab link: load it in a fresh view through the tab, which
         // records it in the tab's own history. Forms, reloads, and scripted

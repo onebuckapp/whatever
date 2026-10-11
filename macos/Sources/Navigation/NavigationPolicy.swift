@@ -49,6 +49,25 @@ enum NavigationPolicy {
         return inPageSchemes.contains(scheme)
     }
 
+    /// Whether a frameless action opens a new tab.
+    ///
+    /// Page-requested new windows (a bare `_blank` left-click — the shape
+    /// search engines use for result links) stay in the current tab, so
+    /// Back keeps working there. Explicit new-tab intent (⌘ or ⇧ held) and
+    /// scripted `window.open` still open tabs; `.backForward` never does.
+    /// Pure so tests pin the matrix without a web view.
+    static func opensNewTab(
+        navigationType: WKNavigationType,
+        modifierFlags: NSEvent.ModifierFlags,
+        targetFrameIsNil: Bool
+    ) -> Bool {
+        guard targetFrameIsNil, navigationType != .backForward else { return false }
+        if navigationType == .linkActivated {
+            return modifierFlags.contains(.command) || modifierFlags.contains(.shift)
+        }
+        return true
+    }
+
     /// Opens `url` in whatever app the system associates with it.
     static func handOffToSystem(_ url: URL) {
         NSWorkspace.shared.open(url)

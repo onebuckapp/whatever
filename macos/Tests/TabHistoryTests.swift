@@ -176,4 +176,82 @@ struct TabHistoryTests {
             index: 1
         ).index == 1)
     }
+
+    @Test("navigating to the current address does not duplicate it")
+    func navigateDedupsCurrent() {
+        var history = TabHistory()
+        history.navigate(to: url("https://a.example"))
+        history.navigate(to: url("https://a.example"))
+        #expect(history.urls.map(\.absoluteString) == ["https://a.example"])
+        #expect(history.index == 0)
+    }
+
+    @Test("dropping between repeats leaves one entry")
+    func dropCollapsesRepeats() {
+        var history = TabHistory(
+            urls: [
+                url("https://a.example"),
+                url("https://tracker.example/x?next=https://a.example"),
+                url("https://a.example/"),
+            ],
+            index: 2
+        )
+        #expect(history.drop(url("https://tracker.example/x?next=https://a.example")) == true)
+        #expect(history.urls.map(\.absoluteString) == ["https://a.example/"])
+        #expect(history.index == 0)
+        #expect(!history.canGoBack)
+    }
+
+    @Test("restored runs collapse, keeping the index on its entry")
+    func restoreCollapsesRuns() {
+        let history = TabHistory(
+            urls: [
+                url("https://a.example"), url("https://a.example"),
+                url("https://b.example"), url("https://b.example"),
+            ],
+            index: 3
+        )
+        #expect(history.urls.map(\.absoluteString) == [
+            "https://a.example", "https://b.example",
+        ])
+        #expect(history.index == 1)
+    }
+
+    @Test("dropping the predecessor keeps the landing current")
+    func dropPredecessor() {
+        var history = TabHistory(
+            urls: [url("https://a.example"), url("https://b.example"), url("https://c.example")],
+            index: 2
+        )
+        #expect(history.dropPredecessor(matching: url("https://b.example")) == true)
+        #expect(history.urls.map(\.absoluteString) == [
+            "https://a.example", "https://c.example",
+        ])
+        #expect(history.index == 1)
+        #expect(history.dropPredecessor(matching: url("https://x.example")) == false)
+    }
+
+    @Test("folding a replace landing consumes its predecessor")
+    func foldLanding() {
+        // Append-then-fold: the landing reconciles first (see
+        // `noteCommitted`), then the fold consumes exactly the entry the
+        // replace superseded.
+        var history = TabHistory(
+            urls: [url("https://a.example"), url("https://b.example"), url("https://c.example")],
+            index: 2
+        )
+        history.foldLanding(url("https://d.example"))
+        #expect(history.urls.map(\.absoluteString) == [
+            "https://a.example", "https://d.example",
+        ])
+        #expect(history.index == 1)
+    }
+
+    @Test("folding onto a lone entry keeps a single entry")
+    func foldLandingAlone() {
+        var history = TabHistory(urls: [url("https://a.example")], index: 0)
+        history.foldLanding(url("https://b.example"))
+        #expect(history.urls.map(\.absoluteString) == ["https://b.example"])
+        #expect(history.index == 0)
+    }
 }

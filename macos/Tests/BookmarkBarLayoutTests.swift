@@ -24,6 +24,7 @@ import Testing
 /// store is marked loaded so the bar never fires a store read, and
 /// visibility goes through the controller seam.
 struct BookmarkBarLayoutTests {
+    @MainActor
     private func makeContent() -> (
         content: BrowserWindowContentViewController,
         toolbar: NSView,
@@ -36,6 +37,10 @@ struct BookmarkBarLayoutTests {
         let pane = NSViewController()
         pane.view.wantsLayer = true
         content.showChild(pane)
+        // Pinned hidden: the bar reads the persisted visibility toggle when
+        // it is built, so without this the measurements below depend on
+        // whatever the live app saved last instead of the test's own taps.
+        content.bookmarkBarController?.forceEnabledForTesting = false
         content.view.layoutSubtreeIfNeeded()
         return (content, toolbar, pane)
     }
@@ -101,9 +106,10 @@ struct BookmarkBarLayoutTests {
         let fullHeight = pane.view.frame.height
 
         for _ in 0..<2 {
-            bar.forceEnabledForTesting = true
-            content.view.layoutSubtreeIfNeeded()
-            #expect(bar.isVisible)
+        bar.forceEnabledForTesting = true
+        content.view.layoutSubtreeIfNeeded()
+
+        #expect(bar.isVisible)
             bar.forceEnabledForTesting = false
             content.view.layoutSubtreeIfNeeded()
             #expect(!bar.isVisible)

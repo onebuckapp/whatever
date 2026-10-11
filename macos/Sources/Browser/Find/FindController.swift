@@ -127,7 +127,7 @@ final class FindController {
         searchedURL = nil
         if let webView = tab.webView {
             Task { [weak webView] in
-                try? await webView?.evaluateJavaScript("window.__whtvrFind && window.__whtvrFind.clear()")
+                try? await webView?.evaluateJavaScriptSafely("window.__whtvrFind && window.__whtvrFind.clear()")
             }
         }
         openConstraint?.isActive = false
@@ -173,7 +173,7 @@ final class FindController {
         if highlightsLive, let webView = tab.webView {
             generation += 1
             let gen = generation
-            let raw = try? await webView.evaluateJavaScript("window.__whtvrFind.step(\(delta))")
+            let raw = try? await webView.evaluateJavaScriptSafely("window.__whtvrFind.step(\(delta))")
             guard gen == generation, webView === self.tab.webView else { return }
             guard let result = raw as? [String: Any], !(result["stale"] as? Bool ?? false) else {
                 // The page mutated under the highlights; restart from the
@@ -206,7 +206,7 @@ final class FindController {
         let highlightAll = bar.highlightAllBox.state == .on
         let matchCase = bar.matchCaseBox.state == .on
         let wholeWords = bar.wholeWordsBox.state == .on
-        guard let rawExtract = try? await webView.evaluateJavaScript(
+        guard let rawExtract = try? await webView.evaluateJavaScriptSafely(
             "window.__whtvrFind && window.__whtvrFind.extractText()"
         ),
             gen == generation, webView === self.tab.webView,
@@ -243,7 +243,7 @@ final class FindController {
         ), !payloadJSON.isEmpty else {
             return
         }
-        guard let rawApply = try? await webView.evaluateJavaScript(
+        guard let rawApply = try? await webView.evaluateJavaScriptSafely(
             "window.__whtvrFind.applyMatches(\(payloadJSON))"
         ),
             gen == generation, webView === self.tab.webView,
@@ -274,7 +274,7 @@ final class FindController {
     private func clearInPage(_ webView: WKWebView) {
         highlightsLive = false
         Task { [weak webView] in
-            try? await webView?.evaluateJavaScript("window.__whtvrFind && window.__whtvrFind.clear()")
+            try? await webView?.evaluateJavaScriptSafely("window.__whtvrFind && window.__whtvrFind.clear()")
         }
     }
 

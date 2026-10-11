@@ -173,6 +173,30 @@ suite "store c abi":
       check entry["url"].getStr() != tracker
     check bcHistoryShouldRecord("https://www.britannica.com/biography/Thomas-Paine".cstring) == 1'i32
 
+  test "google redirector never stores":
+    ## The `/url?q=<destination>` hop: raw (unencoded) destination in `q`,
+    ## alongside opaque `opi`/`ved`/`usg` parameters.
+    let google =
+      "https://www.google.com/url?opi=89978449&q=https://www.la-doi-pasi.ro/reteta/reteta-simpla-de-pine-de-casa.html&sa=U&ved=2ahUKEwiIhdfIorKXAxUsAtsEHeMuO4cQFnoECAcQAg&usg=AOvVaw3NHicRD7y6Bf5B1Zm2lKJ3"
+    check hasEmbeddedLink(google)
+    check bcHistoryShouldRecord(google.cstring) == 0'i32
+    check historyRecord(google.cstring, "Tracker".cstring, 1_700_002_050, -1) == Ok
+    for entry in readRecent(200):
+      check entry["url"].getStr() != google
+
+  test "nested trackers never store":
+    ## A hop carrying another encoded hop: one decode still shows encoded
+    ## text, so detection chains decodes to a fixpoint. Mirrors the
+    ## multi-hop client chains (`?dest=<enc(?dest=<enc …>)>`).
+    let nested =
+      "https://hopper.example/c?dest=https%3A%2F%2Fsecond.example%2Fr%3Fdest%3Dhttps%253A%252F%252Fshop.example%252F"
+    check hasEmbeddedLink(nested)
+    check bcHistoryShouldRecord(nested.cstring) == 0'i32
+    check historyRecord(nested.cstring, "Tracker".cstring, 1_700_002_060, -1) == Ok
+    for entry in readRecent(200):
+      check entry["url"].getStr() != nested
+    check bcHistoryShouldRecord("https://shop.example/".cstring) == 1'i32
+
   test "base64-encoded trackers never store":
     ## Bing's `u` parameter carries no literal address — only a prefixed
     ## base64 payload decoding to one.

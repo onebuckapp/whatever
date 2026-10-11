@@ -60,4 +60,15 @@ struct HasSameAddressTests {
         #expect(!base.hasSameAddress(as: url("http://website.com/a?x=1#s")))
         #expect(base.hasSameAddress(as: url("https://website.com/a?x=1#s")))
     }
+
+    @Test("same document ignores only the fragment")
+    func sameDocument() {
+        let base = url("https://website.com/a?x=1#s")
+        #expect(base.isSameDocument(as: url("https://website.com/a?x=1#t")))
+        #expect(base.isSameDocument(as: url("https://website.com/a?x=1")))
+        #expect(base.isSameDocument(as: url("https://website.com/a/?x=1#s")))
+        #expect(!base.isSameDocument(as: url("https://website.com/a?x=2#s")))
+        #expect(!base.isSameDocument(as: url("https://website.com/b?x=1#s")))
+        #expect(!base.isSameDocument(as: url("http://website.com/a?x=1#s")))
+    }
 }

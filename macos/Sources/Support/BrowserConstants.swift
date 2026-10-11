@@ -54,21 +54,35 @@ extension URL {
     /// without this the reconcile in `BrowserTab.noteCommitted(url:)` would log
     /// a duplicate entry for every such navigation.
     func hasSameAddress(as other: URL) -> Bool {
-        func normalizedPath(_ url: URL) -> String {
-            // Trailing slashes carry no address meaning here: WebKit reports a
-            // committed bare host with one the address bar never typed, and
-            // servers treat a trailing slash as the same resource.
-            var path = url.path
-            while path.hasSuffix("/") {
-                path.removeLast()
-            }
-            return path
-        }
-        return scheme?.lowercased() == other.scheme?.lowercased()
+        scheme?.lowercased() == other.scheme?.lowercased()
             && host?.lowercased() == other.host?.lowercased()
             && port == other.port
             && normalizedPath(self) == normalizedPath(other)
             && query == other.query
             && fragment == other.fragment
     }
+
+    /// Whether two addresses name the same document modulo fragment: same
+    /// scheme, host, port, path, and query. Fragment navigations and
+    /// `pushState` replacements commit in place without finishing, so the
+    /// history treats them as pages — but the unfinished tracker must not,
+    /// or a later redirect would eat a real page.
+    func isSameDocument(as other: URL) -> Bool {
+        scheme?.lowercased() == other.scheme?.lowercased()
+            && host?.lowercased() == other.host?.lowercased()
+            && port == other.port
+            && normalizedPath(self) == normalizedPath(other)
+            && query == other.query
+    }
+}
+
+/// Trailing slashes carry no address meaning here: WebKit reports a
+/// committed bare host with one the address bar never typed, and servers
+/// treat a trailing slash as the same resource.
+private func normalizedPath(_ url: URL) -> String {
+    var path = url.path
+    while path.hasSuffix("/") {
+        path.removeLast()
+    }
+    return path
 }

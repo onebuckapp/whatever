@@ -31,6 +31,10 @@ import Foundation
 ///   the list cannot disagree with what is on screen.
 /// - `drop` removes click trackers Nim declined to register, fixing the
 ///   index, so Back skips them.
+/// - Adjacent repeats always collapse into one (see
+///   `collapseAdjacentDuplicates`): traversing them is meaningless, and a
+///   redirect bounce collapses into one when its tracker drops out from
+///   between — otherwise Back wedges on a page that looks dead.
 struct TabHistory: Equatable {
     private(set) var urls: [URL] = []
     private(set) var index: Int = -1
@@ -40,6 +44,7 @@ struct TabHistory: Equatable {
         // Clamp like a restore does: an index past the end settles on the
         // last entry rather than pointing at nothing.
         self.index = urls.isEmpty ? -1 : min(max(0, index), urls.count - 1)
+        collapseAdjacentDuplicates()
     }
 
     /// The address the tab is on, or nil when the list is empty.
@@ -63,6 +68,7 @@ struct TabHistory: Equatable {
         }
         urls.append(url)
         index = urls.count - 1
+        collapseAdjacentDuplicates()
     }
 
     /// Steps back, returning the address now current, or nil at the start.
@@ -95,7 +101,72 @@ struct TabHistory: Equatable {
             if at <= index { index -= 1 }
             index = min(index, urls.count - 1)
         }
+        collapseAdjacentDuplicates()
         return true
+    }
+
+    /// Drops the entry before the last when it matches `form`: the
+    /// Post/Redirect/Get commit landing right after its form, so Back
+    /// skips the form instead of redisplaying it. Fixes the index;
+    /// anything else is untouched. Returns whether anything changed.
+    @discardableResult
+    mutating func dropPredecessor(matching form: URL) -> Bool {
+        guard urls.count >= 2, urls[urls.count - 2].hasSameAddress(as: form) else { return false }
+        let at = urls.count - 2
+        urls.remove(at: at)
+        if urls.isEmpty {
+            index = -1
+        } else {
+            if at <= index { index -= 1 }
+            index = min(index, urls.count - 1)
+        }
+        return true
+    }
+
+    /// Folds an already-appended replace landing into its predecessor:
+    /// the landing (last entry) leaves and its address overwrites the
+    /// predecessor, since a replace commit (`location.replace`) takes no
+    /// history entry of its own — Back skips the replaced page entirely,
+    /// Chrome parity. Fixes the index onto the folded entry.
+    ///
+    /// Callers append the landing first (see `noteCommitted`): folding
+    /// `[a, b, c] + d` yields `[a, d]`, consuming exactly one predecessor.
+    /// A replace chain collapses hop by hop as each landing folds.
+    mutating func foldLanding(_ url: URL) {
+        guard !urls.isEmpty else { return }
+        urls.removeLast()
+        if urls.isEmpty {
+            urls.append(url)
+            index = 0
+        } else {
+            index = min(index, urls.count - 1)
+            urls[index] = url
+        }
+    }
+
+    /// Merges adjacent same-address repeats into one, keeping the later
+    /// entry and fixing the index onto the survivor. Traversing repeats is
+    /// meaningless — Back across them shows the same page — and bounces
+    /// collapse into repeats when their tracker drops out from between.
+    /// Every mutator funnels through here, and `init` too, so a restored or
+    /// bounced list can never hold a run.
+    mutating func collapseAdjacentDuplicates() {
+        guard urls.count >= 2 else { return }
+        var kept: [URL] = []
+        kept.reserveCapacity(urls.count)
+        var survivor = 0
+        for (i, url) in urls.enumerated() {
+            if let last = kept.last, url.hasSameAddress(as: last) {
+                kept[kept.count - 1] = url
+            } else {
+                kept.append(url)
+            }
+            if i == index {
+                survivor = kept.count - 1
+            }
+        }
+        urls = kept
+        index = survivor
     }
 
     /// Logs a committed address that bypassed `navigate(to:)`.
@@ -116,6 +187,7 @@ struct TabHistory: Equatable {
         }
         urls.append(url)
         index = urls.count - 1
+        collapseAdjacentDuplicates()
         return true
     }
 }
