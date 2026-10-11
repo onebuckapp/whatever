@@ -17,25 +17,30 @@
 
 import WebKit
 
-/// Records which link the page's own `contextmenu` event fired on.
+/// Records which link the page's own `contextmenu` event fired on, and which
+/// image.
 ///
-/// The menu needs the right-clicked link's address, and the page knows it
-/// exactly: when the user right-clicks, the browser dispatches a
-/// `contextmenu` event whose target is the element under the pointer. A
-/// capture listener resolves `closest('a[href]')` from that target and
-/// stores the href. Reading that beats the old approach of mapping the
-/// click's view coordinates back to a CSS point with `elementFromPoint`,
-/// which missed whenever the page's layout, scroll container, or zoom did
-/// not match the assumption — and a miss made the open-in-new items silently
-/// fall back to WebKit's in-place load.
+/// The menu needs the right-clicked link's address and the right-clicked
+/// image's source, and the page knows both exactly: when the user
+/// right-clicks, the browser dispatches a `contextmenu` event whose target
+/// is the element under the pointer. A capture listener resolves
+/// `closest('a[href]')` and `closest('img')` from that target and stores the
+/// href and the current source. Reading that beats the old approach of
+/// mapping the click's view coordinates back to a CSS point with
+/// `elementFromPoint`, which missed whenever the page's layout, scroll
+/// container, or zoom did not match the assumption — and a miss made the
+/// open-in-new items silently fall back to WebKit's in-place load.
 ///
 /// Injected on every page like the find bridge: tiny, idempotent, and
-/// harmless. The value is consumed (cleared) when a menu reads it, so a
-/// stale link can never leak into a later menu.
+/// harmless. The values are consumed (cleared) when a menu reads them, so a
+/// stale link or image can never leak into a later menu.
 @MainActor
 enum PageLinkCapture {
     /// The page variable the capture writes and the menu reads.
     static let variable = "__whateverContextLink"
+    /// The right-clicked image's source, beside the link above. `currentSrc`
+    /// before `src` so responsive images resolve to the variant on screen.
+    static let imageVariable = "__whateverContextImage"
     private static let installed = "__whateverContextCapture"
 
     nonisolated static var source: String {
@@ -44,10 +49,13 @@ enum PageLinkCapture {
             if (window.\(installed)) return;
             window.\(installed) = true;
             window.\(variable) = null;
+            window.\(imageVariable) = null;
             document.addEventListener('contextmenu', (event) => {
                 const target = event.target;
                 const anchor = target && target.closest ? target.closest('a[href]') : null;
                 window.\(variable) = anchor ? anchor.href : null;
+                const img = target && target.closest ? target.closest('img') : null;
+                window.\(imageVariable) = img ? (img.currentSrc || img.src) : null;
             }, true);
         })();
         """

@@ -297,6 +297,9 @@ final class BrowserPaneController: NSViewController {
             browserView.onOpenLinkInNewWindow = { [weak self] url in
                 self?.openLinkInNewWindow(url)
             }
+            browserView.onDownloadImage = { [weak self] url in
+                self?.downloadImage(url)
+            }
             browserView.onLinkHover = { [weak self] url in
                 if let url {
                     self?.showLinkHover(url)
@@ -369,6 +372,30 @@ final class BrowserPaneController: NSViewController {
             BrowserCoordinator.shared.newWindow(containing: fresh)
         } else {
             BrowserCoordinator.shared.newWindow(url: url)
+        }
+    }
+
+    /// Downloads a context-menu image through the download pipeline, so it
+    /// lands in the downloads folder and is recorded like any other
+    /// download. WebKit's own item is retaken for this: left alone it saves
+    /// without recording (why "Download Linked File" is removed outright),
+    /// and declined it does nothing at all. `startDownload` hands back the
+    /// transfer directly, so this needs no navigation policy — the adoption
+    /// mirrors the policy-driven one.
+    private func downloadImage(_ url: URL) {
+        guard let webView = tab.webView else {
+            SystemBeep.play()
+            return
+        }
+        webView.startDownload(using: URLRequest(url: url)) { download in
+            Task { @MainActor in
+                DownloadsCenter.shared.adopt(WebDownload(
+                    download: download,
+                    sourceURL: url,
+                    suggestedFilename: nil,
+                    bytesExpected: -1
+                ))
+            }
         }
     }
 

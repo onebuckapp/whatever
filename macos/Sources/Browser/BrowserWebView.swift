@@ -55,6 +55,11 @@ final class BrowserWebView: WKWebView {
     /// starts); handling it here with the resolved address makes it work.
     var onOpenLinkInNewWindow: ((URL) -> Void)?
 
+    /// Called for the retargeted "Download Image" item, with the
+    /// right-clicked image's address. Set by the hosting pane, which runs it
+    /// through the download pipeline.
+    var onDownloadImage: ((URL) -> Void)?
+
     /// WebKit's stable menu identifiers (locale-independent, unlike titles).
     ///
     /// The `WKMenuItemIdentifier*` constants are private API, so the raw
@@ -63,11 +68,20 @@ final class BrowserWebView: WKWebView {
     private static let openLinkID = "WKMenuItemIdentifierOpenLink"
     private static let openLinkInNewWindowID = "WKMenuItemIdentifierOpenLinkInNewWindow"
     private static let downloadLinkedFileID = "WKMenuItemIdentifierDownloadLinkedFile"
+    private static let openImageInNewWindowID = "WKMenuItemIdentifierOpenImageInNewWindow"
+    private static let downloadImageID = "WKMenuItemIdentifierDownloadImage"
 
     /// What the retargeted "Open Link" item is renamed to. WebKit's title
     /// describes its own behavior (load in place); ours opens a new tab, and
     /// the menu should say so next to "Open Link in New Window".
     static let openLinkInNewTabTitle = "Open Link in New Tab"
+
+    /// The image menu's own first item. WebKit offers no image-in-new-tab
+    /// item of its own, so this one is inserted, not retargeted.
+    static let openImageInNewTabItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.openImageInNewTab"
+    )
+    static let openImageInNewTabTitle = "Open in New Tab"
 
     /// The right-clicked link's address for the open menu, resolving while
     /// the menu opens and read when an item is chosen.
@@ -82,10 +96,13 @@ final class BrowserWebView: WKWebView {
     /// a UI API, and background evaluation answered nil whenever WebKit felt
     /// strict about it.
     private var linkMenuResolution: Task<URL?, Never>?
-    /// WebKit's original target and action per retargeted item, so a click
+    /// The right-clicked image's address for the open menu, resolved like
+    /// the link above and read when an image item is chosen.
+    private var imageMenuResolution: Task<URL?, Never>?
+    /// WebKit's original target and action per taken-over item, so a click
     /// that cannot be resolved still does what WebKit would have done.
     /// Keyed by identifier: there is at most one of each per menu.
-    private var linkFallbacks: [NSUserInterfaceItemIdentifier: (AnyObject?, Selector?)] = [:]
+    private var menuFallbacks: [NSUserInterfaceItemIdentifier: (AnyObject?, Selector?)] = [:]
 
     /// Whether WebKit should be left to paint an opaque page background.
     ///
@@ -317,6 +334,7 @@ final class BrowserWebView: WKWebView {
         }
 
         retargetLinkItems(in: menu)
+        retargetImageItems(in: menu)
     }
 
     @objc private func handleGenerateQRCode(_ sender: NSMenuItem?) {
@@ -407,7 +425,7 @@ final class BrowserWebView: WKWebView {
     /// click that cannot be resolved still does what WebKit would have done.
     private func takeOver(_ item: NSMenuItem, action: Selector) {
         guard item.target !== self, let id = item.identifier else { return }
-        linkFallbacks[id] = (item.target, item.action)
+        menuFallbacks[id] = (item.target, item.action)
         item.target = self
         item.action = action
     }
@@ -438,11 +456,150 @@ final class BrowserWebView: WKWebView {
         }
     }
 
+    /// Takes WebKit's image items over and leads the menu with "Open in New
+    /// Tab".
+    ///
+    /// Keyed off WebKit's own image item: only an image menu carries it, so
+    /// link, text, and page menus pass through untouched. WebKit's "Open
+    /// Image in New Window" dies in the declined new-view request like its
+    /// link sibling, and its "Download Image" saves without recording, so
+    /// both are retaken onto the working handlers; "Open in New Tab" has no
+    /// WebKit counterpart and is inserted first.
+    private func retargetImageItems(in menu: NSMenu) {
+        guard menu.items.contains(where: { $0.identifier?.rawValue == Self.openImageInNewWindowID }) else {
+            return
+        }
+        // WebKit can reuse a menu object, so do not stack duplicates.
+        if !menu.items.contains(where: { $0.identifier == Self.openImageInNewTabItemID }) {
+            let item = NSMenuItem(
+                title: Self.openImageInNewTabTitle,
+                action: #selector(handleOpenImageInNewTab(_:)),
+                keyEquivalent: ""
+            )
+            item.identifier = Self.openImageInNewTabItemID
+            item.target = self
+            item.isEnabled = true
+            menu.insertItem(item, at: 0)
+        }
+        // Resolved now, like the link: the image on screen is the one
+        // queried, whatever the page does before the choice.
+        imageMenuResolution?.cancel()
+        let point = Self.menuResolutionPoint(
+            press: menuPressPoint?.point,
+            pressedAt: menuPressPoint?.at,
+            cursor: cursorPoint()
+        )
+        imageMenuResolution = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled else { return nil }
+            let script = Self.imageResolutionScript(
+                viewX: point?.x,
+                viewY: point.map { bounds.height - $0.y }
+            )
+            let raw = try? await self.evaluateJavaScript(script)
+            guard let href = raw as? String, !href.isEmpty, let url = URL(string: href) else {
+                return nil
+            }
+            return url
+        }
+        for item in menu.items {
+            switch item.identifier?.rawValue {
+            case Self.openImageInNewWindowID:
+                takeOver(item, action: #selector(handleOpenImageInNewWindow(_:)))
+            case Self.downloadImageID:
+                takeOver(item, action: #selector(handleDownloadImage(_:)))
+            default:
+                break
+            }
+        }
+    }
+
+    @objc private func handleOpenImageInNewTab(_ sender: NSMenuItem) {
+        // Ours, not WebKit's, so there is no original behavior to fall back
+        // to: an unresolvable image beeps rather than silently swallowing
+        // the click.
+        let resolution = imageMenuResolution
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let url = await resolution?.value {
+                self.onOpenLinkInNewTab?(url)
+            } else {
+                SystemBeep.play()
+            }
+        }
+    }
+
+    @objc private func handleOpenImageInNewWindow(_ sender: NSMenuItem) {
+        let resolution = imageMenuResolution
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let url = await resolution?.value {
+                self.onOpenLinkInNewWindow?(url)
+            } else {
+                self.fallBack(sender)
+            }
+        }
+    }
+
+    @objc private func handleDownloadImage(_ sender: NSMenuItem) {
+        let resolution = imageMenuResolution
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let url = await resolution?.value {
+                self.onDownloadImage?(url)
+            } else {
+                self.fallBack(sender)
+            }
+        }
+    }
+
+    /// The script the menu runs to find the right-clicked image.
+    ///
+    /// Prefers the source the page's own `contextmenu` event captured, which
+    /// needs no coordinate math and cannot drift with layout, scroll, or
+    /// zoom. Falls back to the point-based lookup only when the page never
+    /// fired a `contextmenu` (or the script was not yet installed), and
+    /// clears the captured value either way so it cannot leak into the next
+    /// menu.
+    static func imageResolutionScript(viewX: CGFloat?, viewY: CGFloat?) -> String {
+        let coordinate: String
+        if let viewX, let viewY {
+            coordinate = "return \(imageLookupScript(viewX: viewX, viewY: viewY));"
+        } else {
+            coordinate = "return null;"
+        }
+        return """
+        (() => {
+            const captured = window.\(PageLinkCapture.imageVariable);
+            window.\(PageLinkCapture.imageVariable) = null;
+            if (captured) return captured;
+            \(coordinate)
+        })()
+        """
+    }
+
+    /// The image lookup for a right-click at view coordinates with a
+    /// top-left origin. Pure so tests can prove the coordinate math without
+    /// a web view. The menu's fallback path, not its first choice.
+    /// `currentSrc` before `src` so a responsive image resolves to the
+    /// variant on screen rather than its default.
+    static func imageLookupScript(viewX: CGFloat, viewY: CGFloat) -> String {
+        """
+        (() => {
+            const zoom = (window.visualViewport && window.visualViewport.scale) || 1;
+            const x = \(viewX) / zoom - window.scrollX;
+            const y = \(viewY) / zoom - window.scrollY;
+            const el = document.elementFromPoint(x, y);
+            const img = el && el.closest ? el.closest('img') : null;
+            return img ? (img.currentSrc || img.src) : null;
+        })()
+        """
+    }
+
     /// Replays WebKit's original item behavior: the target is WebKit's own
     /// menu proxy, held rather than named, so no private API is touched.
     private func fallBack(_ sender: NSMenuItem) {
         guard let id = sender.identifier,
-            let (target, action) = linkFallbacks[id],
+            let (target, action) = menuFallbacks[id],
             let action,
             let target
         else {
