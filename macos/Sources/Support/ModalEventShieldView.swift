@@ -46,6 +46,18 @@ final class ModalEventShieldView: NSView {
     /// only a genuine click on the shield itself dismisses.
     var dismissOnPress = true
 
+    /// Optional box, in this view's own coordinates, inside which presses
+    /// never arm and releases never fire.
+    ///
+    /// The shield sits below the popup host, so it should only ever see
+    /// backdrop taps — but routing can deliver a tap inside the card to it
+    /// when SwiftUI hit-testing finds nothing there (the card's own guard
+    /// wins AppKit hit-testing for its whole rect, yet the event still
+    /// lands here). Such a leak must die silently instead of dismissing
+    /// the dialog. The settings card sets this to its own rect; other
+    /// cards leave it nil and keep today's behavior exactly.
+    var exclusionProvider: (() -> NSRect?)?
+
     /// Press position (window coordinates) arming a click while
     /// `dismissOnPress` is false. Nil when no press is outstanding.
     private var pressPoint: NSPoint?
@@ -74,7 +86,22 @@ final class ModalEventShieldView: NSView {
         self
     }
 
+    /// Whether a press inside the exclusion box (see `exclusionProvider`)
+    /// should be ignored. Converts through the window, so this needs the
+    /// shield to be in a live hierarchy; without one there is no box to be
+    /// inside of and nothing is excluded.
+    private func pointExcluded(_ event: NSEvent) -> Bool {
+        guard let box = exclusionProvider?(), window != nil else { return false }
+        return box.contains(convert(event.locationInWindow, from: nil))
+    }
+
     override func mouseDown(with event: NSEvent) {
+        // A press inside the card rect is a routing leak, not a backdrop
+        // click: it should have gone to the popup host above. Never arm
+        // on it, or its release would dismiss the dialog.
+        if pointExcluded(event) {
+            return
+        }
         if dismissOnPress {
             onClick?()
         } else {
@@ -103,6 +130,13 @@ final class ModalEventShieldView: NSView {
     /// A press that starts on the page and is released over the shield
     /// (or vice versa) must not activate the content underneath either.
     override func mouseUp(with event: NSEvent) {
+        // A release inside the card rect ends a gesture that belongs to
+        // the card (or a routing leak like the press above): never fire
+        // on it, or a drag ending over the dialog would dismiss it.
+        if pointExcluded(event) {
+            pressPoint = nil
+            return
+        }
         if dismissOnPress {
             onClick?()
         } else {

@@ -195,7 +195,16 @@ final class BrowserWindowContentViewController: NSViewController {
         // through the host and the deafened page down to this shield. Firing
         // on that lone release would dismiss the card the user was dragging
         // inside of, so only a press and release both on the shield count.
-        claimShield(id: "settings", dismissOnPress: false) { [weak self] in
+        //
+        // The card rect travels with the claim: routing can deliver a tap
+        // from inside the card to this shield (below the popup host) when
+        // SwiftUI hit-testing finds nothing there, and that leak must die
+        // silently instead of dismissing the dialog. Evaluated per press
+        // from live bounds, so resizes cannot strand a stale rect.
+        claimShield(id: "settings", dismissOnPress: false, cardRectProvider: { [weak self] in
+            guard let view = self?.view else { return nil }
+            return SettingsCardGeometry.box(in: view.bounds)
+        }) { [weak self] in
             Task { @MainActor in
                 self?.dismissSettings()
             }
@@ -574,6 +583,11 @@ final class BrowserWindowContentViewController: NSViewController {
     private struct ShieldClaim {
         let id: String
         var dismissOnPress: Bool
+        /// Card rect the shield must ignore, in the shield's own
+        /// coordinates. Set by cards whose taps can leak through the popup
+        /// host above (see `ModalEventShieldView.exclusionProvider`); nil
+        /// keeps today's behavior exactly.
+        var cardRectProvider: (() -> NSRect?)?
         var onDismiss: () -> Void
     }
 
@@ -584,9 +598,14 @@ final class BrowserWindowContentViewController: NSViewController {
     /// is frontmost — it must dismiss the card, which releases the claim.
     /// Below the toolbar, so navigation and the address bar keep working while
     /// a card is up.
-    func claimShield(id: String, dismissOnPress: Bool, onDismiss: @escaping () -> Void) {
+    func claimShield(
+        id: String,
+        dismissOnPress: Bool,
+        cardRectProvider: (() -> NSRect?)? = nil,
+        onDismiss: @escaping () -> Void
+    ) {
         shieldClaims.removeAll { $0.id == id }
-        shieldClaims.append(ShieldClaim(id: id, dismissOnPress: dismissOnPress, onDismiss: onDismiss))
+        shieldClaims.append(ShieldClaim(id: id, dismissOnPress: dismissOnPress, cardRectProvider: cardRectProvider, onDismiss: onDismiss))
         if shield == nil {
             let installed = ModalEventShieldView.install(in: view, below: toolbarView) { [weak self] in
                 self?.dismissTopShieldClaim()
@@ -611,8 +630,11 @@ final class BrowserWindowContentViewController: NSViewController {
 
     /// The frontmost claim owns the press behavior: a card that dismisses on
     /// a bare press must not inherit another card's press-and-release rule.
+    /// Its card rect (if any) travels with it, so coexisting cards never
+    /// lend each other cover.
     private func refreshShieldTop() {
         shield?.dismissOnPress = shieldClaims.last?.dismissOnPress ?? true
+        shield?.exclusionProvider = shieldClaims.last?.cardRectProvider
     }
 
     private func dismissTopShieldClaim() {

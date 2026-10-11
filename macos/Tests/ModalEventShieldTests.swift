@@ -27,10 +27,10 @@ import Testing
 /// swallowed, not treated as a dismissal.
 @MainActor
 struct ModalEventShieldTests {
-    private func press(_ type: NSEvent.EventType) -> NSEvent {
+    private func press(_ type: NSEvent.EventType, at location: NSPoint = NSPoint(x: 10, y: 10)) -> NSEvent {
         NSEvent.mouseEvent(
             with: type,
-            location: NSPoint(x: 10, y: 10),
+            location: location,
             modifierFlags: [],
             timestamp: 0,
             windowNumber: 0,
@@ -69,6 +69,42 @@ struct ModalEventShieldTests {
 
         shield.mouseDown(with: press(.leftMouseDown))
         shield.mouseUp(with: press(.leftMouseUp))
+        #expect(clicks == 1)
+    }
+
+    @Test("presses inside the exclusion box never arm or fire")
+    func exclusionBox() {
+        // A window so window-to-view conversion is real: the box lives in
+        // the shield's own coordinates.
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 400),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 400))
+        window.contentView?.addSubview(container)
+        let shield = ModalEventShieldView()
+        shield.dismissOnPress = false
+        shield.frame = container.bounds
+        container.addSubview(shield)
+        shield.exclusionProvider = { NSRect(x: 100, y: 100, width: 200, height: 200) }
+        var clicks = 0
+        shield.onClick = { clicks += 1 }
+
+        // Press and release inside the box: a routing leak, dies silently.
+        shield.mouseDown(with: press(.leftMouseDown, at: NSPoint(x: 200, y: 200)))
+        shield.mouseUp(with: press(.leftMouseUp, at: NSPoint(x: 200, y: 200)))
+        #expect(clicks == 0)
+
+        // Press and release outside the box: a genuine backdrop click.
+        shield.mouseDown(with: press(.leftMouseDown, at: NSPoint(x: 10, y: 10)))
+        shield.mouseUp(with: press(.leftMouseUp, at: NSPoint(x: 10, y: 10)))
+        #expect(clicks == 1)
+
+        // Press outside, release inside: a drag ending over the card.
+        shield.mouseDown(with: press(.leftMouseDown, at: NSPoint(x: 10, y: 10)))
+        shield.mouseUp(with: press(.leftMouseUp, at: NSPoint(x: 200, y: 200)))
         #expect(clicks == 1)
     }
 }

@@ -177,6 +177,7 @@ targets:
       - path: Tests
     dependencies:
       - target: Whatever
+      - package: MijickPopups
     settings:
       base:
         PRODUCT_NAME: WhateverTests

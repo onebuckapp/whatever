@@ -23,22 +23,43 @@ import SwiftUI
 ///
 /// Styled exactly like the QR card — same backdrop opacity, corner radius, two
 /// shadows, and vertical padding for shadow room — so the two read as one family
-/// of dialogs. The click shield matters as much as the looks: a clear layer
-/// behind the content claims taps on empty card space, without which they fall
-/// through to Mijick's tap-outside layer and close the dialog the user was
-/// trying to click inside. It sits behind rather than on the card so field and
-/// button taps never arbitrate against it (see the card body).
+/// of dialogs. Outside dismissal belongs to the window's modal shield, not to
+/// Mijick's tap-outside layer: the card's tap guard wins hit-testing for taps
+/// on empty card space (they resolve to the hosting view, never to anything
+/// below it), but Mijick's overlay tap behind it still fires for those taps
+/// and would close the dialog the user was trying to click inside. So
+/// tap-outside stays off here while the shield keeps dismissing genuine
+/// backdrop clicks with click semantics.
 struct SettingsModalPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
     let section: SettingsSection
 
-    func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
+    /// The popup configuration shared by the stack registration and the
+    /// popup itself, so the two cannot drift apart. Tap-outside is off (see
+    /// above); the clear backdrop this configures is purely visual.
+    ///
+    /// Two overloads because Mijick types the stack default
+    /// (`GlobalConfigCenter`) and the popup override (`CenterPopupConfig`)
+    /// differently; both must agree.
+    static func cardPopupConfig(_ config: CenterPopupConfig) -> CenterPopupConfig {
         config
             .backgroundColor(.clear)
             .cornerRadius(20)
             .overlayColor(.clear)
-            .tapOutsideToDismissPopup(true)
+            .tapOutsideToDismissPopup(false)
+    }
+
+    static func cardStackConfig(_ config: GlobalConfigCenter) -> GlobalConfigCenter {
+        config
+            .backgroundColor(.clear)
+            .cornerRadius(20)
+            .overlayColor(.clear)
+            .tapOutsideToDismissPopup(false)
+    }
+
+    func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
+        Self.cardPopupConfig(config)
     }
 
     func onDismiss() {
@@ -167,14 +188,20 @@ private struct SettingsModalCard: View {
         // stays centered.
         .padding(.vertical, 88)
         // Claims taps on empty card space — including the transparent shadow
-        // room — so they never reach Mijick's tap-outside layer and dismiss
-        // the dialog the user was trying to click inside. This used to be a
-        // plain `.onTapGesture {}` on the card itself, but as an ancestor of
-        // every control it joined the gesture arbitration of each field tap:
-        // the caret (AppKit, on press) landed instantly while the focus ring
-        // (SwiftUI, on tap recognition) waited behind it, which is the lag
-        // this replaces. Behind the content instead, field and button taps
-        // never meet this gesture — only taps that hit nothing else do.
+        // room — at hit-testing time, so they resolve to the hosting view
+        // instead of falling through to the modal shield below it (which
+        // would dismiss the dialog the user was trying to click inside).
+        // This used to be a plain `.onTapGesture {}` on the card itself,
+        // but as an ancestor of every control it joined the gesture
+        // arbitration of each field tap: the caret (AppKit, on press)
+        // landed instantly while the focus ring (SwiftUI, on tap
+        // recognition) waited behind it, which is the lag this replaces.
+        // Behind the content instead, field and button taps never meet this
+        // gesture — only taps that hit nothing else do. Mijick's own
+        // tap-outside layer stays off for this card (see
+        // `SettingsModalPopup`): its tap fires even for taps this guard
+        // wins, so leaving it on would close the dialog from the shadow
+        // room anyway.
         .background(
             Color.clear
                 .contentShape(Rectangle())
@@ -303,11 +330,7 @@ struct SettingsModalRootView: View {
         Color.clear
             .registerPopups(id: stackID) { config in
                 config.center { popup in
-                    popup
-                        .backgroundColor(.clear)
-                        .cornerRadius(20)
-                        .overlayColor(.clear)
-                        .tapOutsideToDismissPopup(true)
+                    SettingsModalPopup.cardStackConfig(popup)
                 }
             }
             .task {
@@ -365,6 +388,28 @@ final class SettingsModalCoordinator {
 @MainActor
 final class SettingsPrewarmFlag {
     var cancelled = false
+}
+
+/// The settings card's footprint for input routing: the 720 by 520 card
+/// plus its 88pt of shadow room above and below, with a little slack so a
+/// press on the boundary keeps backdrop behavior instead of joining the
+/// card. Centered in the host, which fills the container.
+///
+/// One source of truth for the two layers that classify presses: the
+/// presenter's backdrop-drag monitor and the window shield's exclusion
+/// box must agree on where the card is, or a press could count as card in
+/// one and backdrop in the other.
+enum SettingsCardGeometry {
+    static let size = NSSize(width: 736, height: 712)
+
+    static func box(in bounds: NSRect) -> NSRect {
+        NSRect(
+            x: (bounds.width - size.width) / 2,
+            y: (bounds.height - size.height) / 2,
+            width: size.width,
+            height: size.height
+        )
+    }
 }
 
 /// Bridges the window to Mijick/Popups for the settings card.
@@ -507,21 +552,12 @@ final class SettingsModalPresenter {
 
     /// Whether a press landed on the dimmed backdrop rather than the card.
     ///
-    /// The card's hit box is its 720 by 520 frame plus the 88pt of shadow
-    /// room above and below it, which is inside the card's tap area and
-    /// looks like backdrop. Centered in the host, which fills the container.
-    /// Expanded slightly, so a press on the boundary keeps today's behavior
-    /// instead of joining the drag guard.
+    /// Measured against `SettingsCardGeometry` so the monitor and the
+    /// shield classify every press the same way.
     private func pressIsOnBackdrop(_ event: NSEvent) -> Bool {
         guard let container else { return false }
         let point = container.convert(event.locationInWindow, from: nil)
-        let bounds = container.bounds
-        let box = NSRect(
-            x: (bounds.width - 736) / 2,
-            y: (bounds.height - 712) / 2,
-            width: 736,
-            height: 712
-        )
+        let box = SettingsCardGeometry.box(in: container.bounds)
         return !box.contains(point)
     }
 
