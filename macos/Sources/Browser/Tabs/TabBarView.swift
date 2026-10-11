@@ -729,7 +729,7 @@ final class TabBarContainerView: NSView {
     static func newTabButtonY(barHeight: CGFloat, shape: TabShape) -> CGFloat {
         let metrics = TabBarView.cellVerticalMetrics(barHeight: barHeight, shape: shape)
         let bandBottom = barHeight - (metrics.y + metrics.height)
-        let nudge: CGFloat = shape == .attached ? -2 : 0
+        let nudge: CGFloat = shape == .attached ? 0 : 0
         return bandBottom + (metrics.height - BrowserToolbarButton.outerHeight) / 2 + nudge
     }
 
