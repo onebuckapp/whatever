@@ -177,7 +177,7 @@ suite "store c abi":
     ## The `/url?q=<destination>` hop: raw (unencoded) destination in `q`,
     ## alongside opaque `opi`/`ved`/`usg` parameters.
     let google =
-      "https://www.google.com/url?opi=89978449&q=https://www.la-doi-pasi.ro/reteta/reteta-simpla-de-pine-de-casa.html&sa=U&ved=2ahUKEwiIhdfIorKXAxUsAtsEHeMuO4cQFnoECAcQAg&usg=AOvVaw3NHicRD7y6Bf5B1Zm2lKJ3"
+      "https://www.google.com/url?opi=89978449&q=https://en.wikipedia.org/wiki/Baruch_Spinoza&sa=U&ved=2ahUKEwixicue0LKXAxUwS_EDHYwhOhoQFnoECAkQAg&usg=AOvVaw17kwHT9jlFkSogKaCETRBS"
     check hasEmbeddedLink(google)
     check bcHistoryShouldRecord(google.cstring) == 0'i32
     check historyRecord(google.cstring, "Tracker".cstring, 1_700_002_050, -1) == Ok
