@@ -275,11 +275,15 @@ struct TabStripScrollTests {
         let button = container.newTabButtonFrameForTesting
         // One cell gap past the last cell, in strip space: nothing scrolled.
         #expect(abs(button.minX - (lastMaxX + 4)) < 0.5)
-        // Vertically centered on the tab cells: the strip is flipped
-        // (midY from the top) and the container is not (midY from the
-        // bottom), so the button's midpoint is mirrored for comparison.
-        let lastMidY = container.strip.cellFramesForTesting.last!.midY
-        #expect(abs((container.bounds.height - button.midY) - lastMidY) < 0.5)
+        // On the band the layout computed for the live shape: the math itself
+        // is pinned in TabShapeTests, so this only proves the container uses
+        // it (attached included, with its 2pt nudge below the band midpoint).
+        let shape = SettingsStore.shared.settings.appearance.tabShape
+        let expectedMidY = TabBarContainerView.newTabButtonY(
+            barHeight: container.bounds.height,
+            shape: shape
+        ) + BrowserToolbarButton.outerHeight / 2
+        #expect(abs(button.midY - expectedMidY) < 0.5)
         // Well short of the trailing edge it would pin to on overflow.
         #expect(button.maxX < container.bounds.width - 4)
     }

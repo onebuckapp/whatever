@@ -105,6 +105,10 @@ final class TabBarView: NSView {
     }
 
     private var insertionIndex: Int?
+    /// Shape the strip last laid out for. Compared in `layout` so a shape
+    /// change marks the container (whose new-tab button centers on the cell
+    /// band) instead of leaving it a pass behind.
+    private var lastLaidOutShape: TabShape?
 
     override var isFlipped: Bool { true }
 
@@ -313,6 +317,15 @@ final class TabBarView: NSView {
     override func layout() {
         super.layout()
         let shape = SettingsStore.shared.settings.appearance.tabShape
+        if shape != lastLaidOutShape {
+            // The cell band moved (attached flush <-> pills floating), and the
+            // container centers the new-tab button on that band. Cells mark
+            // the strip on a shape change but nobody marks the container, so
+            // without this the button rides a layout pass behind the cells.
+            // Settles immediately: the next pass reads the same shape.
+            lastLaidOutShape = shape
+            superview?.needsLayout = true
+        }
         let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape)
         let tabs = visualTabs()
         let frames = Self.cellFrames(
@@ -699,6 +712,27 @@ final class TabBarContainerView: NSView {
         newTabButton.frame
     }
 
+    /// Y of the new-tab button in the container's bottom-origin coordinates:
+    /// centered on the cell band for `shape`, so it rides up with pills and
+    /// sits back down for attached tabs. Static so the alignment is testable
+    /// without laying out views.
+    ///
+    /// The band math lives in the strip's flipped (top-origin) space, where
+    /// `cellVerticalMetrics` reports it; the container is bottom-origin, so
+    /// the band's bottom edge sits at `barHeight - (y + height)` from the
+    /// bottom.
+    ///
+    /// Attached tabs run flush to the bar's bottom edge, which drags the eye
+    /// down: the button sits 2pt below the band midpoint so it reads aligned
+    /// with the flush cells rather than floating above them. Pills float
+    /// centered already and need no nudge.
+    static func newTabButtonY(barHeight: CGFloat, shape: TabShape) -> CGFloat {
+        let metrics = TabBarView.cellVerticalMetrics(barHeight: barHeight, shape: shape)
+        let bandBottom = barHeight - (metrics.y + metrics.height)
+        let nudge: CGFloat = shape == .attached ? -2 : 0
+        return bandBottom + (metrics.height - BrowserToolbarButton.outerHeight) / 2 + nudge
+    }
+
     /// Scrolls the strip so `offset` becomes the visible origin. For tests.
     func scrollToForTesting(_ offset: CGFloat) {
         let maxX = max(0, strip.preferredWidth - scrollView.contentView.bounds.width)
@@ -952,12 +986,15 @@ final class TabBarContainerView: NSView {
             : min(strip.trailingContentX - clip.bounds.origin.x + Self.newTabGap, fixedX)
         newTabButton.frame = NSRect(
             x: buttonX,
-            // Centered on the cell band, in the container's own
-            // bottom-origin coordinates: the band runs flush to the bottom
-            // edge up to 4pt from the top, so its midpoint is
-            // (height - 4) / 2. The old formula added 4 on top, which
-            // centers only in flipped space and parked the button high.
-            y: (max(0, bounds.height - 4) - BrowserToolbarButton.outerHeight) / 2,
+            // Centered on the live cell band, not a fixed midpoint: pills
+            // float 4pt above the bottom edge while attached cells sit flush
+            // on it, and one midpoint parks the button low for one shape or
+            // high for the other. In the container's own bottom-origin
+            // coordinates; see `newTabButtonY` for the flip from the strip's.
+            y: Self.newTabButtonY(
+                barHeight: bounds.height,
+                shape: SettingsStore.shared.settings.appearance.tabShape
+            ),
             width: BrowserToolbarButton.outerWidth,
             height: BrowserToolbarButton.outerHeight
         )
