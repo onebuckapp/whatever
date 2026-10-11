@@ -1131,35 +1131,65 @@ final class BrowserWindowController: NSWindowController {
             + Array(others[min(anchor, others.count)...])
     }
 
-    /// Splits the selected tab with the next tab in the tab bar.
-    func splitWithNextTab() {
-        guard let tab = selectedTab,
-              let index = tabs.firstIndex(where: { $0.id == tab.id }),
-              tabs.indices.contains(index + 1)
+    /// Splits the given tab with the next tab in the tab bar. Nil anchors on
+    /// the selection, for the menu bar and shortcuts, which have no clicked
+    /// tab.
+    ///
+    /// Anchored on the clicked tab from context menus: right-clicking does
+    /// not select, so a selection-anchored split could rebuild panes around
+    /// two tabs the user never pointed at — including re-hosting a page
+    /// whose stored microphone grant refires macOS's permission prompt.
+    /// On the last tab there is no next tab, so this beeps and does nothing.
+    func splitWithNextTab(after clickedTab: BrowserTab? = nil) {
+        let anchor = clickedTab ?? selectedTab
+        guard let tab = anchor,
+              let next = Self.nextTab(after: tab, in: tabs)
         else {
             SystemBeep.play()
             return
         }
         if isSplit {
-            replacePane(with: tabs[index + 1], zone: .trailing)
+            replacePane(with: next, zone: .trailing)
         } else {
-            createSplit(currentTab: tab, droppedTab: tabs[index + 1], zone: .trailing)
+            createSplit(currentTab: tab, droppedTab: next, zone: .trailing)
         }
     }
 
-    func splitWithPreviousTab() {
-        guard let tab = selectedTab,
-              let index = tabs.firstIndex(where: { $0.id == tab.id }),
-              index > 0
+    /// The tab after `tab`, for split-with-next and its menu gating. Nil for
+    /// the last tab and for tabs outside the window. Static so the anchor
+    /// rule is testable without a window.
+    static func nextTab(after tab: BrowserTab, in tabs: [BrowserTab]) -> BrowserTab? {
+        guard let index = tabs.firstIndex(where: { $0.id == tab.id }),
+              tabs.indices.contains(index + 1)
+        else { return nil }
+        return tabs[index + 1]
+    }
+
+    /// Splits the given tab with the previous tab in the tab bar. Same
+    /// clicked-tab anchoring as `splitWithNextTab`: the context menu acts on
+    /// the tab it was opened over, never on wherever the selection happens
+    /// to sit.
+    func splitWithPreviousTab(before clickedTab: BrowserTab? = nil) {
+        let anchor = clickedTab ?? selectedTab
+        guard let tab = anchor,
+              let previous = Self.previousTab(before: tab, in: tabs)
         else {
             SystemBeep.play()
             return
         }
         if isSplit {
-            replacePane(with: tabs[index - 1], zone: .leading)
+            replacePane(with: previous, zone: .leading)
         } else {
-            createSplit(currentTab: tab, droppedTab: tabs[index - 1], zone: .leading)
+            createSplit(currentTab: tab, droppedTab: previous, zone: .leading)
         }
+    }
+
+    /// The tab before `tab`, mirroring `nextTab(after:in:)`.
+    static func previousTab(before tab: BrowserTab, in tabs: [BrowserTab]) -> BrowserTab? {
+        guard let index = tabs.firstIndex(where: { $0.id == tab.id }),
+              index > 0
+        else { return nil }
+        return tabs[index - 1]
     }
 
     /// Removes the pane showing `tab` and collapses back to one pane.

@@ -100,7 +100,11 @@ enum BrowserTabContextMenu {
 
         menu.addItem(.separator())
 
-        add("Split with Next Tab", .splitWithNextTab, to: menu, target: target)
+        // Offered only when the clicked tab has a next sibling: on the last
+        // tab there is nothing to split with, so no item and no beep.
+        if BrowserWindowController.nextTab(after: tab, in: controller.tabs) != nil {
+            add("Split with Next Tab", .splitWithNextTab, to: menu, target: target)
+        }
         if controller.displayedTabs.count > 1 {
             add("Split with Previous Tab", .splitWithPreviousTab, to: menu, target: target)
             add("Close Pane", .closePane, to: menu, target: target)
@@ -151,9 +155,9 @@ enum BrowserTabContextMenu {
             controller.dissolveGroupIfContains(tab)
             controller.refresh()
         case .splitWithNextTab:
-            controller.splitWithNextTab()
+            controller.splitWithNextTab(after: tab)
         case .splitWithPreviousTab:
-            controller.splitWithPreviousTab()
+            controller.splitWithPreviousTab(before: tab)
         case .closePane:
             controller.closePane(tab)
         case .ungroupSplit, .openGroupInNewWindow:
