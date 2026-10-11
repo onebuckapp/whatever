@@ -720,12 +720,8 @@ final class TabBarContainerView: NSView {
     /// The band math lives in the strip's flipped (top-origin) space, where
     /// `cellVerticalMetrics` reports it; the container is bottom-origin, so
     /// the band's bottom edge sits at `barHeight - (y + height)` from the
-    /// bottom.
-    ///
-    /// Attached tabs run flush to the bar's bottom edge, which drags the eye
-    /// down: the button sits 2pt below the band midpoint so it reads aligned
-    /// with the flush cells rather than floating above them. Pills float
-    /// centered already and need no nudge.
+    /// bottom. No per-shape nudge: the button sits on the band midpoint in
+    /// both shapes.
     static func newTabButtonY(barHeight: CGFloat, shape: TabShape) -> CGFloat {
         let metrics = TabBarView.cellVerticalMetrics(barHeight: barHeight, shape: shape)
         let bandBottom = barHeight - (metrics.y + metrics.height)

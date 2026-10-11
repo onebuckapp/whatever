@@ -81,12 +81,11 @@ struct TabShapeTests {
     func newTabButtonAlignment() {
         let buttonH = BrowserToolbarButton.outerHeight
         let attachedY = TabBarContainerView.newTabButtonY(barHeight: 36, shape: .attached)
-        // Attached sits 2pt below the flush band's midpoint; pills float
-        // centered on theirs.
-        #expect(attachedY == (32 - buttonH) / 2 - 2)
+        // No nudge either way: the button sits on the band midpoint.
+        #expect(attachedY == (32 - buttonH) / 2)
         let pillsY = TabBarContainerView.newTabButtonY(barHeight: 36, shape: .pills)
         #expect(pillsY == 4 + (28 - buttonH) / 2)
-        #expect(attachedY + buttonH / 2 == 14)
+        #expect(attachedY + buttonH / 2 == 16)
         #expect(pillsY + buttonH / 2 == 18)
     }
 
