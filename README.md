@@ -39,6 +39,21 @@
 - Favicons, thumbnails, retention limits, offline reading
 - Headline crawl bar: scrolling ticker with speed, direction, font size, separator, and favicons!
 
+**Bookmarks**
+- Toggleable bookmark bar under the toolbar, with favicons, folders, and drag-to-reorder
+- Star in the address bar to bookmark the current page; editor popup for title, address, and folder
+- Links and folders with rename, move, and delete — from the bar, its context menu, or Settings
+- Bookmarks surface in the Spotlight address bar through fuzzy matching
+- Local-first: each bookmark is its own on-device document, and failed writes heal back to persisted truth
+
+**On-device Password Manager**
+- Encrypted vault that never leaves the machine: Argon2id key derivation with XChaCha20-Poly1305, opened by a master password with a reminder hint
+- Decrypted in memory only while unlocked; one click locks it and clears the plaintext copy
+- Per-site entries with favicons and multiple username / password pairs each
+- Reveal, copy to clipboard, and delete per credential, with live strength scoring
+- Built-in generator: random characters (length and character sets) or EFF diceware words with separator, capitalization, and trailing-number options
+- No accounts, no sync servers, ever
+
 **Extras**
 - Share any page as a QR Code
 - Beautiful film-grain overlay over the entire Web
@@ -47,7 +62,7 @@
   - Linear/Radial gradients
   - Image or Video
 - Beautiful Settings modal (General, Appearance, Web, Blocker, Bookmarks, Feeds, History, Search, Downloads)
-- Bookmarks (in progress) and searchable History
+- Searchable History
 - Written in Nim language and Swift
 - Open Source | `GPLv3` License
 
