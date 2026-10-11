@@ -40,6 +40,19 @@ struct WhateverApp: App {
                     AppDelegate.showAbout()
                 }
             }
+            // The stock Quit item quits on the first ⌘Q. Ours warns instead:
+            // a keyDown arms the two-press confirmation, while a menu click
+            // is deliberate pointer input and quits at once. The Dock menu,
+            // shutdown, and direct `terminate:` calls never pass through here
+            // and keep quitting immediately.
+            CommandGroup(replacing: .appTermination) {
+                Button("Quit Whatever") {
+                    let source: QuitConfirmation.RequestSource =
+                        NSApp.currentEvent?.type == .keyDown ? .keyboard : .menu
+                    QuitConfirmation.shared.handleQuitRequest(source: source)
+                }
+                .keyboardShortcut("q", modifiers: .command)
+            }
             CommandGroup(replacing: .newItem) {
                 Button("New Tab") {
                     BrowserCoordinator.shared.newTab()

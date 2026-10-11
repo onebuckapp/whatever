@@ -95,6 +95,28 @@ struct AppSettings: Codable, Equatable {
         /// Re-visit of the same URL inside this window updates the existing
         /// history row instead of adding a near-duplicate. Seconds.
         var historyCollapseWindow: Double = 10
+        /// First ⌘Q shows "Press ⌘Q again to quit" instead of quitting at
+        /// once. Off restores the stock one-press quit.
+        var warnBeforeQuitting = true
+
+        enum CodingKeys: String, CodingKey {
+            case restoreSession, recordsHistory, historyCollapseWindow, warnBeforeQuitting
+        }
+
+        init() {}
+
+        /// Tolerant like the other groups: `warnBeforeQuitting` postdates
+        /// every existing document, and a whole-group fallback here would
+        /// silently reset `restoreSession` and `recordsHistory` for those
+        /// users on first launch.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            restoreSession = try container.decodeIfPresent(Bool.self, forKey: .restoreSession) ?? true
+            recordsHistory = try container.decodeIfPresent(Bool.self, forKey: .recordsHistory) ?? true
+            historyCollapseWindow = try container.decodeIfPresent(Double.self, forKey: .historyCollapseWindow)
+                ?? 10
+            warnBeforeQuitting = try container.decodeIfPresent(Bool.self, forKey: .warnBeforeQuitting) ?? true
+        }
     }
 
     /// The grain overlay's tunables, moved here from their old UserDefaults

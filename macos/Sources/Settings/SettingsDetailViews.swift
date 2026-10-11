@@ -104,6 +104,17 @@ struct GeneralSettingsView: View {
             }
 
             SettingsGroup(
+                title: "Quitting",
+                footnote: "The second press quits at once, even with windows open."
+            ) {
+                SettingsToggleRow(
+                    title: "Confirm before quitting",
+                    subtitle: "First ⌘Q shows a prompt; press ⌘Q again to quit.",
+                    isOn: store.binding(\.general.warnBeforeQuitting)
+                )
+            }
+
+            SettingsGroup(
                 title: "History",
                 footnote: "Private tabs are never recorded, whatever this says."
             ) {
