@@ -34,6 +34,12 @@ final class SpotlightController {
     private var results: [HistoryFuzzyEntry] = []
     private var selectedIndex: Int?
 
+    /// The user's typed text, stashed on every keystroke and focus visit.
+    /// Arrowing onto a history row replaces the field with that row's URL;
+    /// arrowing back onto the search row restores this rather than leaving
+    /// the last-filled URL behind.
+    private var typedText = ""
+
     private var pendingSearch: Task<Void, Never>?
     private var generation = 0
     /// Held only while the panel is open. See `installOutsideClickMonitor`.
@@ -110,6 +116,7 @@ final class SpotlightController {
         pendingSearch?.cancel()
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        typedText = trimmed
         // Empty means "most recent", not "nothing": clearing the field should still
         // offer somewhere to go. Below the minimum, nothing — one character is not
         // a search, it is a prefix, and a dropdown of everything for it is noise.
@@ -384,6 +391,7 @@ final class SpotlightController {
         generation += 1
         results = []
         selectedIndex = nil
+        typedText = ""
         fieldView?.isOpen = false
         // Hidden, never removed: see `panel`. Removing it is what threw away the
         // constraints pinning it to the bar, which left it 160pt wide with no layout
@@ -465,6 +473,7 @@ final class SpotlightController {
         // The arrows pull the list with the selection; hover leaves the scroll
         // position alone for the mouse user to drive by hand.
         refreshResults(scrollToSelection: true)
+        reflectSelectionInField()
     }
 
     /// Walks the selection with wraparound for Tab (`forward`) and
@@ -484,6 +493,7 @@ final class SpotlightController {
         selectedIndex = next
         // Like the arrows: the list follows the selection.
         refreshResults(scrollToSelection: true)
+        reflectSelectionInField()
         return true
     }
 
@@ -499,6 +509,32 @@ final class SpotlightController {
             return (base + 1) % count
         }
         return (base - 1 + count) % count
+    }
+
+    /// Mirrors the highlighted row into the field: the input shows the row's
+    /// URL, stays focused, and selects it all, so typing replaces it and
+    /// Enter opens it. Set directly, never typed: this repaints only and must
+    /// not re-query. Mouse hover highlights without filling — filling follows
+    /// the keyboard alone.
+    private func reflectSelectionInField() {
+        guard let fieldView, let entry = selectedEntry else { return }
+        fieldView.textField.stringValue = Self.fieldText(for: entry, typedQuery: typedText)
+        fieldView.updateClearButton()
+        // The keys arrive through the field editor, so it holds focus by
+        // construction; re-asserted anyway, because a future dropdown change
+        // must never strand the caret outside the input it just filled.
+        if let window = fieldView.window, window.firstResponder !== fieldView.textField {
+            _ = window.makeFirstResponder(fieldView.textField)
+        }
+        fieldView.textField.currentEditor()?.selectAll(nil)
+    }
+
+    /// The field text for a highlighted row: the row's URL, or the typed
+    /// query when the highlight sits on the synthetic search row (whose
+    /// destination is the engine, not an address). Static so the rule is
+    /// testable without a panel, a field, or any history.
+    static func fieldText(for entry: HistoryFuzzyEntry, typedQuery: String) -> String {
+        entry.isSearchRow ? typedQuery : entry.url
     }
 
     @discardableResult
