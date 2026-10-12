@@ -30,11 +30,6 @@ final class BrowserWebView: WKWebView {
     static let fullScreenCaptureItemID = NSUserInterfaceItemIdentifier(
         rawValue: "com.onebuckapp.whatever.fullScreenCapture"
     )
-    /// Our own page-menu separator, so a reused menu can shed it like the
-    /// items above and lay out fresh for the next menu's kind.
-    static let injectedSeparatorItemID = NSUserInterfaceItemIdentifier(
-        rawValue: "com.onebuckapp.whatever.injectedSeparator"
-    )
 
     /// Called when the injected page-menu item is chosen, with the
     /// right-clicked link's address when the menu was opened on a link, or
@@ -351,7 +346,7 @@ final class BrowserWebView: WKWebView {
 
         // WebKit can reuse a menu object across openings, so strip our
         // items first: every opening lays out fresh for this menu's kind.
-        for id in [Self.generateQRCodeItemID, Self.fullScreenCaptureItemID, Self.injectedSeparatorItemID] {
+        for id in [Self.generateQRCodeItemID, Self.fullScreenCaptureItemID] {
             menu.items.filter({ $0.identifier == id }).forEach(menu.removeItem)
         }
         let qrItem = NSMenuItem(
@@ -363,10 +358,9 @@ final class BrowserWebView: WKWebView {
         qrItem.target = self
         qrItem.isEnabled = true
         menu.insertItem(qrItem, at: 0)
-        let separator = NSMenuItem.separator()
-        separator.identifier = Self.injectedSeparatorItemID
-        menu.insertItem(separator, at: 1)
-        // Acts on the page on screen; a link menu takes it back out below.
+        // Full Screen Capture sits directly next to Share as QR Code: both
+        // act on the page on screen, and a link menu takes the capture back
+        // out below.
         let captureItem = NSMenuItem(
             title: tr("Full Screen Capture", ctx: "Context.Page"),
             action: #selector(handleFullScreenCapture(_:)),
@@ -375,7 +369,7 @@ final class BrowserWebView: WKWebView {
         captureItem.identifier = Self.fullScreenCaptureItemID
         captureItem.target = self
         captureItem.isEnabled = true
-        menu.insertItem(captureItem, at: 2)
+        menu.insertItem(captureItem, at: 1)
 
         retargetLinkItems(in: menu)
         retargetImageItems(in: menu)
@@ -385,7 +379,6 @@ final class BrowserWebView: WKWebView {
         // Screen Capture stays out: it acts on the page, not the link.
         if Self.isLinkMenu(menu) {
             menu.removeItem(captureItem)
-            menu.removeItem(separator)
             menu.removeItem(qrItem)
             let anchor = menu.items.lastIndex(where: {
                 Self.linkOpenIDs.contains($0.identifier?.rawValue ?? "")

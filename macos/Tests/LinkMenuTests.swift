@@ -131,20 +131,18 @@ struct LinkMenuTests {
             "Copy Link",
         ])
         #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.fullScreenCaptureItemID })
-        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.injectedSeparatorItemID })
     }
 
-    @Test("page menus lead with Share as QR Code and keep the capture")
+    @Test("page menus lead with Share as QR Code directly followed by the capture")
     @MainActor
     func pageMenuOrder() {
         let menu = NSMenu()
         view().willOpenMenu(menu, with: menuEvent())
-        #expect(menu.items.count == 3)
+        #expect(menu.items.count == 2)
         #expect(menu.items[0].identifier == BrowserWebView.generateQRCodeItemID)
         #expect(menu.items[0].title == "Share as QR Code")
-        #expect(menu.items[1].isSeparatorItem)
-        #expect(menu.items[2].identifier == BrowserWebView.fullScreenCaptureItemID)
-        #expect(menu.items[2].title == "Full Screen Capture")
+        #expect(menu.items[1].identifier == BrowserWebView.fullScreenCaptureItemID)
+        #expect(menu.items[1].title == "Full Screen Capture")
     }
 
     @Test("reused menus relayout when the menu kind changes")
@@ -167,7 +165,6 @@ struct LinkMenuTests {
         view().willOpenMenu(menu, with: menuEvent())
         #expect(menu.items.filter { $0.identifier == BrowserWebView.generateQRCodeItemID }.count == 1)
         #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.fullScreenCaptureItemID })
-        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.injectedSeparatorItemID })
     }
 
     @Test("developer extras turn on for the inspector")
