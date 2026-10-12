@@ -126,7 +126,9 @@ final class BrowserTab: NSObject {
     /// exactly the source, whenever the callback lands relative to commit
     /// observations. Finished pages leave on `didFinish`; same-document
     /// hops (fragments, `pushState`) never enter — they commit in place and
-    /// a later redirect must not eat them. Stale entries (cancelled loads)
+    /// a later redirect must not eat them. A user takeover (`load`) clears
+    /// the queue: whatever was in flight is abandoned and can never finish.
+    /// Stale entries (cancelled loads)
     /// are skipped when popped if they left the list, and re-appended
     /// pages heal on their own commit. Tab-scoped; drains itself.
     private var unfinishedQueue: [URL] = []
@@ -609,6 +611,12 @@ final class BrowserTab: NSObject {
     /// caller moved `historyIndex`, since `currentURL` already answers with the
     /// new one by then.
     private func load(_ url: URL, from previous: URL) {
+        // Taking over abandons whatever was in flight: a still-loading page
+        // can never finish, so its entry must not be consumable by later
+        // redirect or fold bookkeeping — otherwise a fast click through a
+        // half-loaded page lets the hop's bounce eat the page itself, and
+        // Back skips it.
+        unfinishedQueue.removeAll()
         markUnfinished(url)
         // A load the tab starts is app-initiated, and a new flight: its
         // landing keeps its entry (see `sawAppInitiatedNavigation`), and a

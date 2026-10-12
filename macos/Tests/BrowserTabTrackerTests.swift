@@ -347,6 +347,70 @@ struct BrowserTabTrackerTests {
         #expect(tab.currentURL.hasSameAddress(as: serp))
     }
 
+    @Test("fast click into a client-side redirect keeps the serp")
+    func fastClickKeepsSerp() async throws {
+        // DuckDuckGo shape through real WebKit: the SERP commits but never
+        // finishes (truncated body, like a page clicked mid-load), so it is
+        // still unfinished when the /l/-style hop bounces client-side. Back
+        // must return to the SERP, not to the new-tab origin.
+        let server = try RedirectProbeServer()
+        try await server.start()
+        defer { server.stop() }
+        let origin = server.url("/serp")
+        let serp = server.url("/slow-serp")
+        let landing = server.url("/r-landing")
+
+        let tab = BrowserTab(history: StubHistory(), initialURL: origin)
+        tab.historyShouldRecord = { _ in true }
+        let view = tab.ensureWebView()
+        try await waitForURL(view, origin)
+        tab.navigate(to: serp)
+        try await waitForURL(view, serp)
+        // No finish wait: the click lands while the SERP is still loading.
+        tab.navigate(to: server.url("/r"))
+        try await waitForURL(view, landing)
+        try await waitFor("history to settle on origin, serp and landing") {
+            tab.historySnapshot().urls == [origin, serp, landing]
+        }
+        #expect(tab.historySnapshot().urls == [origin, serp, landing])
+        tab.goBack()
+        try await waitFor("back to land on the serp") {
+            tab.currentURL.hasSameAddress(as: serp)
+        }
+        #expect(tab.currentURL.hasSameAddress(as: serp))
+    }
+
+    @Test("fast click into a never-finishing redirect keeps the serp")
+    func fastClickIntoUnfinishedHopKeepsSerp() async throws {
+        // Same shape, but the hop replaces at parse time (before it ever
+        // finishes) instead of racing meta refresh against a timer: the
+        // fold must still not eat the SERP.
+        let server = try RedirectProbeServer()
+        try await server.start()
+        defer { server.stop() }
+        let origin = server.url("/serp")
+        let serp = server.url("/slow-serp")
+        let landing = server.url("/rs-landing")
+
+        let tab = BrowserTab(history: StubHistory(), initialURL: origin)
+        tab.historyShouldRecord = { _ in true }
+        let view = tab.ensureWebView()
+        try await waitForURL(view, origin)
+        tab.navigate(to: serp)
+        try await waitForURL(view, serp)
+        tab.navigate(to: server.url("/rs"))
+        try await waitForURL(view, landing)
+        try await waitFor("history to settle on origin, serp and landing") {
+            tab.historySnapshot().urls == [origin, serp, landing]
+        }
+        #expect(tab.historySnapshot().urls == [origin, serp, landing])
+        tab.goBack()
+        try await waitFor("back to land on the serp") {
+            tab.currentURL.hasSameAddress(as: serp)
+        }
+        #expect(tab.currentURL.hasSameAddress(as: serp))
+    }
+
     @Test("form POST lands thanks with no form behind it")
     func formPostSkipsForm() async throws {
         // Order form --POST--> 303 thanks through real WebKit: neither the
@@ -474,6 +538,12 @@ final class RedirectProbeServer: Sendable {
         if target == "/cj-d" {
             return page(title: "Client landing", body: "<h1>Client landing</h1>")
         }
+        if target == "/slow-serp" {
+            return truncatedPage()
+        }
+        if target == "/rs" {
+            return replacePage(to: "/rs-landing")
+        }
         if target == "/form" {
             return page(
                 title: "Order",
@@ -483,6 +553,15 @@ final class RedirectProbeServer: Sendable {
                     + "<button type=\"submit\">Place order</button>"
                     + "</form>"
             )
+        }
+        if target == "/r" {
+            return ddgStyleHop(to: "/r-landing")
+        }
+        if target == "/r-landing" {
+            return page(title: "Hop landing", body: "<h1>Hop landing</h1>")
+        }
+        if target == "/rs-landing" {
+            return page(title: "Slow hop landing", body: "<h1>Slow hop landing</h1>")
         }
         if method == "POST", target == "/submit" {
             // Post/Redirect/Get with the proper code: 303 turns the
@@ -515,6 +594,32 @@ final class RedirectProbeServer: Sendable {
         page(
             title: "Redirecting",
             body: "<script>window.location.replace('\(path)')</script>Redirecting…"
+        )
+    }
+
+    /// The DuckDuckGo `/l/` shape: an instant meta refresh plus a
+    /// timer-driven `location.replace` racing it to the same landing.
+    private func ddgStyleHop(to path: String) -> Data {
+        page(
+            title: "Redirecting",
+            body: "<meta http-equiv='refresh' content='0; url=\(path)'>"
+                + "<script>setTimeout(function(){window.location.replace('\(path)')},100)</script>"
+                + "Redirecting…"
+        )
+    }
+
+    /// A page that commits but never finishes: the declared `Content-Length`
+    /// far exceeds the bytes actually sent before the socket closes, so the
+    /// load ends in a truncation error instead of `didFinish` — and failures
+    /// never retire the unfinished tracker. The shape of a results page
+    /// clicked mid-load: committed (the address bar and history saw it) but
+    /// still unfinished when the next navigation's redirect bookkeeping runs.
+    private func truncatedPage() -> Data {
+        let html = "<!doctype html><html><head><title>Slow Results</title></head><body>"
+            + "<h1>Slow Results</h1><p><a href=\"/r\">bread recipe</a></p></body></html>"
+        return Data(
+            "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5000\r\nConnection: close\r\n\r\n\(html)"
+                .utf8
         )
     }
 
