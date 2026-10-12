@@ -1,0 +1,3107 @@
+# Whatever Russian translation.
+#
+# This file names every translatable string (`en`, like `ro` and friends)
+# and doubles as the translators' template: copy it to `<lang>.po` and fill
+# in `msgstr`.
+#
+# Conventions for translators and for code:
+#
+#   * `msgid` is always English and is used verbatim at the call site:
+#     `tr("Restore last session", ctx: "Settings.General")`. Never
+#     reword a shipped msgid; add a new entry instead, so existing
+#     translations keep matching.
+#   * `msgctxt` disambiguates repeats: the same English word in two places
+#     (a group title vs. a menu item) gets one entry per context, named
+#     `Screen.Area`, e.g. `Settings.General`.
+#   * Interpolation uses `{name}` placeholders. Translators may reorder
+#     or drop them freely; values are opaque strings (versions, file
+#     names, counts already picked), so filling them in is pure
+#     substitution and every shell does it the same way. Never add
+#     printf-style verbs. Anything where the VALUE shapes the wording —
+#     plural form selection by a count — uses `msgid`/`msgid_plural` plus
+#     `batch` instead, evaluated core-side.
+#   * Plurals use `msgid` (singular) + `msgid_plural`; the core picks the
+#     form for `n` using your header's `Plural-Forms` rule.
+#   * Lines starting with `#.` are developer notes for the entry below.
+#   * This file is the source of truth; `whatever.mo` per language is
+#     generated from `<lang>.po` at build time and never edited by hand.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever\n"
+"Language: ru\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Обновление ПО"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Whatever не обновляется сам. Проверка запрашивает у GitHub последний выпуск; загрузка получает образ диска для этого Mac, а обновление из него выполняется вручную."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Браузер по умолчанию"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Ссылки из других приложений открываются здесь."
+
+#. Settings > General > default-browser row when Whatever is default.
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Whatever — браузер по умолчанию"
+
+#. Settings > General > default-browser row when it is not.
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Whatever не является браузером по умолчанию"
+
+#. Settings > General > default-browser subtitle when Whatever is default.
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Этот Mac уже открывает веб-ссылки в Whatever."
+
+#. Settings > General > default-browser subtitle when it is not.
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "Забрать ссылки http и https у текущего браузера."
+
+#. Settings > General > button claiming http/https handling.
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Сделать Whatever браузером по умолчанию"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Сеанс"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "Восстановление открывает вкладки предыдущего окна."
+
+#. Settings > General > toggle: reopen the previous window's tabs at launch.
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Восстанавливать последний сеанс"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Открывать вкладки предыдущего окна при запуске."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Завершение"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "Второе нажатие завершает работу сразу, даже при открытых окнах."
+
+#. Settings > General > toggle: first ⌘Q prompts instead of quitting.
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Подтверждать перед выходом"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "Первое нажатие ⌘Q показывает запрос; повторное нажатие ⌘Q завершает работу."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "History"
+msgstr "История"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Приватные вкладки никогда не записываются, независимо от этой настройки."
+
+#. Settings > General > toggle: record main-frame visits in history.
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Записывать посещённые страницы"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Добавляет совершённые переходы в историю."
+
+#. Settings > General > slider: collapse near-duplicate revisits (seconds).
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Сворачивать повторы в течение"
+
+#. Settings > General > update button at rest.
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Проверить обновления"
+
+#. Settings > General > update button when a release is ready.
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Скачать обновление"
+
+#. Settings > General > update button after the disk image landed.
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Показать в Finder"
+
+#. Settings > General > group title for the interface language picker.
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Язык"
+
+#. Settings > General > language group footnote.
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "Язык интерфейса. Переведённый текст применяется сразу."
+
+#. Settings > General > language picker option following the system locale.
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Системный"
+
+#. App menu > About item (replaces the stock one).
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "О Whatever"
+
+#. App menu > Quit item (warns instead of quitting at once).
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Завершить Whatever"
+
+#. App menu > opens our Settings modal.
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Настройки…"
+
+#. App menu > opens the password manager.
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Пароли…"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Новая вкладка"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Новое окно"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Новое окно инкогнито"
+
+#. File menu > print preview.
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Печать…"
+
+#. File menu > the system Close item, retitled: it closes the tab.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Закрыть вкладку"
+
+#. Top-level Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Найти"
+
+#. Find menu > find bar.
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Найти на странице…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Найти далее"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Найти назад"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Вид"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Обновить страницу"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Перезагрузить с источника"
+
+#. View menu > bookmark bar toggle.
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Показать панель закладок"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Вкладка"
+
+#. Tab menu > focuses the address bar in history mode.
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Искать в истории"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Перейти в адресную строку"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Открыть закрытую вкладку заново"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Переместить вкладку в новое окно"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Показать предыдущую вкладку"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Показать следующую вкладку"
+
+#. Tab menu > one item per number 1-9. {n} is filled per item, core-side.
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Выбрать вкладку {n}"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Разделить"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Разделить со следующей вкладкой"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Разделить с предыдущей вкладкой"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Перейти к следующей панели"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Перейти к предыдущей панели"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Убрать разделение"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Закрыть панель"
+
+#. Help menu > credits window.
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Благодарности"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "{n} статья"
+msgstr[1] "{n} статьи"
+msgstr[2] "{n} статей"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "{n} доступная лента"
+msgstr[1] "{n} доступные ленты"
+msgstr[2] "{n} доступных лент"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "{n} файл cookie"
+msgstr[1] "{n} файла cookie"
+msgstr[2] "{n} файлов cookie"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "{n} элемент"
+msgstr[1] "{n} элемента"
+msgstr[2] "{n} элементов"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "{n} косметическое правило"
+msgstr[1] "{n} косметических правила"
+msgstr[2] "{n} косметических правил"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "{n} загрузка"
+msgstr[1] "{n} загрузки"
+msgstr[2] "{n} загрузок"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "{n} загруженный элемент"
+msgstr[1] "{n} загруженных элемента"
+msgstr[2] "{n} загруженных элементов"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "{n} исключение"
+msgstr[1] "{n} исключения"
+msgstr[2] "{n} исключений"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "{n} хост"
+msgstr[1] "{n} хоста"
+msgstr[2] "{n} хостов"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "{n} элемент"
+msgstr[1] "{n} элемента"
+msgstr[2] "{n} элементов"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "{n} пропущенная компилятором строка"
+msgstr[1] "{n} пропущенные компилятором строки"
+msgstr[2] "{n} пропущенных компилятором строк"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "{n} страница"
+msgstr[1] "{n} страницы"
+msgstr[2] "{n} страниц"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "{n} правило"
+msgstr[1] "{n} правила"
+msgstr[2] "{n} правил"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "{n} источник"
+msgstr[1] "{n} источника"
+msgstr[2] "{n} источников"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "{n} недоступный"
+msgstr[1] "{n} недоступных"
+msgstr[2] "{n} недоступных"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "{n} непрочитанный"
+msgstr[1] "{n} непрочитанных"
+msgstr[2] "{n} непрочитанных"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "{n} посещение"
+msgstr[1] "{n} посещения"
+msgstr[2] "{n} посещений"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Просмотр мёртвого интернета"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "Сделано людьми из OpenPeeps для OneBuck.app"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Реклама и трекеры здесь заблокированы."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Блокировать рекламу и трекеры на этом сайте"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "Настройки блокировки контента"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Откройте сайт, чтобы управлять им здесь."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "Приостановлено на этом сайте."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Эта страница"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Адрес"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Продолжить? Это действие необратимо."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Панель закладок"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Удалить"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "Удалить «{item}»?"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "Удалить «{name}»?"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Изменить закладку"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Изменить папку"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Папка"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Новая закладка"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Новая папка"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Сохранить"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Папка и элемент внутри неё будут удалены."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Папка и {items} внутри неё будут удалены."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Название"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "эту закладку"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "эту папку"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Копировать ссылку"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Удалить"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Изменить…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Новая закладка…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Новая папка…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Открыть"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Открыть всё в новых вкладках"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Открыть настройки закладок"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Открыть в новой вкладке"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Переименовать…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "Поделиться как QR-код"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Снимок всего экрана"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Открыть ссылку в новой вкладке"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Открыть в новой вкладке"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Закрыть другие вкладки"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Закрыть панель"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Закрыть вкладку"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Закрыть вкладки справа"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "Копировать URL"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Дублировать вкладку"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Перейти к следующей панели"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Перейти к предыдущей панели"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "Поделиться как QR-код"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Отключить звук вкладки"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Новое окно инкогнито"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Новая вкладка"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Новое окно"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Открыть в новом окне"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Закрепить вкладку"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Обновить вкладку"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Задать размер окна…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Настройки…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Разделить со следующей вкладкой"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Разделить с предыдущей вкладкой"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Включить звук вкладки"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Открепить вкладку"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Статически типизированный компилируемый системный язык программирования"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "Набор встраиваемых хранилищ данных на основе WAL"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Язык приложения и интерфейса"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Автор — Томаш Курылик"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Создано и поддерживается Павлом Куной"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Создано с помощью"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "Коллекция миниатюрных парсеров и сериализаторов"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Благодарности"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Дизайн и разработка · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Дом Whatever"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Интерфейс"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Сделано"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Оценка надёжности паролей (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Криптографическая библиотека на чистом Nim"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Ядро хранилища"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Инструменты и инфраструктура"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Написано на"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "ОК"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Открыть"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Эта страница"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "Отменено"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Удалено"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Готово"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "Загрузка"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "Загрузки"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Не удалось"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Загрузок пока нет."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Ничего не загружено"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Открыть"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Обновить"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Убрать из списка"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Повторить"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Показать в Finder"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Размер неизвестен"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{received} из {expected}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Нечего кодировать."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Не удалось сохранить настройки."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "Ядро отклонило QR-буфер."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "Не удалось создать QR-код."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "Кодировщик QR вернул неожиданный статус ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Служба хранилища Whatever недоступна."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "Встроенный снимок фильтров отсутствует."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Этот URL слишком длинный для QR-кода."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "время сохранения сеанса истекло"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Назад к статьям"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Копировать ссылку на статью"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Копировать ссылку"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Лента"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Ленты"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Ленты отключены в настройках."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "Нельзя сохранять ленты из приватной вкладки."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Отметить как прочитанное"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Отметить как непрочитанное"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Отметить прочитанным"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Отметить непрочитанным"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "Нет статей для этого вида."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Подписок пока нет."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Для этой статьи доступно только краткое содержание."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Открыть"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Открыть статью"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Открыть в новой вкладке"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Открывает вид чтения статьи."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Обновить"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Снять отметку «сохранено»"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Сохранить"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Сохранить статью"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Сохранено"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "Подписаться"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Подпишитесь на ленту, чтобы начать чтение."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Это неподдерживаемый адрес ленты."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "Подписка не найдена после сохранения."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Страница предлагает ленты, но приватные вкладки не могут их сохранять."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Страница предлагает:"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Непрочитанные"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Только непрочитанные"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Отписаться"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Копировать путь"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Папка пуста"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Перейти в родительскую папку"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Скрытые"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Родительская папка"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Обновить"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Повторить"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Показать в Finder"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Показывать скрытые файлы"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "показаны первые {shown} из {total}"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "Не удалось открыть «{directory}»."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Закрыть панель поиска"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Найти на странице"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Выделить всё"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Учитывать регистр"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Следующее совпадение"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Нет результатов"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Предыдущее совпадение"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Целые слова"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{index} из {total}{more}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "Разрешить"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Спрашивать"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Блокировать"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Камера"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Устройства захвата"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Выбор запоминается для этого сайта. Блокировка или разрешение применяется при следующем запросе страницы — перезагрузка завершает активный захват."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Закрыть"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "Для {kind}"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "Используется"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Микрофон"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "Не запрошено"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Приватная вкладка: выбор действует один раз и не запоминается. Перезагрузка страницы завершает активный захват."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Обновить страницу"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "Ожидание ответа"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Хочет использовать устройства"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "macOS блокирует это устройство — разрешите Whatever в Системных настройках, раздел «Конфиденциальность и безопасность»."
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Новое окно инкогнито"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Новая вкладка"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Новое окно"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Добавить ещё учётные данные"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Продолжить? Это действие необратимо."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "С заглавной буквы"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Изменить подсказку хранилища"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Символы"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Подтвердите мастер-пароль"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Копировать пароль"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Копировать имя пользователя"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Создать хранилище"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Создайте мастер-пароль"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Удалить"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Удалить учётные данные"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Удалить эти учётные данные"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Удалить эти учётные данные?"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Удалить этот сайт и все учётные данные в нём"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "Удалить «{site}»?"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Цифры"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Точка (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Создать пароль"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Скрыть пароль"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "Подсказка (необязательно)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "Подсказка: {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Дефис (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Он открывает хранилище. Восстановления нет: если забыть его, все сохранённые пароли будут потеряны."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Длина: {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Заблокировать хранилище"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Строчные"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Мастер-пароль"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Мастер-пароль (8+ символов)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Средний"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Режим"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Новый сайт"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "Подсказка не задана"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Сайт не выбран"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Число"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Пароль"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Пароли"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Выберите сайт слева или добавьте новый."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Создать заново"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Сохранить"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Поиск"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Разделитель"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Показать пароль"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Показывается после нескольких неверных паролей. Никогда не сам пароль."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Название сайта"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Надёжный"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Символы"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Сайт и все учётные данные в нём будут удалены. Это действие необратимо."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Не удалось создать хранилище."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Подчёркивание (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Разблокировать"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Разблокировать пароли"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Сайт без названия"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Прописные"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Использовать"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Подсказка хранилища"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Слабый"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Слова"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Слов: {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Неверный мастер-пароль, попробуйте ещё раз."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "этот сайт"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Реальный размер"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Фон"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Копий: {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Не удалось отобразить эту страницу."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Вписать в страницу"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Альбомная"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Печатать можно только загруженные веб-страницы."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Ориентация"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Бумага"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Книжная"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Подготовка предпросмотра…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Таблица стилей печати"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Печать…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "Сохранить как PDF…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Масштаб"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Без названия"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Нажмите ⌘Q ещё раз для выхода"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "Цвет в точке градиента."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "Текстура плёночного зерна поверх всего окна. Каждое изменение применяется сразу."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Видеофайл на диске."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Добавить"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Добавить остановку"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Адресная строка"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "По X"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "По Y"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Всегда без звука и всегда в цикле: окно, которое само начинает шуметь, — это проблема, ради которой существует эта функция, а застывший в конце фон — не фон."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Файл изображения на диске."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Привязка"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Угол"
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Продолжить? Зерно, фон, тема вкладок и адресная строка вернутся к встроенным значениям."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Прикреплённые"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Прикреплённые вкладки соединяются со страницей; пилюли парят с отступом над ней и всегда полностью скруглены, игнорируя радиус скругления ниже."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Автовоспроизведение"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Вернуться к встроенному зерну."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Вернуться к встроенному виду."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Фон и текст всех вкладок, кроме выбранной."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Фон и текст выбранной вкладки."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "Позади страницы. Применяется ко всем окнам при изменении."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Размытие"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Оба"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Снизу"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "Снизу по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "Снизу слева"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "Снизу справа"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Яркость"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "По центру"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "Слева по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "Справа по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Центр X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Центр Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "Выберите кадр для показа до появления первого кадра видео."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Выберите видео для воспроизведения позади страницы."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Выберите видео для воспроизведения позади вкладки."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Выберите изображение для показа позади страницы."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Выберите изображение для показа позади вкладки."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Выбрать…"
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Очистить"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Цвет"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Цвет"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Контраст"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Радиус скругления"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Текущая вкладка"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Пользовательский"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Закрыть"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Эффекты"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Ограничение — восемь."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Включено"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Конец"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Высота поля"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Заполнение"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Заполнить доступную ширину"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Заполнить"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Настройки фильтра"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Вписать"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Создать"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Создать другое зерно"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Градиент"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Зерно"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Размер зерна"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Скрывает текстуру без потери этих настроек."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Горизонтально"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Изображение"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "Неактивные вкладки"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "Внутренний радиус"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Интенсивность"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Тип"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Позволяет фону просвечивать позади страницы."
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Линейный"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Всплывающая подсказка ссылки"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Вид"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Файл отсутствует или не читается. Выберите его снова."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Монохром"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Сначала нужен фон. Пока нечего показывать."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Новый узор"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Файл не выбран"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Постер не выбран"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "Нет настроек для «{query}»."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Нет"
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "По умолчанию выключено. Делает страницы прозрачными, из-за чего некоторые сайты теряют фон. Ожидается частичный эффект: сайт, рисующий собственный фон, всё равно перекрывает медиа."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Непрозрачность"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Исходный"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Внешний радиус"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Углы страницы"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Пауза при скрытии"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Пауза при неактивности"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Проценты"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Пилюли"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Пункты"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Позиция"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Радиальный"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Удалить"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Повтор"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Сбросить"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Сбросить оформление"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Сбросить настройки оформления"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Сбросить настройки оформления?"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Сбросить…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Учитывать уменьшение движения"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Возвращает все настройки на этой странице — зерно, фон, тему вкладок и адресную строку — к встроенным значениям."
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Скругление каждой прикреплённой вкладки. Применяется сразу при изменении."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Те же настройки, другое зерно."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Насыщенность"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Сохранить"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Масштаб"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Форма"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Показ сквозь страницы"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Размер"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Размер и форма поля. Применяется сразу при изменении."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Сплошной"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Скорость"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "Показывается до появления первого кадра. К видео из эффектов применяется только цветокоррекция этого кадра."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Начало"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Начать с"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Начинается само при открытии окна."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Остановки применяются по порядку вдоль градиента."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "Останавливается, когда другое приложение впереди."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "Останавливается, когда окно перекрыто, свёрнуто или приложение скрыто."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Растянуть"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "Растягивается между кнопками вместо центрированного поля."
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Системный"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Углы вкладок"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Форма вкладок"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Цвет текста"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Фон отключён. Выберите другой файл."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "Плавающий адрес при наведении на ссылку."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Система сейчас просит уменьшить движение, поэтому видео приостановлено."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Система не просит уменьшать движение."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Оттенок"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Сверху"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "Сверху по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "Сверху слева"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "Сверху справа"
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Прозрачные страницы"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Использовать"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Вертикально"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Видео"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Фон окна"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent}% вдоль"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "Стандартный блок-лист AdAway · CC BY 3.0 · плюс собственные дополнения"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Добавить"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Применить правила"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Блокировать рекламу и трекеры"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Блокировка"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Встроенный снимок"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Пользовательские правила"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "Исключения"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Списки фильтров"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Строки hosts плюс правила ||, @@ и ##, по одному на строку. Применяются вместе со снимком."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Последняя ошибка"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "Нет исключений."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Страницы перезагружаются для применения изменений."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "Удалить {host}"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Правила"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Поставляется с приложением. Ничего не скачивается и данные просмотра не покидают устройство: списки компилируются на устройстве."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Сайты, которые блокировщик не трогает, включая поддомены."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Пропущенные строки"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Источник"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Сторонние запросы к перечисленным хостам никогда не покидают страницу."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Закладки недоступны"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Добавленные закладки появятся здесь."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Закладок пока нет"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Удалить всё"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Удалить эту закладку"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Удалить эту папку и всё её содержимое"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Показывать панель закладок"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Очистить"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Очистить всё"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Очистить историю"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "Папка загрузок"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "История загрузок"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Все загрузки попадают сюда. Имена файлов разрешаются автоматически, поэтому ничего не перезаписывается."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Забыть все строки загрузок."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Забыть все строки загрузок?"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Строки истории указывают на файлы на диске. Очистка убирает строки; файлы остаются на месте."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Расположение"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Загрузок пока нет"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Показать"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Хранилище"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "1–2 символа между заголовками."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Применить"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Применить хранение"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Статей на ленту"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Автоматически"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Непрозрачность фона"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Высота панели"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Кэшированный контент"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Радиус скругления"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Направление бегущей строки"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Скорость бегущей строки"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Удалить все подписки и кэшированные ленты."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "Поиск только объявляет ленты. Ничего не скачивается и не сохраняется, пока на ленту не подпишутся или её не обновят."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Скачивать фавиконы"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Включить бегущую строку"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "Включить RSS-ленты"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Получение"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Размер шрифта"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Бегущая строка заголовков"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "Слева направо"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Отмечать статьи прочитанными при открытии"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Нет подписанных источников."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Нет подписок"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Выкл."
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Открытие статьи убирает отметку о непрочитанном."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Разбор"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Хранить один проверенный значок сайта на подписку."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Обрезать каждую подписку до указанного выше лимита."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Только изображения издателя"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Чтение"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Обновить"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Обновить всё"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Обновлять автоматически"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Интервал обновления"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Обновлять устаревшие подписки при их загрузке в читалке."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Обновить этот источник сейчас"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Обновления используют условные запросы, если издатель их поддерживает. Приватные вкладки никогда не подписываются, не обновляют и не скачивают."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Обновление…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "Отклонять ленты с ошибками проверки RSS или Atom вместо их восстановления."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Удалить"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Удалить все подписки, кэшированные статьи и изображения?"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Удалить всё"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Хранение"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "Хранение применяется после загрузки и при нажатии «Применить». Отметки о прочтении и сохранении сами по себе не вызывают обрезку."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "Справа налево"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Разделитель"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Показывать элемент панели инструментов на страницах с лентой и разрешать новые подписки."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Показывает бегущую панель с заголовками внизу."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Хранилище"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "Строгий разбор отклоняет повреждённые ленты и RDF/RSS 1.0. Мягкий разбор восстанавливает пригодные заголовки, ссылки, даты и сводки, когда их ещё можно распознать."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Строгая проверка"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Подписанные источники"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Подписки, статьи, фавиконы и миниатюры хранятся в отдельной базе лент. Удаление всего отменить нельзя."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Бегущая строка скрывается, когда нечего показывать. Текст всегда использует системный цвет подписей, поэтому следует светлому и тёмному режиму."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Миниатюры"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Включите RSS-ленты для управления подписками."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Отписаться от этого источника"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Отписка удаляет подписку, её кэшированные статьи и сохранённые изображения."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Очистить всё"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Сворачивать повторы в течение"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "Удалить старше 30 дней"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "История"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Истории пока нет"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Посещённые страницы появятся здесь."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Приватные вкладки никогда не записываются, независимо от этой настройки."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Записывать посещённые страницы"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Удалить эту запись"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Оформление"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "Блокировка контента"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "Загрузки"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Основные"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "История"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS и ленты"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Поиск"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Настройки"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Веб"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Добавьте систему для поиска там, куда эти не добираются."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Адрес"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "Адрес и принимаемый им параметр запроса."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Очищать ссылки результатов поиска"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Клики и скопированные ссылки ведут к месту назначения."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Система по умолчанию"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Введите параметр запроса, обычно q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Введите адрес поиска."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Дайте системе название."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Мой поиск"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Название"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Параметр запроса"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Записывает поисковые запросы"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Удалить эту систему"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Ссылки результатов"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Сохранить"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Мешает поисковикам подменять ссылки результатов трекинговыми переходами при нажатии. Действует только на поддерживаемых страницах результатов."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Этот адрес недопустим."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "Адрес должен начинаться с http:// или https://"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Куда поле адреса отправляет поиск. Всё похожее на веб-адрес по-прежнему открывается напрямую."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Пользовательские системы"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "Через 1 час"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "Через 15 минут"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "Через 30 минут"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "Через 5 минут"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "Разрешить JavaScript"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "Применяется к открытым страницам сразу."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Аудио"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Жесты назад/вперёд"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Отображение"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Всё"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Предупреждения о мошеннических сайтах"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Скрытые вкладки после этого времени простоя теряют страницу и освобождают память. Показ такой вкладки перезагружает её адрес; отображаемые, закреплённые, звучащие и загружающиеся вкладки никогда не спят."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Взаимодействие"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "JavaScript может открывать окна"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Позволяет странице открывать вкладку без клика. Всплывающие окна попадают в это окно."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Предпросмотр ссылок"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Масштаб"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Медиа"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Минимальный размер шрифта"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Ничего"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Выкл."
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Выключение блокирует скрипты, из-за чего большинство сайтов перестаёт работать."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Масштаб страницы"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Страницы"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Воспроизводить без клика"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Конфиденциальность"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Читается при открытии страницы. Изменения действуют со следующей страницы."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Режим совместимости для отдельных сайтов"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Усыплять неиспользуемые вкладки"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "Спящие вкладки"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Некоторые из них действуют со следующей страницы."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "Tab выделяет ссылки"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Переводить известные хосты на HTTPS"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Видео"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "выкл."
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Сертификат"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Сведения о сертификате для этого посещения недоступны."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Очистить"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "Соединение не защищено."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "Соединение защищено."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Файлы cookie и данные сайта"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Истекает"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Отпечаток"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Выдан"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Выдан для"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Загрузка данных сайта."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Нет сохранённых данных для этого сайта."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Откройте сайт, чтобы проверить его здесь."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Настройки сайта"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Эта страница"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Страница загружена не по HTTPS, поэтому сертификат отсутствует."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Закрыть вкладку"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Закрыть вкладки"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Отключить звук вкладки"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Новая вкладка"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Включить звук вкладки"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Добавить закладку"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Доступная лента"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Доступные ленты"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Назад"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Камера или микрофон используются — открыть управление захватом"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Запрошены камера или микрофон — открыть управление захватом"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Управление захватом"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Очистить адрес"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "Блокировка контента — активна на этом сайте"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "Блокировка контента — приостановлена на этом сайте"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Блокировщик контента активен на этом сайте"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Блокировщик контента приостановлен на этом сайте"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "Загрузки"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Изменить закладку"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "Вперёд"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Инкогнито"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Незащищённое соединение"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Менеджер паролей"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Обновить"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Поиск"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Поиск или адрес"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Защищённое соединение"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Настройки"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Сведения о сайте"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Остановить"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Это окно инкогнито: его вкладки не сохраняются в историю."
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "Запрос последнего выпуска у GitHub."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Проверка обновлений"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "Не удалось проверить обновления"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Загрузка Whatever {version}."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Загрузка обновления"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "GitHub ответил неожиданно. Попробуйте позже."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "GitHub ограничивает частоту проверок обновлений. Попробуйте чуть позже."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "GitHub пока не сообщает о выпусках. Попробуйте позже."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Обновление ПО"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "Проверка не удалась. Проверьте соединение и попробуйте ещё раз."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "Загрузка не удалась. Проверьте соединение и попробуйте ещё раз."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Доступно обновление"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Обновление загружено"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Whatever обновлён"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Доступен Whatever {version} — установлен {current}."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Доступен Whatever {version}, но без образа диска для этого Mac."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Whatever {version} находится в {file} — откройте его для обновления."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Whatever {version} установлен."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Whatever {version} — последний выпуск."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Не удалось загрузить"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Загрузка…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Новая вкладка"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Перезагрузка…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Применить"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "Отмена"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Введите положительные числа для ширины и высоты."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Высота"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Ширина"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Размер окна"

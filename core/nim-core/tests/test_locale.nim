@@ -295,7 +295,7 @@ proc shippedDir(): string =
     removeDir(result)
   let locale = parentDir(parentDir(parentDir(
     parentDir(currentSourcePath)))) / "locale"
-  for lang in ["de", "en", "es", "fr", "it", "ro"]:
+  for lang in ["de", "en", "es", "fr", "it", "ro", "ru"]:
     createDir(result / lang / "LC_MESSAGES")
     var cat = openPoCatalog(locale / (lang & ".po"))
     let compiled = compilePo(cat)
@@ -312,7 +312,7 @@ suite "locale shipped catalogs":
     var text = newString(needed)
     check bcLocaleLanguages(addr text[0], needed, nil) == Ok
     text.setLen(needed - 1)
-    check parseJson(text) == %*["de", "en", "es", "fr", "it", "ro"]
+    check parseJson(text) == %*["de", "en", "es", "fr", "it", "ro", "ru"]
 
   test "French treats 0 and 1 as singular":
     discard bcLocaleSet("fr".cstring)
@@ -338,6 +338,21 @@ suite "locale shipped catalogs":
     check trDoc("one visit", "", "{n} visits", 0) == "{n} Besuche"
     check trDoc("one visit", "", "{n} visits", 2) == "{n} Besuche"
 
+  test "Russian picks all three forms":
+    discard bcLocaleSet("ru".cstring)
+    check trDoc("one visit", "", "{n} visits", 1) == "{n} посещение"
+    check trDoc("one visit", "", "{n} visits", 21) == "{n} посещение"
+    check trDoc("one visit", "", "{n} visits", 101) == "{n} посещение"
+    check trDoc("one visit", "", "{n} visits", 2) == "{n} посещения"
+    check trDoc("one visit", "", "{n} visits", 4) == "{n} посещения"
+    check trDoc("one visit", "", "{n} visits", 22) == "{n} посещения"
+    check trDoc("one visit", "", "{n} visits", 0) == "{n} посещений"
+    check trDoc("one visit", "", "{n} visits", 5) == "{n} посещений"
+    check trDoc("one visit", "", "{n} visits", 11) == "{n} посещений"
+    check trDoc("one visit", "", "{n} visits", 14) == "{n} посещений"
+    check trDoc("one visit", "", "{n} visits", 25) == "{n} посещений"
+    check trDoc("one visit", "", "{n} visits", 111) == "{n} посещений"
+
   test "a context lookup resolves in each new language":
     discard bcLocaleSet("fr".cstring)
     check trDoc("New Tab", "Context.Tab") == "Nouvel onglet"
@@ -347,6 +362,8 @@ suite "locale shipped catalogs":
     check trDoc("New Tab", "Context.Tab") == "Nuova scheda"
     discard bcLocaleSet("de".cstring)
     check trDoc("New Tab", "Context.Tab") == "Neuer Tab"
+    discard bcLocaleSet("ru".cstring)
+    check trDoc("New Tab", "Context.Tab") == "Новая вкладка"
 
 suite "locale bad input":
   setup:
