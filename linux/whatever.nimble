@@ -1,5 +1,5 @@
 # Whatever Linux shell — Made by Humans from OpenPeeps (GPLv3)
-version = "0.2.4"
+version = "0.3.0"
 author = "George Lemon"
 description = "Whatever Linux shell: GTK4 + Adwaita + WebKitGTK 6.0, reusing the portable Nim core"
 license = "GPL-3.0-or-later"

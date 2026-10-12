@@ -1,7 +1,7 @@
 # Romanian translation for Whatever.
 msgid ""
 msgstr ""
-"Project-Id-Version: Whatever 0.2.4\n"
+"Project-Id-Version: Whatever\n"
 "Language: ro\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"

@@ -17,7 +17,7 @@
 
 # Package
 
-version       = "0.2.4"
+version       = "0.3.0"
 author        = "George Lemon"
 description   = "Platform-agnostic Whatever backend (QR, settings, bookmarks, history, sessions)"
 license       = "MIT"
