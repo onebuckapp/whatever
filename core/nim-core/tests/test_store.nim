@@ -444,6 +444,73 @@ suite "store c abi":
     check hits[0]["titlePositions"].len == 0
     check hits[0]["urlPositions"].len > 0
 
+  test "history fuzzy search surfaces a visited host above better-visited mentions":
+    ## Typing `reddit` must put `reddit.com` first even when other rows that
+    ## merely mention the term have more visits: a host-prefix match is
+    ## navigation, not a stranger. The distractor matches contiguously in its
+    ## path and has twice the visits, so only the boost can reorder them.
+    check historyRecord(
+      "https://www.zzhost.example.net/".cstring,
+      "Zzhost Qwerty".cstring, 1_700_000_500, -1) == Ok
+    check historyRecord(
+      "https://distractor-zzhost.example.net/zzhost-qwerty".cstring,
+      "Distractor Qwerty".cstring, 1_700_000_501, -1) == Ok
+    check historyRecord(
+      "https://distractor-zzhost.example.net/zzhost-qwerty".cstring,
+      "Distractor Qwerty".cstring, 1_700_000_505, -1) == Ok
+
+    for needle in ["zzhost", "zzhost."]:
+      let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+        historyFuzzySearch(needle.cstring, 50, buffer, capacity, needed))
+      check hits.len >= 2
+      check hits[0]["url"].getStr == "https://www.zzhost.example.net/"
+      check hits[0]["visitCount"].getInt == 1
+      check hits[1]["url"].getStr == "https://distractor-zzhost.example.net/zzhost-qwerty"
+      check hits[1]["visitCount"].getInt == 2
+
+  test "history fuzzy search ignores the scheme and www prefix when scoring urls":
+    ## The `https://www.` prefix is noise: `zzpos` meets `zzpos.example.net/`
+    ## at offset zero, and the reported positions rebase onto the full URL so
+    ## the UI highlights the right bytes. The title cannot match (no `z`), so
+    ## every position belongs to the URL.
+    check historyRecord(
+      "https://www.zzpos.example.net/".cstring,
+      "Qwerty Page".cstring, 1_700_000_510, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("zzpos".cstring, 50, buffer, capacity, needed))
+    var found = false
+    for hit in hits:
+      if hit["url"].getStr == "https://www.zzpos.example.net/":
+        found = true
+        check hit["titlePositions"].len == 0
+        let urlPositions = hit["urlPositions"].getElems
+        # `https://` is 8 bytes and `www.` 4, so the stripped match at 0..4
+        # reports at 12..16 of the real URL.
+        check urlPositions.len == 5
+        for offset in 0 ..< 5:
+          check urlPositions[offset].getInt == 12 + offset
+    check found
+
+  test "spotlight hint navigates valid domains and searches everything else":
+    ## The address bar's Enter contract, decided by valido rather than by
+    ## counting dots: real domains (IDN included) navigate, dotted words
+    ## without a known suffix search.
+    for input in ["reddit.com", "www.reddit.com", "a.b.example.com",
+                  "münchen.de", "example.com/r/nim", "example.com:8080",
+                  "example.com.", "https://example.com/x", "http://example.com",
+                  "/tmp/foo", "~/docs", "~", "127.0.0.1", "192.168.1.1"]:
+      let hint = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+        spotlightHint(input.cstring, buffer, capacity, needed))
+      check hint["kind"].getStr == "navigate"
+    for input in ["cats", "foo.invalid", "a.b", "hello world", "reddit", "localhost", ""]:
+      let hint = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+        spotlightHint(input.cstring, buffer, capacity, needed))
+      check hint["kind"].getStr == "search"
+    let missing = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      spotlightHint(nil, buffer, capacity, needed))
+    check missing["kind"].getStr == "search"
+
   test "history delete removes exactly one entry":
     let url = "https://example.com/deletable"
     ## A URL that no other test uses, so an earlier test's rows cannot make

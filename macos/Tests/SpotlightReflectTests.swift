@@ -19,15 +19,10 @@ import Foundation
 import Testing
 @testable import Whatever
 
-/// Keyboard navigation mirrors the highlighted row into the field: history
-/// rows fill their URL, the synthetic search row restores the typed query.
-/// Pure rule, no panel, field, or history needed.
+/// Keyboard navigation mirrors the highlighted row into the field as its
+/// URL. Pure rule, no panel, field, or history needed.
 @MainActor
 struct SpotlightReflectTests {
-    private var engine: ResolvedSearchEngine {
-        PredefinedSearchEngine.duckDuckGo.resolved
-    }
-
     private func historyEntry() throws -> HistoryFuzzyEntry {
         let entry = try #require(HistoryEntry.decodeList(Data(
             """
@@ -39,24 +34,6 @@ struct SpotlightReflectTests {
 
     @Test("a history row fills its URL, not its title")
     func historyFillsURL() throws {
-        #expect(SpotlightController.fieldText(for: try historyEntry(), typedQuery: "git") == "https://github.com")
-    }
-
-    @Test("the search row restores the typed query, not the engine URL")
-    func searchRestoresQuery() throws {
-        let row = try #require(HistoryFuzzyEntry.searchRow(query: "git", engine: engine))
-        // Sanity: the row's own URL is the engine destination, which is
-        // exactly what must not land in the field.
-        #expect(row.url.contains("git"))
-        #expect(row.url != "git")
-        #expect(SpotlightController.fieldText(for: row, typedQuery: "git") == "git")
-    }
-
-    @Test("an empty typed query restores empty")
-    func emptyQueryRestoresEmpty() throws {
-        // Typed text is trimmed when stashed, so a cleared field restores
-        // cleared rather than a stale query.
-        let row = try #require(HistoryFuzzyEntry.searchRow(query: "git", engine: engine))
-        #expect(SpotlightController.fieldText(for: row, typedQuery: "") == "")
+        #expect(SpotlightController.fieldText(for: try historyEntry()) == "https://github.com")
     }
 }

@@ -314,6 +314,15 @@ final class StoreClient {
         }
     }
 
+    /// Classifies address-field input as direct navigation or engine search.
+    /// Pure computation in the core, so this is the cheapest round trip and
+    /// safe to fire on every keystroke behind a generation guard.
+    func spotlightHint(_ query: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.spotlightHint(query, reply: done)
+        }
+    }
+
     func deleteHistoryEntry(id: String) async throws {
         try await perform { proxy, done in
             proxy.historyDelete(id, reply: done)

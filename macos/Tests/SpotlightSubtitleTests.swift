@@ -56,12 +56,4 @@ struct SpotlightSubtitleTests {
         #expect(row.subtitle == "github.com")
         #expect(row.subtitleHighlight.isEmpty)
     }
-
-    @Test("search row keeps the engine name, not the search url")
-    func searchRowKeepsEngine() {
-        let engine = PredefinedSearchEngine.duckDuckGo.resolved
-        let row = HistoryFuzzyEntry.searchRow(query: "cats", engine: engine)
-        #expect(row?.subtitle == engine.title)
-        #expect(row?.subtitleHighlight.isEmpty == true)
-    }
 }

@@ -462,6 +462,33 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
+    /// Classifies address-field input for the inline ghost. Pure computation
+    /// in the core (no store touch), so this never fails for store reasons;
+    /// an empty query still answers `{"kind": "search"}` rather than erroring.
+    func spotlightHint(
+        _ query: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try query.withCString { pointer in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_spotlight_hint(pointer, buffer, capacity, needed)
+                    }, rejecting: [])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
     func historyDelete(_ id: String, reply: @escaping (NSError?) -> Void) {
         serve {
             let status = id.withCString { bc_history_delete($0) }

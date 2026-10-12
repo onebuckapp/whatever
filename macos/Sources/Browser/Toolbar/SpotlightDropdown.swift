@@ -61,6 +61,33 @@ final class SpotlightDropdown: NSView {
     /// has not been laid out when it has to be decided.
     private var heightConstraint: NSLayoutConstraint?
 
+    /// Fires when the pointer leaves the panel, so a hover-placed highlight
+    /// does not stick around for Enter after the mouse is gone. Wired by the
+    /// controller, which drops the selection.
+    var onHoverExit: (() -> Void)?
+
+    /// The pointer watcher, installed once. `.inVisibleRect` follows resizes
+    /// on its own; re-adding per call would stack duplicates that each fire
+    /// the exit.
+    private var hoverTracking: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        guard hoverTracking == nil else { return }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTracking = area
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        onHoverExit?()
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true

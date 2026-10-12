@@ -30,9 +30,9 @@ struct BookmarkSearchTests {
         BookmarkNode(id: id, kind: .link, title: title, url: url)
     }
 
-    private func historyEntry(url: String, title: String, visits: Int, score: Double) -> HistoryFuzzyEntry {
+    private func historyEntry(url: String, title: String, visits: Int, score: Double, host: String? = nil) -> HistoryFuzzyEntry {
         let json = """
-        [{"id":"h-\(url.hashValue)","url":"\(url)","title":"\(title)","host":"example.com",\
+        [{"id":"h-\(url.hashValue)","url":"\(url)","title":"\(title)","host":"\(host ?? "example.com")",\
         "firstVisited":1700000000,"lastVisited":1700000100,"visitCount":\(visits),\
         "score":\(score),"titlePositions":[],"urlPositions":[]}]
         """
@@ -97,6 +97,26 @@ struct BookmarkSearchTests {
         #expect((byURL["https://github.com"] ?? 0) > (byURL["https://example.com/x"] ?? 0))
     }
 
+    @Test("url noise stripping drops the scheme and one www")
+    func stripNoise() {
+        #expect(BookmarkMatcher.stripNoise("https://www.reddit.com/r/nim") == ("reddit.com/r/nim", 12))
+        #expect(BookmarkMatcher.stripNoise("http://example.com") == ("example.com", 7))
+        #expect(BookmarkMatcher.stripNoise("https://example.com") == ("example.com", 8))
+        #expect(BookmarkMatcher.stripNoise("www.example.com") == ("example.com", 4))
+        #expect(BookmarkMatcher.stripNoise("example.com") == ("example.com", 0))
+        #expect(BookmarkMatcher.stripNoise("https://") == ("", 8))
+    }
+
+    @Test("url matches past www report rebased offsets")
+    func rebasedPositions() {
+        let nodes = [link(title: "Nim Language", url: "https://www.reddit.com/r/nim")]
+        let hits = BookmarkMatcher.hits(query: "reddit", nodes: nodes)
+        #expect(hits.count == 1)
+        #expect(hits[0].titlePositions.isEmpty)
+        // Stripped `reddit` runs 0...5; rebased past `https://www.` it is 12...17.
+        #expect(hits[0].urlPositions == [12, 13, 14, 15, 16, 17])
+    }
+
     // MARK: - Bridging
 
     @Test("bookmark entry carries no visits and subtitles the full url")
@@ -110,11 +130,9 @@ struct BookmarkSearchTests {
         #expect(entry.isBookmarked)
     }
 
-    @Test("decoded history rows and the search row start unflagged")
+    @Test("decoded history rows start unflagged")
     func unflaggedByDefault() {
         #expect(!historyEntry(url: "https://example.com/x", title: "X", visits: 2, score: 1).isBookmarked)
-        let engine = PredefinedSearchEngine.duckDuckGo.resolved
-        #expect(HistoryFuzzyEntry.searchRow(query: "cats", engine: engine)?.isBookmarked == false)
     }
 
     @Test("marking flags bookmarked urls, normalising trailing slashes")
@@ -129,17 +147,14 @@ struct BookmarkSearchTests {
         #expect(!marked[1].isBookmarked)
     }
 
-    @Test("marking leaves the search row and flagged rows alone")
+    @Test("marking leaves flagged rows alone")
     func markingSkips() {
-        let engine = PredefinedSearchEngine.duckDuckGo.resolved
-        let search = HistoryFuzzyEntry.searchRow(query: "github.com", engine: engine)!
         let flagged = bookmarkEntry(link(title: "GitHub", url: "https://github.com"))
         let marked = SpotlightController.markingBookmarked(
-            [search, flagged],
+            [flagged],
             bookmarkedURLs: ["https://other.example"]
         )
-        #expect(!marked[0].isBookmarked)
-        #expect(marked[1].isBookmarked)
+        #expect(marked[0].isBookmarked)
     }
 
     // MARK: - Blending
@@ -165,8 +180,36 @@ struct BookmarkSearchTests {
             historyEntry(url: "https://github.com/features/actions", title: "Actions", visits: 0, score: 9),
         ]
         let bookmarks = [bookmarkEntry(link(title: "GitHub", url: "https://github.com"), score: 1)]
-        let blended = SpotlightController.blend(history: history, bookmarks: bookmarks, limit: 12)
+        let blended = SpotlightController.blend(history: history, bookmarks: bookmarks, limit: 12, query: "github")
         #expect(blended.first?.url == "https://github.com")
+    }
+
+    @Test("a visited host the query names outranks better-visited mentions")
+    func hostBoost() {
+        let history = [
+            historyEntry(
+                url: "https://distractor-zzblend.example.net/zzblend-qwerty",
+                title: "Distractor", visits: 9, score: 9,
+                host: "distractor-zzblend.example.net"),
+            historyEntry(
+                url: "https://www.zzblend.example.net/",
+                title: "Zzblend", visits: 0, score: 1,
+                host: "www.zzblend.example.net"),
+        ]
+        for query in ["zzblend", "zzblend."] {
+            let blended = SpotlightController.blend(history: history, bookmarks: [], limit: 12, query: query)
+            #expect(blended.map(\.url) == [
+                "https://www.zzblend.example.net/",
+                "https://distractor-zzblend.example.net/zzblend-qwerty",
+            ])
+        }
+    }
+
+    @Test("host keys drop one www and lowercase")
+    func hostKeys() {
+        #expect(SpotlightController.hostKey("www.Reddit.com") == "reddit.com")
+        #expect(SpotlightController.hostKey("reddit.com") == "reddit.com")
+        #expect(SpotlightController.hostKey("") == "")
     }
 
     @Test("a url in both keeps its history row, flagged")

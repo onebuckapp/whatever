@@ -31,14 +31,18 @@
 #
 # Ownership, threading and sync: see api/abi.nim.
 
-import std/[algorithm, base64, options, strutils, tables, times, uri]
+import std/[algorithm, base64, options, sequtils, strutils, tables, times, uri]
 import openparser/json
 # Leaf module on purpose: it pulls in nimsimd, which `openparser/json` already
 # brings, and nothing else. Reaching for the `openparser` umbrella instead would
-# drag the QR ciphers and nimcypher into the archive.
+# drag the QR ciphers and nimcypher into the archive. `valido/domain` and
+# `valido/ip` are the one exception: address-field classification needs real
+# TLD truth, and their tables ride along for that reason alone.
 import openparser/fuzzy
 import openparser/path
 import boogie/stores/rdbms
+import valido/domain
+import valido/ip
 import ../storage/database
 import ../storage/schema
 import ./abi
@@ -394,10 +398,44 @@ proc candidateText(candidate: Candidate): string =
   ## `fuzzyScoreImpl` normalises by the whole candidate's length, so a long URL
   ## pulls down a score a title earned on its own; `minScore` stays at 0 for that
   ## reason rather than trying to compensate for it here.
+  ##
+  ## This keeps the FULL url on purpose: it is also the dedup key in
+  ## `historyFuzzySearch`, where `http://x` and `https://x` are two different
+  ## rows that must not collapse. The scorings below strip the noise prefix
+  ## themselves; see `bestScoreFor`.
   if candidate.title.len == 0:
     candidate.url
   else:
     candidate.title & FuzzyFieldSeparator & candidate.url
+
+proc stripUrlNoise(url: string): tuple[text: string, stripped: int] =
+  ## Drops the `http(s)://` scheme and one `www.` from a URL for scoring, and
+  ## reports how many leading bytes went: the scheme and the most common
+  ## subdomain are pure noise for matching (`reddit` should meet `reddit.com`
+  ## at offset zero, not after twelve dead bytes), and the length
+  ## normalisation would otherwise tax every URL match for them. Matching is
+  ## ASCII-prefix work only, so offsets shift uniformly and the caller rebases
+  ## reported positions by `stripped` to land back on the real URL.
+  var start = 0
+  let lower = url.toLowerAscii()
+  if lower.startsWith("https://"):
+    start = len("https://")
+  elif lower.startsWith("http://"):
+    start = len("http://")
+  if lower[start .. ^1].startsWith("www."):
+    start += len("www.")
+  let text = if start < url.len: url[start .. ^1] else: ""
+  (text, start)
+
+proc hostKey(host: string): string =
+  ## The host with one leading `www.` dropped, lowercased, for prefix
+  ## comparison against the query. `www.reddit.com` and `reddit.com` are the
+  ## same destination for ranking purposes.
+  let lower = host.toLowerAscii()
+  if lower.startsWith("www."):
+    lower[len("www.") .. ^1]
+  else:
+    lower
 
 proc thin(kept: var seq[Candidate], cap: int) =
   ## Halves `kept` in place, keeping every second entry.
@@ -447,19 +485,40 @@ proc bestScoreFor(candidate: Candidate, query: string): ScoredMatch =
   ## decides the order on its own — visits and URL length rank first — but
   ## it still breaks ties and still places the highlight.
   ##
+  ## The URL half scores stripped of the noise prefix (see `stripUrlNoise`),
+  ## and reported positions are rebased onto the full URL before they leave:
+  ## scoring sees `reddit.com/`, the UI highlights offsets in
+  ## `https://www.reddit.com/`. The title half is untouched, and in a joined
+  ## win only offsets past the separator move — title offsets address the
+  ## unmodified title, and the separator offset itself is dropped downstream.
+  ##
   ## Ties keep the earlier field, so a match good in both halves reports the title
   ## and highlights there rather than in the URL.
+  let (strippedUrl, strippedLen) = stripUrlNoise(candidate.url)
+  let combined =
+    if candidate.title.len == 0: strippedUrl
+    else: candidate.title & FuzzyFieldSeparator & strippedUrl
+  # First offset of the URL half inside the joined text: past the separator,
+  # or zero when the bare URL is the whole candidate.
+  let urlStart =
+    if candidate.title.len == 0: 0
+    else: candidate.title.len + FuzzyFieldSeparator.len
   var best: ScoredMatch
   var matched = false
   for (field, text) in [
       (mfTitle, candidate.title),
-      (mfUrl, candidate.url),
-      (mfCombined, candidateText(candidate))]:
+      (mfUrl, strippedUrl),
+      (mfCombined, combined)]:
     let scored = fuzzyScore(query, text)
     if scored.matched and (not matched or scored.score > best.score):
       matched = true
+      var positions = scored.positions
+      if field == mfUrl:
+        positions = positions.mapIt(it + strippedLen)
+      elif field == mfCombined:
+        positions = positions.mapIt(if it >= urlStart: it + strippedLen else: it)
       best = ScoredMatch(field: field, score: scored.score,
-                         positions: scored.positions)
+                         positions: positions)
   best
 
 proc fuzzyCandidates(table: DbTable): seq[Candidate] =
@@ -522,10 +581,12 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
   ## Every query character must appear in the row, in order but not necessarily
   ## contiguously, which is what `openparser/fuzzy` scores: consecutive runs,
   ## word-boundary hits and gap penalties. The matcher only decides what
-  ## matches; the ranking is visits first, then URL length, then score. The
-  ## bar is navigation, not search: the page opened every morning outranks a
-  ## better-matching stranger, and typing "github" puts github.com above
-  ## github.com/anything because the shorter URL wins among equals.
+  ## matches; the ranking is a host-prefix match first, then visits, then URL
+  ## length, then score. The bar is navigation, not search: the page opened
+  ## every morning outranks a better-matching stranger — unless the query
+  ## names a visited host outright, in which case that destination wins — and
+  ## typing "github" puts github.com above github.com/anything because the
+  ## shorter URL wins among equals.
   ##
   ## Each row is scored three ways — its title, its URL, and the two joined — and
   ## keeps the best, so one row is one result however many fields matched and a
@@ -580,26 +641,35 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
         # a long field can land negative and barely matched at all.
         if best.score > 0.0'f32:
           ranked.add((index, best))
+      # Lowercased once for the host-prefix boost below; a query never
+      # carries case into a hostname comparison.
+      let needleKey = needle.strip().toLowerAscii()
       let order = proc(a, b: tuple[index: int, match: ScoredMatch]): int =
-        # Visits first, then URL length, then score. The address bar is
-        # navigation, not search: the page you open every morning outranks a
-        # better-matching stranger, and among equals the shorter URL wins —
-        # typing "github" must put github.com above github.com/anything.
-        # Score only breaks ties between equally visited, equally long rows,
-        # and the joined text keeps those stable across runs.
-        let visitA = byText[texts[a.index]].visitCount
-        let visitB = byText[texts[b.index]].visitCount
-        if visitA != visitB:
-          cmp(visitB, visitA)
+        # A host-prefix match is navigation, not a stranger: typing `reddit`
+        # surfaces `reddit.com` above better-visited pages that merely mention
+        # it, and typing `reddit.` does the same. The `www.` subdomain is
+        # noise and ignored for the comparison; visits, length and score keep
+        # their order inside each group.
+        let keyA = hostKey(byText[texts[a.index]].host)
+        let keyB = hostKey(byText[texts[b.index]].host)
+        let boostA = keyA.startsWith(needleKey)
+        let boostB = keyB.startsWith(needleKey)
+        if boostA != boostB:
+          if boostA: -1 else: 1
         else:
-          let lenA = byText[texts[a.index]].url.len
-          let lenB = byText[texts[b.index]].url.len
-          if lenA != lenB:
-            cmp(lenA, lenB)
-          elif a.match.score != b.match.score:
-            cmp(b.match.score, a.match.score)
+          let visitA = byText[texts[a.index]].visitCount
+          let visitB = byText[texts[b.index]].visitCount
+          if visitA != visitB:
+            cmp(visitB, visitA)
           else:
-            cmp(texts[a.index], texts[b.index])
+            let lenA = byText[texts[a.index]].url.len
+            let lenB = byText[texts[b.index]].url.len
+            if lenA != lenB:
+              cmp(lenA, lenB)
+            elif a.match.score != b.match.score:
+              cmp(b.match.score, a.match.score)
+            else:
+              cmp(texts[a.index], texts[b.index])
       ranked.sort(order)
       if ranked.len > wanted:
         ranked.setLen(wanted)
@@ -608,6 +678,80 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
     Ok
   if status != Ok: return status
   emitJson(document, buffer, capacity, needed)
+
+proc hasSchemePrefix(text: string): bool =
+  ## Whether `text` starts with a URI scheme (`https:`, `file:`, `about:`…),
+  ## mirroring what `URL(string:)` accepts as one: a letter, then letters,
+  ## digits, `+`, `-` or `.`, then the colon. A space before the colon means
+  ## no scheme, the same input Foundation fails to parse as a URL.
+  var i = 0
+  if i < text.len and text[i] in {'A'..'Z', 'a'..'z'}:
+    inc i
+    while i < text.len and text[i] in {'A'..'Z', 'a'..'z', '0'..'9', '+', '-', '.'}:
+      inc i
+    return i < text.len and text[i] == ':'
+  false
+
+proc hostPartOf(text: string): string =
+  ## The hostname half of scheme-less input: past an optional `//`, up to the
+  ## first path, query or fragment delimiter, minus userinfo and port. A
+  ## bracketed IPv6 address keeps its brackets for the IP check.
+  var rest = text
+  if rest.startsWith("//"):
+    rest = rest[2 .. ^1]
+  var cut = rest.len
+  for i, ch in rest:
+    if ch in {'/', '?', '#'}:
+      cut = i
+      break
+  rest = rest[0 ..< cut]
+  let userEnd = rest.rfind('@')
+  if userEnd >= 0:
+    rest = rest[userEnd + 1 .. ^1]
+  if rest.startsWith("["):
+    let closeBracket = rest.find(']')
+    if closeBracket >= 0:
+      return rest[0 .. closeBracket]
+    return rest
+  let portStart = rest.find(':')
+  if portStart >= 0:
+    rest = rest[0 ..< portStart]
+  rest
+
+proc isNavigableInput*(text: string): bool =
+  ## Whether address-field input addresses something directly rather than
+  ## asking the search engine: the same decision `AddressParser.url` makes,
+  ## with `valido` telling real domains from dotted words. A scheme, an
+  ## absolute or home-relative path, a valid domain or subdomain (IDN-aware,
+  ## one trailing root dot tolerated), or an IP address all navigate;
+  ## anything with a space, and any other text, searches.
+  if text.len == 0:
+    return false
+  if hasSchemePrefix(text):
+    return true
+  if text.startsWith("/") or text == "~" or text.startsWith("~/"):
+    return true
+  if text.contains(" "):
+    return false
+  var host = hostPartOf(text)
+  # A fully qualified name ends in a root dot that is not part of the name.
+  while host.len > 0 and host[^1] == '.':
+    host = host[0 ..< host.len - 1]
+  if host.len == 0:
+    return false
+  isDomain(host) or isSubDomain(host) or
+    isIP4(host, allowLoopback = true) or isIP6(host, allowLoopback = true)
+
+proc spotlightHint*(query: cstring, buffer: ptr char, capacity: int32, needed: ptr int32): int32 {.exportc: "bc_spotlight_hint".} =
+  ## Classifies address-field input for the inline ghost: `{"kind":
+  ## "navigate"}` when Enter would open something directly, `{"kind":
+  ## "search"}` when it asks the engine. Pure computation over the query —
+  ## no store involved — so it answers on the keystroke path without a disk
+  ## touch. An empty or missing query searches, which the UI reads as "no
+  ## ghost": it never asks for one with nothing typed.
+  let text = if query.isNil: "" else: ($query).strip()
+  let kind = if isNavigableInput(text): "navigate" else: "search"
+  emitJson(%*{"kind": kind}, buffer, capacity, needed)
 
 proc historyDelete*(id: cstring): int32 {.exportc: "bc_history_delete".} =
   ## Deletes one entry by primary key. `ErrNotFound` when no such row exists.

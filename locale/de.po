@@ -2992,6 +2992,10 @@ msgid "Search"
 msgstr "Suchen"
 
 msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "Auf {name} suchen"
+
+msgctxt "Toolbar"
 msgid "Search or enter address"
 msgstr "Suchen oder Adresse eingeben"
 
@@ -3014,6 +3018,10 @@ msgstr "Stopp"
 msgctxt "Toolbar"
 msgid "This window is incognito: its tabs are not saved to history."
 msgstr "Dieses Fenster ist inkognito: Seine Tabs werden nicht im Verlauf gesichert."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "Besuche {address}"
 
 #. Software update rows.
 msgctxt "Update"

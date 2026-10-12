@@ -43,13 +43,17 @@ final class SpotlightController {
     private var labeledEntryIDs: [String] = []
     private var localeObserver: NSObjectProtocol?
 
-    /// The user's typed text, stashed on every keystroke and focus visit.
-    /// Arrowing onto a history row replaces the field with that row's URL;
-    /// arrowing back onto the search row restores this rather than leaving
-    /// the last-filled URL behind.
-    private var typedText = ""
-
     private var pendingSearch: Task<Void, Never>?
+    /// The core's input-hint request in flight, if any. Undebounced — the
+    /// call is pure computation with no disk touch — so the ghost tracks
+    /// typing instead of trailing it by the history debounce.
+    private var hintTask: Task<Void, Never>?
+    /// The hint's answer for the text it was asked about: the pending
+    /// action's destination, so Enter opens exactly what the ghost promised
+    /// even where the address parser would decide differently (a dotted word
+    /// with no real TLD searches rather than loading dead). Consumed on
+    /// submit; only an exact text match counts.
+    private var cachedHint: (text: String, url: URL)?
     private var generation = 0
     /// Held only while the panel is open. See `installOutsideClickMonitor`.
     private var outsideClickMonitor: Any?
@@ -104,7 +108,7 @@ final class SpotlightController {
             // never flashes the panel open just to close it. An already-open panel
             // is current by construction — text cannot change without querying —
             // so it is left alone instead of rebuilt under the mouse.
-            self.queryChanged(field.textField.stringValue, preopen: false)
+            self.queryChanged(field.textField.stringValue)
         }
         field.onMoveSelection = { [weak self] offset in self?.moveSelection(by: offset) }
         field.onTabThroughSelection = { [weak self] forward in
@@ -126,37 +130,30 @@ final class SpotlightController {
 
     // MARK: - Querying
 
-    /// - Parameter preopen: Whether the panel opens before the results arrive.
-    /// Typing pre-opens so the bar's corners square up immediately; a
-    /// focus-triggered query does not, so a query that misses never flashes an
-    /// empty panel open just to close it.
-    func queryChanged(_ text: String, preopen: Bool = true) {
+    /// The ghost and the history both answer the live text. The ghost goes
+    /// out undebounced on every keystroke (the call is pure computation, so
+    /// it tracks typing); history keeps its debounce below. A stale ghost
+    /// clears up front and returns with the hint, so it can never name the
+    /// previous keystroke's action.
+    func queryChanged(_ text: String) {
         generation += 1
         let generation = self.generation
         pendingSearch?.cancel()
+        hintTask?.cancel()
+        fieldView?.setGhost(nil)
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        typedText = trimmed
         // Empty means "most recent", not "nothing": clearing the field should still
-        // offer somewhere to go. Below the minimum, nothing — one character is not
-        // a search, it is a prefix, and a dropdown of everything for it is noise.
+        // offer somewhere to go. Below the minimum, nothing but the ghost — one
+        // character is not a search, it is a prefix, and a dropdown of everything
+        // for it is noise.
         guard !trimmed.isEmpty else {
             showMostRecent()
             return
         }
-        // The search row answers keystrokes, not the debounce: it is built from
-        // the live text on every press, so it is always current while the
-        // history below it is still arriving. A lone character gets the row
-        // without a history query behind it.
-        showSearchRow(for: trimmed, open: preopen)
+        requestHint(for: trimmed, generation: generation)
         guard trimmed.count >= Self.minimumQueryLength else {
             return
-        }
-        // Opened before the query returns, so the panel is on screen with the bar's
-        // own shape while it waits. Without this the bar's bottom corners stay
-        // rounded with nothing under them and the join only appears a beat later.
-        if preopen {
-            openPanel()
         }
 
         pendingSearch = Task { [weak self] in
@@ -176,23 +173,60 @@ final class SpotlightController {
         }
     }
 
-    /// Shows just the search row for the live text, keeping a highlight the
-    /// user already placed by id: typing on with the row arrowed on must not
-    /// drop it.
-    private func showSearchRow(for trimmed: String, open: Bool) {
+    /// Asks the core whether the live text navigates or searches, and paints
+    /// the ghost from the answer. Generation-guarded like the history path:
+    /// a hint landing after the next keystroke is for nobody.
+    private func requestHint(for trimmed: String, generation: Int) {
+        hintTask?.cancel()
+        hintTask = Task { [weak self] in
+            guard let self else { return }
+            let payload: Data
+            do {
+                payload = try await StoreClient.shared.spotlightHint(trimmed)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, generation == self.generation else { return }
+            self.applyHint(payload, for: trimmed)
+        }
+    }
+
+    /// The ghost and Enter destination for a hint answer: `Visit <address>`
+    /// when the text navigates somewhere other than what is typed,
+    /// `Search on <engine>` when it asks the engine, nothing when the
+    /// destination is the text itself. Nil when no destination builds (a
+    /// broken custom engine). Static and panel-free so the contract is
+    /// testable without a field or a store round trip.
+    nonisolated static func ghost(
+        kind: String,
+        trimmed: String,
+        engine: ResolvedSearchEngine
+    ) -> (text: String?, url: URL)? {
+        if kind == "navigate" {
+            guard let url = AddressParser.url(from: trimmed, searchEngine: engine) else { return nil }
+            let destination = url.absoluteString
+            guard destination != trimmed else { return (nil, url) }
+            return (tr("Visit {address}", ctx: "Toolbar", args: ["address": destination]), url)
+        }
+        guard let url = engine.searchURL(for: trimmed) else { return nil }
+        return (tr("Search on {name}", ctx: "Toolbar", args: ["name": engine.title]), url)
+    }
+
+    /// Paints a hint answer: caches the destination for Enter and shows the
+    /// ghost, or stands both down when nothing builds. Generation-guarded by
+    /// the caller.
+    private func applyHint(_ payload: Data, for trimmed: String) {
+        struct Hint: Decodable {
+            var kind: String
+        }
+        guard let hint = try? JSONDecoder().decode(Hint.self, from: payload) else { return }
         let engine = SettingsStore.shared.settings.search.engine()
-        let row = HistoryFuzzyEntry.searchRow(query: trimmed, engine: engine)
-        let keep = selectedEntry?.id
-        results = row.map { [$0] } ?? []
-        selectedIndex = keep.flatMap { id in results.firstIndex(where: { $0.id == id }) }
-        guard !results.isEmpty else {
-            close()
+        guard let resolved = Self.ghost(kind: hint.kind, trimmed: trimmed, engine: engine) else {
+            cachedHint = nil
             return
         }
-        refreshResults()
-        if open {
-            openPanel()
-        }
+        cachedHint = (trimmed, resolved.url)
+        fieldView?.setGhost(resolved.text)
     }
 
     private func showMostRecent() {
@@ -224,15 +258,6 @@ final class SpotlightController {
         // Stale recents over fresh typing: the field moved on while the store
         // answered, so this answer is for nobody.
         if let generation, generation != self.generation { return }
-        // Rebuilt from the field's live text, not the queried one: the search
-        // row names what is on screen now, and history arriving late must not
-        // push a row for stale text above it.
-        let live = fieldView?.textField.stringValue ?? ""
-        let engine = SettingsStore.shared.settings.search.engine()
-        let row = HistoryFuzzyEntry.searchRow(query: live, engine: engine)
-        // Captured before the swap: `selectedEntry` reads `results`, so after
-        // this line it would name the new list's row, not the user's.
-        let keep = selectedEntry?.id
         // The bookmarked-URL set comes from the prewarmed cache: one pass
         // over a few hundred nodes, no store round trip on the keystroke
         // path. History rows get flagged here; bookmark-sourced rows arrive
@@ -244,13 +269,16 @@ final class SpotlightController {
         // Bookmarks blend with history under one ordering rather than
         // pinning a section of their own: a bookmarked daily page is already
         // represented by its high-visit history row, while a bookmark whose
-        // history was cleared still surfaces on URL length alone.
+        // history was cleared still surfaces on URL length alone. The live
+        // text ranks a visited host it names above everything else.
+        let live = fieldView?.textField.stringValue ?? ""
         let blended = Self.blend(
             history: history,
             bookmarks: bookmarkEntries(for: live),
-            limit: Self.resultLimit
+            limit: Self.resultLimit,
+            query: live
         )
-        results = row.map { [$0] + blended } ?? blended
+        results = blended
         // Typed-query results never preselect: arrow-down reaches the first
         // row, and Enter on unhighlighted text submits that text. Recent
         // history keeps its longstanding top-row selection. A highlight the
@@ -264,10 +292,10 @@ final class SpotlightController {
         } else {
             selectedIndex = results.isEmpty || !preselectFirst ? nil : 0
         }
-        // No history is not no answer: the search row alone still offers
-        // somewhere to go. Only a missing row closes the panel.
+        // No history is not no answer: the ghost still offers the typed
+        // action, so the panel hides but the session stays alive for it.
         guard !results.isEmpty else {
-            close()
+            hidePanel()
             return
         }
         refreshResults()
@@ -291,32 +319,41 @@ final class SpotlightController {
     }
 
     /// Flags rows whose URL is bookmarked, so the list can star them.
-    /// Skips the search row (synthetic, never a bookmark) and rows already
-    /// flagged. Static and panel-free so the rule is testable without a
-    /// field or any history.
+    /// Skips rows already flagged. Static and panel-free so the rule is
+    /// testable without a field or any history.
     nonisolated static func markingBookmarked(
         _ entries: [HistoryFuzzyEntry],
         bookmarkedURLs: Set<String>
     ) -> [HistoryFuzzyEntry] {
         entries.map { entry in
-            guard !entry.isSearchRow, !entry.isBookmarked else { return entry }
+            guard !entry.isBookmarked else { return entry }
             var copy = entry
             copy.isBookmarked = bookmarkedURLs.contains(BookmarkURL.normalized(entry.url))
             return copy
         }
     }
 
-    /// One ordering over both sources: visits first, then URL length, then
-    /// score — the core's rule, applied here because bookmarks carry no
-    /// visit count of their own. A URL in both is one row, and the history
-    /// row wins it: it has the visits, the recency, and the same
-    /// destination. Duplicate bookmarks (one page filed in two folders)
-    /// collapse the same way. Static and panel-free so the rule is testable
-    /// without a field or any history.
+    /// The host with one leading `www.` dropped, lowercased, for prefix
+    /// comparison against the query — the same rule the core ranks by, so a
+    /// visited host the query names outranks everything else on both sides
+    /// of the blend.
+    nonisolated static func hostKey(_ host: String) -> String {
+        let lower = host.lowercased()
+        return lower.hasPrefix("www.") ? String(lower.dropFirst(4)) : lower
+    }
+
+    /// One ordering over both sources: a visited host the query names first,
+    /// then visits, then URL length, then score — the core's rule, applied
+    /// here because bookmarks carry no visit count of their own. A URL in both
+    /// is one row, and the history row wins it: it has the visits, the recency,
+    /// and the same destination. Duplicate bookmarks (one page filed in two
+    /// folders) collapse the same way. Static and panel-free so the rule is
+    /// testable without a field or any history.
     nonisolated static func blend(
         history: [HistoryFuzzyEntry],
         bookmarks: [HistoryFuzzyEntry],
-        limit: Int
+        limit: Int,
+        query: String = ""
     ) -> [HistoryFuzzyEntry] {
         var seen = Set(history.map { BookmarkURL.normalized($0.url) })
         var merged = history
@@ -327,7 +364,11 @@ final class SpotlightController {
             seen.insert(key)
             merged.append(bookmark)
         }
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         merged.sort {
+            let boost0 = !needle.isEmpty && hostKey($0.host).hasPrefix(needle)
+            let boost1 = !needle.isEmpty && hostKey($1.host).hasPrefix(needle)
+            if boost0 != boost1 { return boost0 && !boost1 }
             if $0.visitCount != $1.visitCount { return $0.visitCount > $1.visitCount }
             if $0.url.count != $1.url.count { return $0.url.count < $1.url.count }
             if $0.score != $1.score { return $0.score > $1.score }
@@ -350,6 +391,7 @@ final class SpotlightController {
         if let dropdown { return dropdown }
         guard let container, let fieldView else { return nil }
         let dropdown = SpotlightDropdown()
+        dropdown.onHoverExit = { [weak self] in self?.clearHoverSelection() }
         dropdown.translatesAutoresizingMaskIntoConstraints = false
         dropdown.isHidden = true
         container.addSubview(dropdown)
@@ -408,10 +450,22 @@ final class SpotlightController {
     private func close() {
         pendingSearch?.cancel()
         pendingSearch = nil
+        hintTask?.cancel()
+        hintTask = nil
         generation += 1
         results = []
         selectedIndex = nil
-        typedText = ""
+        cachedHint = nil
+        fieldView?.setGhost(nil)
+        hidePanel()
+    }
+
+    /// Takes the panel down without ending the session: history came back
+    /// empty but the ghost still offers the typed action, so the highlight
+    /// state resets while the hint stands.
+    private func hidePanel() {
+        results = []
+        selectedIndex = nil
         fieldView?.isOpen = false
         // Hidden, never removed: see `panel`. Removing it is what threw away the
         // constraints pinning it to the bar, which left it 160pt wide with no layout
@@ -515,6 +569,16 @@ final class SpotlightController {
         refreshResults()
     }
 
+    /// Pointer left the panel: drop the selection so Enter submits the typed
+    /// text rather than opening the row the cursor happened to leave on. Safe
+    /// for keyboard-placed highlights too: those rewrite the field with the
+    /// row's URL on the way in, so submitting the text opens the same place.
+    private func clearHoverSelection() {
+        guard selectedIndex != nil else { return }
+        selectedIndex = nil
+        refreshResults()
+    }
+
     // MARK: - Selection
 
     func moveSelection(by offset: Int) {
@@ -565,11 +629,13 @@ final class SpotlightController {
     /// Mirrors the highlighted row into the field: the input shows the row's
     /// URL, stays focused, and selects it all, so typing replaces it and
     /// Enter opens it. Set directly, never typed: this repaints only and must
-    /// not re-query. Mouse hover highlights without filling — filling follows
+    /// not re-query. The ghost clears with it: it named the typed text, not
+    /// the filled URL. Mouse hover highlights without filling — filling follows
     /// the keyboard alone.
     private func reflectSelectionInField() {
         guard let fieldView, let entry = selectedEntry else { return }
-        fieldView.textField.stringValue = Self.fieldText(for: entry, typedQuery: typedText)
+        fieldView.textField.stringValue = Self.fieldText(for: entry)
+        fieldView.setGhost(nil)
         fieldView.updateClearButton()
         // The keys arrive through the field editor, so it holds focus by
         // construction; re-asserted anyway, because a future dropdown change
@@ -580,12 +646,10 @@ final class SpotlightController {
         fieldView.textField.currentEditor()?.selectAll(nil)
     }
 
-    /// The field text for a highlighted row: the row's URL, or the typed
-    /// query when the highlight sits on the synthetic search row (whose
-    /// destination is the engine, not an address). Static so the rule is
-    /// testable without a panel, a field, or any history.
-    static func fieldText(for entry: HistoryFuzzyEntry, typedQuery: String) -> String {
-        entry.isSearchRow ? typedQuery : entry.url
+    /// The field text for a highlighted row: the row's URL. Static so the
+    /// rule is testable without a panel, a field, or any history.
+    static func fieldText(for entry: HistoryFuzzyEntry) -> String {
+        entry.url
     }
 
     @discardableResult
@@ -601,20 +665,27 @@ final class SpotlightController {
             return
         }
         // History rewrites the bar with its destination, showing where it is
-        // going immediately. The search row does not: its destination is the
-        // engine's URL, and the typed text it replaces is what a failed search
-        // needs to keep for a retry. The navigation updates the bar on commit.
-        // Set directly, not typed: this must repaint only, never re-query.
-        if !entry.isSearchRow {
-            fieldView?.textField.stringValue = entry.url
-            fieldView?.updateClearButton()
-        }
+        // going immediately. Set directly, not typed: this must repaint only,
+        // never re-query. The navigation updates the bar on commit.
+        fieldView?.textField.stringValue = entry.url
+        fieldView?.updateClearButton()
         close()
         onNavigate?(url)
     }
 
-    /// Enter with no highlighted row: parse whatever is typed, exactly as before.
+    /// Enter with no highlighted row: the hint's cached destination when it
+    /// answers for exactly this text, the address parser otherwise. The cache
+    /// is what keeps Enter honest where the parser and the core disagree — a
+    /// dotted word with no real TLD searches rather than loading dead — and
+    /// a text that moved on since the hint landed parses fresh, as before.
     private func submitTyped(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let cachedHint, cachedHint.text == trimmed {
+            let url = cachedHint.url
+            close()
+            onNavigate?(url)
+            return
+        }
         let engine = SettingsStore.shared.settings.search.engine()
         guard let url = AddressParser.url(from: text, searchEngine: engine) else { return }
         close()

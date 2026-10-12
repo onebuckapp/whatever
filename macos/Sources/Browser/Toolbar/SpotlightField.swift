@@ -60,6 +60,9 @@ final class SpotlightField: NSView {
     /// Same on the right, for the clear button.
     private static let trailingInset: CGFloat = 24
     private static let glyphSide: CGFloat = 14
+    /// The ghost reads one step down from the input, so the two never merge
+    /// into one run of text.
+    private static let ghostFontSize: CGFloat = 12
 
     // MARK: State
 
@@ -78,6 +81,17 @@ final class SpotlightField: NSView {
     /// information popup.
     var onLockTapped: (() -> Void)?
     private let clearButton = NSButton()
+
+    /// Muted ghost text continuing the typed input: the pending action, set
+    /// by the controller from the core's input hint. A sibling overlay rather
+    /// than field text, so it never enters the value, never moves the caret,
+    /// and never takes clicks — hit-testing passes straight through to the
+    /// field underneath.
+    private final class GhostLabel: NSTextField {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+    private let ghostLabel = GhostLabel()
+    private var ghostText: String?
 
     /// Whether the dropdown is showing. Squared-off bottom corners and the hairline
     /// separator follow from this.
@@ -140,6 +154,7 @@ final class SpotlightField: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         configureTextField()
+        configureGhostLabel()
         configureLeadingGlyph()
         configureClearButton()
         applyLanguage()
@@ -212,6 +227,85 @@ final class SpotlightField: NSView {
             // draw if it had one, which it does not.
             field.heightAnchor.constraint(equalToConstant: 20),
         ])
+    }
+
+    /// The muted continuation of the typed input. Transparent, non-editable
+    /// and click-through: it must never steal the caret, the focus, or a
+    /// VoiceOver stop from the real field.
+    private func configureGhostLabel() {
+        ghostLabel.translatesAutoresizingMaskIntoConstraints = false
+        ghostLabel.isEditable = false
+        ghostLabel.isSelectable = false
+        ghostLabel.isBordered = false
+        ghostLabel.drawsBackground = false
+        ghostLabel.focusRingType = .none
+        ghostLabel.font = .systemFont(ofSize: Self.ghostFontSize)
+        ghostLabel.textColor = .secondaryLabelColor
+        ghostLabel.cell?.usesSingleLineMode = true
+        ghostLabel.cell?.wraps = false
+        ghostLabel.cell?.truncatesLastVisibleLine = true
+        ghostLabel.lineBreakMode = .byTruncatingTail
+        ghostLabel.isHidden = true
+        // Manual frames in `layoutGhost`, behind the text field so a missed
+        // hit-test can only ever land on the field itself.
+        addSubview(ghostLabel, positioned: .below, relativeTo: textField)
+    }
+
+    /// Shows muted ghost text after the typed input, or clears it. The
+    /// controller owns the content; this view owns the position.
+    func setGhost(_ text: String?) {
+        ghostText = text
+        ghostLabel.stringValue = text ?? ""
+        ghostLabel.isHidden = text?.isEmpty ?? true
+        needsLayout = true
+    }
+
+    /// Ghost text currently showing, for tests: positioning needs a window
+    /// and a laid-out field, but the content contract does not.
+    var ghostTextForTesting: String? {
+        ghostLabel.isHidden ? nil : ghostText
+    }
+
+    /// Ghost frame currently showing, for tests. Nil while hidden.
+    var ghostFrameForTesting: NSRect? {
+        ghostLabel.isHidden ? nil : ghostLabel.frame
+    }
+
+    override func layout() {
+        super.layout()
+        layoutGhost()
+    }
+
+    /// Parks the ghost right past the typed text, centered on the field's
+    /// midline rather than sharing the input's taller line box. The origin
+    /// snaps to whole points: a measured text width and a halved line height
+    /// are fractional by routine, and text parked half a point off the pixel
+    /// grid paints soft next to the crisp input. Hidden while the text
+    /// overflows: the field editor scrolls overflowing input, and a ghost
+    /// measured from the full string would park past the visible edge and
+    /// lie about where the text ends. Sized to the whole ghost plus a
+    /// measuring-slack point allowance, so an address reads in full instead
+    /// of collapsing to an ellipsis a few points early; genuinely longer
+    /// than the room left still truncates at the clear button.
+    private func layoutGhost() {
+        guard let ghostText, !ghostText.isEmpty, !textField.stringValue.isEmpty else { return }
+        let inputFont = textField.font ?? .systemFont(ofSize: 14)
+        let typedWidth = (textField.stringValue as NSString).size(withAttributes: [.font: inputFont]).width
+        let visibleWidth = textField.bounds.width
+        guard typedWidth < visibleWidth - 8 else {
+            ghostLabel.isHidden = true
+            return
+        }
+        ghostLabel.isHidden = false
+        let ghostFont = NSFont.systemFont(ofSize: Self.ghostFontSize)
+        let ghostWidth = (ghostText as NSString).size(withAttributes: [.font: ghostFont]).width
+        let lineHeight = ceil(ghostFont.ascender - ghostFont.descender + ghostFont.leading)
+        ghostLabel.frame = NSRect(
+            x: (Self.leadingInset + typedWidth + 4).rounded(),
+            y: (textField.frame.midY - lineHeight / 2).rounded(),
+            width: max(0, min(ceil(ghostWidth) + 8, visibleWidth - typedWidth - 8)),
+            height: lineHeight
+        )
     }
 
     private func configureLeadingGlyph() {

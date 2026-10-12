@@ -3009,6 +3009,10 @@ msgid "Search"
 msgstr "Поиск"
 
 msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "Искать в {name}"
+
+msgctxt "Toolbar"
 msgid "Search or enter address"
 msgstr "Поиск или адрес"
 
@@ -3031,6 +3035,10 @@ msgstr "Остановить"
 msgctxt "Toolbar"
 msgid "This window is incognito: its tabs are not saved to history."
 msgstr "Это окно инкогнито: его вкладки не сохраняются в историю."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "Открыть {address}"
 
 #. Software update rows.
 msgctxt "Update"

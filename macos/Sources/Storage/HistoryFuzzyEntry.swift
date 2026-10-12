@@ -42,43 +42,6 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
     /// Bookmark-sourced rows are born flagged.
     var isBookmarked: Bool
 
-    /// Identity of the synthetic search row. Constant across rebuilds, so typing
-    /// another character replaces the row in place instead of dropping a
-    /// highlight the user just arrowed onto. The core issues UUIDs, so no real
-    /// history row can collide with this.
-    static let searchRowID = "search"
-
-    /// Whether this is the synthetic `Search for "…"` row rather than history.
-    /// The dropdown treats it differently: choosing it leaves the typed text in
-    /// the field instead of rewriting it with the destination.
-    var isSearchRow: Bool { id == Self.searchRowID }
-
-    /// The omnibox first row for `query`: `Search for "<query>"`, navigating
-    /// through the address parser exactly as Enter on the typed text would,
-    /// so URLs still go direct. Nil for blank queries and when no destination
-    /// builds. The engine's name is the second line, so the row reads
-    /// `Search for "cats" / Google` rather than flashing the search URL.
-    static func searchRow(query: String, engine: ResolvedSearchEngine) -> HistoryFuzzyEntry? {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              let destination = AddressParser.url(from: trimmed, searchEngine: engine)
-        else { return nil }
-        return HistoryFuzzyEntry(
-            id: Self.searchRowID,
-            url: destination.absoluteString,
-            title: "Search for \"\(trimmed)\"",
-            host: engine.title,
-            firstVisited: Date(),
-            lastVisited: Date(),
-            visitCount: 0,
-            // The row is prepended explicitly, never sorted in: like the
-            // recent-history rows, it carries no score.
-            score: 0,
-            titlePositions: [],
-            urlPositions: []
-        )
-    }
-
     private init(
         id: String,
         url: String,
@@ -197,20 +160,17 @@ struct HistoryFuzzyEntry: Identifiable, Decodable, Hashable {
     /// Second line of a dropdown row: the full URL when the row has a title,
     /// so sibling pages under one host can be told apart. When the title is
     /// empty the first line already shows the URL, so the second line falls
-    /// back to the host rather than repeating it. The synthetic search row
-    /// keeps the engine's name: its URL is the search destination, and the
-    /// row reads `Search for "cats" / Google` rather than flashing that URL.
+    /// back to the host rather than repeating it.
     var subtitle: String {
-        if isSearchRow { return host }
-        return title.isEmpty ? (host.isEmpty ? url : host) : url
+        title.isEmpty ? (host.isEmpty ? url : host) : url
     }
 
     /// Highlight for `subtitle`: the URL match positions whenever the
     /// subtitle is the URL. A host subtitle has no positions of its own, and
     /// borrowing the URL's offsets against a shorter string would paint the
-    /// wrong characters. The search row carries no positions at all.
+    /// wrong characters.
     var subtitleHighlight: [NSRange] {
-        isSearchRow ? [] : (!title.isEmpty || host.isEmpty ? urlHighlight : [])
+        !title.isEmpty || host.isEmpty ? urlHighlight : []
     }
 
     /// Where the match landed in the title, as character ranges.

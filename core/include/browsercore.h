@@ -265,6 +265,14 @@ int32_t bc_history_by_day(const char *day, char *buffer, int32_t capacity,
 int32_t bc_history_fuzzy_search(const char *query, int32_t limit, char *buffer,
                                 int32_t capacity, int32_t *needed);
 
+/* Classifies address-field input for the inline ghost: `{"kind": "navigate"}`
+ * when Enter would open something directly (a scheme, a file path, a valid
+ * domain or subdomain per valido, or an IP address), `{"kind": "search"} for
+ * everything else. Pure computation over `query` — no store involved. An
+ * empty or NULL query searches. */
+int32_t bc_spotlight_hint(const char *query, char *buffer,
+                          int32_t capacity, int32_t *needed);
+
 /* Deletes one entry by primary key. BC_ERR_NOT_FOUND when no such row. */
 int32_t bc_history_delete(const char *id);
 

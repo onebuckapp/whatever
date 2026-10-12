@@ -3056,6 +3056,10 @@ msgid "Search"
 msgstr "Caută"
 
 msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "Caută pe {name}"
+
+msgctxt "Toolbar"
 msgid "Search or enter address"
 msgstr "Caută sau introdu adresa"
 
@@ -3078,6 +3082,10 @@ msgstr "Stop"
 msgctxt "Toolbar"
 msgid "This window is incognito: its tabs are not saved to history."
 msgstr "Fereastra e incognito: filele ei nu se salvează în istoric."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "Vizitează {address}"
 
 #. Software update rows.
 msgctxt "Update"

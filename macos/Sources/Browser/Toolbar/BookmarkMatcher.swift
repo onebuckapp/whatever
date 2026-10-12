@@ -26,7 +26,9 @@ import Foundation
 /// character must appear in order, case-insensitively, in the title or the
 /// URL — but the score only ever orders bookmarks against each other and
 /// breaks ties in the blended list (visits and URL length rank first), so it
-/// is its own small scale rather than a port of openparser's.
+/// is its own small scale rather than a port of openparser's. The URL scores
+/// stripped of the scheme and one `www.`, like the core: the prefix is pure
+/// noise for matching, and reported positions rebase onto the real URL.
 ///
 /// Only links match, never folders: a folder is not a destination. Matches
 /// spanning the title into the URL are not attempted — the core keeps that
@@ -62,7 +64,11 @@ enum BookmarkMatcher {
 
     private static func match(node: BookmarkNode, query: String, url: String) -> Hit? {
         let titleScore = score(query: query, in: node.title)
-        let urlScore = score(query: query, in: url)
+        // Scored stripped, reported rebased: `reddit` meets `reddit.com/`
+        // at offset zero, while the highlight still lands on the real URL.
+        // The stripped prefix is ASCII, so character and byte counts agree.
+        let stripped = stripNoise(url)
+        let urlScore = score(query: query, in: stripped.text)
         switch (titleScore, urlScore) {
         case let (title?, url?) where title.score >= url.score:
             return Hit(node: node, score: title.score,
@@ -71,7 +77,7 @@ enum BookmarkMatcher {
         case let (_, urlScore?):
             return Hit(node: node, score: urlScore.score,
                        titlePositions: [],
-                       urlPositions: byteOffsets(for: urlScore.positions, in: url))
+                       urlPositions: byteOffsets(for: urlScore.positions.map { $0 + stripped.stripped }, in: url))
         case let (titleScore?, nil):
             return Hit(node: node, score: titleScore.score,
                        titlePositions: byteOffsets(for: titleScore.positions, in: node.title),
@@ -79,6 +85,25 @@ enum BookmarkMatcher {
         default:
             return nil
         }
+    }
+
+    /// Drops the `http(s)://` scheme and one `www.` from a URL for scoring,
+    /// reporting how many leading characters went so positions rebase onto
+    /// the real URL. Static so the rule is testable without bookmarks.
+    static func stripNoise(_ url: String) -> (text: String, stripped: Int) {
+        var start = url.startIndex
+        let lower = url.lowercased()
+        for prefix in ["https://", "http://"] {
+            if lower.hasPrefix(prefix) {
+                start = url.index(url.startIndex, offsetBy: prefix.count)
+                break
+            }
+        }
+        let rest = String(url[start...]).lowercased()
+        if rest.hasPrefix("www.") {
+            start = url.index(start, offsetBy: 4)
+        }
+        return (String(url[start...]), url.distance(from: url.startIndex, to: start))
     }
 
     private struct FieldScore {
