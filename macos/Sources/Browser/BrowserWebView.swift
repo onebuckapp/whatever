@@ -30,6 +30,11 @@ final class BrowserWebView: WKWebView {
     static let fullScreenCaptureItemID = NSUserInterfaceItemIdentifier(
         rawValue: "com.onebuckapp.whatever.fullScreenCapture"
     )
+    /// Our own page-menu separator, so a reused menu can shed it like the
+    /// items above and lay out fresh for the next menu's kind.
+    static let injectedSeparatorItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.injectedSeparator"
+    )
 
     /// Called when the injected page-menu item is chosen, with the
     /// right-clicked link's address when the menu was opened on a link, or
@@ -78,6 +83,18 @@ final class BrowserWebView: WKWebView {
     private static let downloadLinkedFileID = "WKMenuItemIdentifierDownloadLinkedFile"
     private static let openImageInNewWindowID = "WKMenuItemIdentifierOpenImageInNewWindow"
     private static let downloadImageID = "WKMenuItemIdentifierDownloadImage"
+
+    /// A menu WebKit built for a link carries one of its open items: the
+    /// download item is already taken out by the time menus are judged,
+    /// but the open pair always survives.
+    private static let linkOpenIDs = Set([openLinkID, openLinkInNewWindowID])
+
+    /// Whether WebKit built `menu` for a link, judged by its open items
+    /// (locale-independent, unlike titles). Synchronous, so `willOpenMenu`
+    /// can lay out before the async link resolution answers.
+    private static func isLinkMenu(_ menu: NSMenu) -> Bool {
+        menu.items.contains { Self.linkOpenIDs.contains($0.identifier?.rawValue ?? "") }
+    }
 
     /// What the retargeted "Open Link" item is renamed to. WebKit's title
     /// describes its own behavior (load in place); ours opens a new tab, and
@@ -332,39 +349,49 @@ final class BrowserWebView: WKWebView {
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
 
-        // WebKit can reuse a menu object, so do not stack duplicate items.
-        if !menu.items.contains(where: { $0.identifier == Self.generateQRCodeItemID }) {
-            let qrItem = NSMenuItem(
-                title: tr("Share as QR Code", ctx: "Context.Page"),
-                action: #selector(handleGenerateQRCode(_:)),
-                keyEquivalent: ""
-            )
-            qrItem.identifier = Self.generateQRCodeItemID
-            qrItem.target = self
-            qrItem.isEnabled = true
-            menu.insertItem(qrItem, at: 0)
-            menu.insertItem(.separator(), at: 1)
+        // WebKit can reuse a menu object across openings, so strip our
+        // items first: every opening lays out fresh for this menu's kind.
+        for id in [Self.generateQRCodeItemID, Self.fullScreenCaptureItemID, Self.injectedSeparatorItemID] {
+            menu.items.filter({ $0.identifier == id }).forEach(menu.removeItem)
         }
-        // Belongs right after the QR item: both act on the page on screen.
-        // A reused menu that already carries the QR item (built before this
-        // item existed cannot happen in-process, but a defensive insert
-        // costs nothing) still gets its capture item.
-        if !menu.items.contains(where: { $0.identifier == Self.fullScreenCaptureItemID }),
-           let qrIndex = menu.items.firstIndex(where: { $0.identifier == Self.generateQRCodeItemID })
-        {
-            let captureItem = NSMenuItem(
-                title: tr("Full Screen Capture", ctx: "Context.Page"),
-                action: #selector(handleFullScreenCapture(_:)),
-                keyEquivalent: ""
-            )
-            captureItem.identifier = Self.fullScreenCaptureItemID
-            captureItem.target = self
-            captureItem.isEnabled = true
-            menu.insertItem(captureItem, at: qrIndex + 1)
-        }
+        let qrItem = NSMenuItem(
+            title: tr("Share as QR Code", ctx: "Context.Page"),
+            action: #selector(handleGenerateQRCode(_:)),
+            keyEquivalent: ""
+        )
+        qrItem.identifier = Self.generateQRCodeItemID
+        qrItem.target = self
+        qrItem.isEnabled = true
+        menu.insertItem(qrItem, at: 0)
+        let separator = NSMenuItem.separator()
+        separator.identifier = Self.injectedSeparatorItemID
+        menu.insertItem(separator, at: 1)
+        // Acts on the page on screen; a link menu takes it back out below.
+        let captureItem = NSMenuItem(
+            title: tr("Full Screen Capture", ctx: "Context.Page"),
+            action: #selector(handleFullScreenCapture(_:)),
+            keyEquivalent: ""
+        )
+        captureItem.identifier = Self.fullScreenCaptureItemID
+        captureItem.target = self
+        captureItem.isEnabled = true
+        menu.insertItem(captureItem, at: 2)
 
         retargetLinkItems(in: menu)
         retargetImageItems(in: menu)
+
+        // A link menu shares the right-clicked link, so QR follows the
+        // open-link items it acts with instead of leading the menu. Full
+        // Screen Capture stays out: it acts on the page, not the link.
+        if Self.isLinkMenu(menu) {
+            menu.removeItem(captureItem)
+            menu.removeItem(separator)
+            menu.removeItem(qrItem)
+            let anchor = menu.items.lastIndex(where: {
+                Self.linkOpenIDs.contains($0.identifier?.rawValue ?? "")
+            }) ?? -1
+            menu.insertItem(qrItem, at: anchor + 1)
+        }
     }
 
     @objc private func handleGenerateQRCode(_ sender: NSMenuItem?) {

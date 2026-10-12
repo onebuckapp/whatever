@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import AppKit
 import Foundation
 import Testing
 import WebKit
@@ -81,6 +82,92 @@ struct LinkMenuTests {
     @Test("the retargeted open item says New Tab")
     func openItemTitle() {
         #expect(BrowserWebView.openLinkInNewTabTitle == "Open Link in New Tab")
+    }
+
+    private func menuEvent() -> NSEvent {
+        NSEvent.mouseEvent(
+            with: .rightMouseDown,
+            location: NSPoint(x: 100, y: 100),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )!
+    }
+
+    private func item(title: String, id: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.identifier = NSUserInterfaceItemIdentifier(id)
+        return item
+    }
+
+    private func view() -> BrowserWebView {
+        BrowserWebView(
+            frame: NSRect(x: 0, y: 0, width: 800, height: 600),
+            configuration: WKWebViewConfiguration())
+    }
+
+    private func linkMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(item(title: "Open Link", id: "WKMenuItemIdentifierOpenLink"))
+        menu.addItem(item(title: "Open Link in New Window", id: "WKMenuItemIdentifierOpenLinkInNewWindow"))
+        menu.addItem(item(title: "Copy Link", id: "WKMenuItemIdentifierCopyLink"))
+        return menu
+    }
+
+    @Test("link menus put Share as QR Code after the open items and hide capture")
+    @MainActor
+    func linkMenuOrder() {
+        let menu = linkMenu()
+        view().willOpenMenu(menu, with: menuEvent())
+        let titles = menu.items.map(\.title)
+        #expect(titles == [
+            "Open Link in New Tab",
+            "Open Link in New Window",
+            "Share as QR Code",
+            "Copy Link",
+        ])
+        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.fullScreenCaptureItemID })
+        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.injectedSeparatorItemID })
+    }
+
+    @Test("page menus lead with Share as QR Code and keep the capture")
+    @MainActor
+    func pageMenuOrder() {
+        let menu = NSMenu()
+        view().willOpenMenu(menu, with: menuEvent())
+        #expect(menu.items.count == 3)
+        #expect(menu.items[0].identifier == BrowserWebView.generateQRCodeItemID)
+        #expect(menu.items[0].title == "Share as QR Code")
+        #expect(menu.items[1].isSeparatorItem)
+        #expect(menu.items[2].identifier == BrowserWebView.fullScreenCaptureItemID)
+        #expect(menu.items[2].title == "Full Screen Capture")
+    }
+
+    @Test("reused menus relayout when the menu kind changes")
+    @MainActor
+    func reusedMenuRelayouts() {
+        let menu = linkMenu()
+        let first = view()
+        first.willOpenMenu(menu, with: menuEvent())
+        #expect(menu.items.filter { $0.identifier == BrowserWebView.generateQRCodeItemID }.count == 1)
+        // Reused for a page: WebKit swaps its items out, ours lay out fresh.
+        menu.items.filter {
+            $0.identifier?.rawValue.hasPrefix("WKMenuItemIdentifier") ?? false
+        }.forEach(menu.removeItem)
+        view().willOpenMenu(menu, with: menuEvent())
+        #expect(menu.items.first?.identifier == BrowserWebView.generateQRCodeItemID)
+        #expect(menu.items.contains { $0.identifier == BrowserWebView.fullScreenCaptureItemID })
+        #expect(menu.items.filter { $0.identifier == BrowserWebView.generateQRCodeItemID }.count == 1)
+        // And back to a link: the capture leaves again, nothing stacks.
+        menu.addItem(item(title: "Open Link", id: "WKMenuItemIdentifierOpenLink"))
+        view().willOpenMenu(menu, with: menuEvent())
+        #expect(menu.items.filter { $0.identifier == BrowserWebView.generateQRCodeItemID }.count == 1)
+        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.fullScreenCaptureItemID })
+        #expect(menu.items.allSatisfy { $0.identifier != BrowserWebView.injectedSeparatorItemID })
     }
 
     @Test("developer extras turn on for the inspector")
