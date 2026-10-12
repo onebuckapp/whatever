@@ -26,9 +26,11 @@ import SwiftUI
 struct WhateverApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     // Observed so a language switch rebuilds the command menus below: menu
-    // titles are `tr()` snapshots, and the revision tick re-renders them
-    // live, with no relaunch. Stock AppKit items (Services, Hide, standard
-    // Edit/Window) stay in the system language — only our items translate.
+    // item titles are `tr()` snapshots, and the revision tick re-renders
+    // them live, with no relaunch. The top-level bar titles do not follow
+    // on their own — `MenuBarRetitler` re-applies those in AppKit. Stock
+    // submenu items (Services, Hide, standard Edit/Window) stay in the
+    // system language — only our items, and the bar titles, translate.
     @StateObject private var localization = Localization.shared
 
     var body: some Scene {
@@ -132,6 +134,109 @@ struct WhateverApp: App {
     }
 }
 
+/// Top-level menu-bar titles, retitled live on every language switch.
+///
+/// SwiftUI rebuilds command-menu *contents* on the revision tick, but the
+/// bar titles — ours (`Tab`, `Split`, `Find`, `View`) and the stock AppKit
+/// ones (`File`, `Edit`, `Window`, `Help`) — keep the language they were
+/// first built in. So the bar is retitled in AppKit directly, the same
+/// pattern as the File > Close retitle below. Submenu contents are never
+/// touched: Edit and Window keep their stock items, whatever the language.
+enum MenuBarRetitler {
+    /// A recognized top-level menu.
+    enum ID {
+        case file, edit, tab, split, find, view, window, help
+    }
+
+    /// Non-separator items our Split menu holds. It has no keyboard
+    /// shortcuts to recognize it by (see `TabCommands`), so the shape stands
+    /// in — everything else is excluded first, and anything not matching
+    /// exactly is left alone. Keep in sync with the Split section there.
+    private static let splitButtonCount = 6
+
+    /// Which menu `topItem` heads, by language-independent signatures: key
+    /// equivalents, actions, and AppKit's own menu pointers survive
+    /// translation, titles do not. Returns nil for anything unrecognized
+    /// (the app menu, Services, future menus), which stays exactly as is.
+    static func classify(_ topItem: NSMenuItem) -> ID? {
+        guard let submenu = topItem.submenu else { return nil }
+        let items = submenu.items
+        // The File menu owns ⌘W (see `retitleSystemCloseItem`).
+        if items.contains(where: {
+            $0.keyEquivalent == "w" && $0.keyEquivalentModifierMask.contains(.command)
+        }) {
+            return .file
+        }
+        // Stock Edit answers copy: — compared by name, since the action is
+        // declared on Objective-C NSResponder without a Swift member.
+        if items.contains(where: { $0.action.map(NSStringFromSelector) == "copy:" }) {
+            return .edit
+        }
+        if let windowsMenu = NSApp.windowsMenu, submenu === windowsMenu {
+            return .window
+        }
+        // Fallback when AppKit has not (yet) pointed at the menu: the stock
+        // Window menu always carries Minimize.
+        if items.contains(where: { $0.action == #selector(NSWindow.performMiniaturize(_:)) }) {
+            return .window
+        }
+        if let helpMenu = NSApp.helpMenu, submenu === helpMenu {
+            return .help
+        }
+        // Ours: Tab (⌘L), Find (⌘F), View (⌘R). Lowercased, so ⇧⌘ variants
+        // match too; no stock menu uses these letters.
+        if items.contains(where: {
+            $0.keyEquivalent.lowercased() == "l" && $0.keyEquivalentModifierMask.contains(.command)
+        }) {
+            return .tab
+        }
+        if items.contains(where: {
+            $0.keyEquivalent.lowercased() == "f" && $0.keyEquivalentModifierMask.contains(.command)
+        }) {
+            return .find
+        }
+        if items.contains(where: {
+            $0.keyEquivalent.lowercased() == "r" && $0.keyEquivalentModifierMask.contains(.command)
+        }) {
+            return .view
+        }
+        // Split last: shortcut-less, so six buttons, only separators besides,
+        // and no submenus (Services) — after everything else had its chance.
+        let buttons = items.filter { !$0.isSeparatorItem }
+        if buttons.count == splitButtonCount,
+           items.allSatisfy({ $0.keyEquivalent.isEmpty && $0.submenu == nil })
+        {
+            return .split
+        }
+        return nil
+    }
+
+    /// The current-language title for a classified menu. Ours reuse the same
+    /// snapshots as their `CommandMenu`s; the stock menus gain `Menu.Bar`
+    /// titles while their items stay in the system language.
+    static func title(for id: ID) -> String {
+        switch id {
+        case .file: tr("File", ctx: "Menu.Bar")
+        case .edit: tr("Edit", ctx: "Menu.Bar")
+        case .window: tr("Window", ctx: "Menu.Bar")
+        case .help: tr("Help", ctx: "Menu.Bar")
+        case .tab: tr("Tab", ctx: "Menu.Tab")
+        case .split: tr("Split", ctx: "Menu.Split")
+        case .find: tr("Find", ctx: "Menu.Find")
+        case .view: tr("View", ctx: "Menu.View")
+        }
+    }
+
+    /// Retitles every recognized top-level menu, leaving the rest alone.
+    static func retitleBar() {
+        for topItem in NSApp.mainMenu?.items ?? [] {
+            if let id = classify(topItem) {
+                topItem.title = title(for: id)
+            }
+        }
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// SwiftUI's own File menu owns ⌘W, and it is labelled "Close", but in this
     /// app it closes the current tab and only closes the window when there is no
@@ -228,6 +333,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.retitleSystemCloseItem()
+        MenuBarRetitler.retitleBar()
         // Idle-tab reaping runs for the life of the app once started.
         TabSleeper.shared.start()
         // One subscription, so a web setting changed anywhere — a settings
@@ -284,14 +390,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             // SwiftUI rebuilds our command menus itself on the revision tick,
-            // but the File > Close retitle above is AppKit-owned: re-apply it
-            // on every language switch.
+            // but the File > Close retitle above and the top-level bar
+            // titles are AppKit-owned: re-apply them on every language
+            // switch.
             menuRetitleObserver = NotificationCenter.default.addObserver(
                 forName: .localizationDidChange,
                 object: nil,
                 queue: .main
             ) { _ in
                 Self.retitleSystemCloseItem()
+                MenuBarRetitler.retitleBar()
             }
 
             // Compiles the content-blocker lists before the first tab opens,

@@ -135,6 +135,26 @@ msgctxt "Menu.App"
 msgid "Passwords…"
 msgstr "Parole…"
 
+#. Menu bar > top-level File title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "File"
+msgstr "Fișier"
+
+#. Menu bar > top-level Edit title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Edit"
+msgstr "Editare"
+
+#. Menu bar > top-level Window title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Window"
+msgstr "Fereastră"
+
+#. Menu bar > top-level Help title.
+msgctxt "Menu.Bar"
+msgid "Help"
+msgstr "Ajutor"
+
 msgctxt "Menu.File"
 msgid "New Tab"
 msgstr "Filă nouă"

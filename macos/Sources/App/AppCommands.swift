@@ -78,6 +78,10 @@ struct TabCommands: Commands {
         }
 
         CommandMenu(tr("Split", ctx: "Menu.Split")) {
+            // No keyboard shortcuts on these items, which is what lets
+            // `MenuBarRetitler` recognize this menu by shape instead: keep
+            // its `splitButtonCount` in sync when adding or removing items
+            // below (separators aside).
             Button(tr("Split with Next Tab", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.splitWithNextTab()
             }
