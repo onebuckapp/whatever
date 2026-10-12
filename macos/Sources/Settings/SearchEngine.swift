@@ -180,15 +180,15 @@ enum CustomEngineValidator {
         queryItem: String
     ) -> String? {
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Give the engine a name."
+            return tr("Give the engine a name.", ctx: "Settings.Search")
         }
         let trimmedAddress = address.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedAddress.isEmpty {
-            return "Enter the search address."
+            return tr("Enter the search address.", ctx: "Settings.Search")
         }
         let lowercased = trimmedAddress.lowercased()
         guard lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") else {
-            return "The address must start with http:// or https://"
+            return tr("The address must start with http:// or https://", ctx: "Settings.Search")
         }
 
         // A template address is checked by substituting a stand-in for the query,
@@ -196,16 +196,16 @@ enum CustomEngineValidator {
         if trimmedAddress.contains("%s") {
             let probe = trimmedAddress.replacingOccurrences(of: "%s", with: "test")
             guard URL(string: probe) != nil else {
-                return "That address is not valid."
+                return tr("That address is not valid.", ctx: "Settings.Search")
             }
             return nil
         }
 
         if queryItem.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Enter the query parameter, usually q."
+            return tr("Enter the query parameter, usually q.", ctx: "Settings.Search")
         }
         guard URL(string: trimmedAddress) != nil else {
-            return "That address is not valid."
+            return tr("That address is not valid.", ctx: "Settings.Search")
         }
         return nil
     }

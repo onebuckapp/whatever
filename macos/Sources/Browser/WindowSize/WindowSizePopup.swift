@@ -145,14 +145,14 @@ struct WindowSizeCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Window Size")
+            Text(tr("Window Size", ctx: "WindowSize"))
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
             Divider()
             VStack(spacing: 10) {
-                fieldRow("Width", text: $widthText, field: .width)
-                fieldRow("Height", text: $heightText, field: .height)
+                fieldRow(tr("Width", ctx: "WindowSize"), text: $widthText, field: .width)
+                fieldRow(tr("Height", ctx: "WindowSize"), text: $heightText, field: .height)
                 if let failure {
                     Text(failure)
                         .font(.system(size: 12))
@@ -163,12 +163,12 @@ struct WindowSizeCard: View {
             .padding(.vertical, 12)
             Divider()
             HStack {
-                Button("Cancel") {
+                Button(tr("Cancel", ctx: "WindowSize")) {
                     onCancel?()
                 }
                 .controlSize(.small)
                 Spacer()
-                Button("Apply") {
+                Button(tr("Apply", ctx: "WindowSize")) {
                     apply()
                 }
                 .controlSize(.small)
@@ -239,7 +239,7 @@ struct WindowSizeCard: View {
 
     private func apply() {
         guard let size = WindowSizeForm.parse(width: widthText, height: heightText) else {
-            failure = "Enter positive numbers for both width and height."
+            failure = tr("Enter positive numbers for both width and height.", ctx: "WindowSize")
             SystemBeep.play()
             return
         }

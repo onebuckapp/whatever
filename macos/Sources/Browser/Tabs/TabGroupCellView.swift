@@ -81,7 +81,7 @@ final class TabGroupCellView: NSView {
         let button = NSButton(frame: .zero)
         button.image = NSImage(
             systemSymbolName: "xmark.circle.fill",
-            accessibilityDescription: "Close Tabs"
+            accessibilityDescription: tr("Close Tabs", ctx: "Tabs")
         )
         button.imagePosition = .imageOnly
         self.closeButton = button
@@ -324,6 +324,12 @@ final class TabGroupCellView: NSView {
             .store(in: &cancellables)
         applyTheme()
         applyCornerRadius()
+        NotificationCenter.default.publisher(for: .localizationDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.closeButton.image?.accessibilityDescription = tr("Close Tabs", ctx: "Tabs")
+            }
+            .store(in: &cancellables)
     }
 
     deinit {

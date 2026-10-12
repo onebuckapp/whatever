@@ -24,16 +24,23 @@ import AppKit
 /// clickable links. Kept separate from `AppDelegate` so the text and its
 /// links are unit-testable without opening the panel.
 enum AboutContent {
-    static let tagline = "Browsing the dead internet"
+    static var tagline: String { tr("Browsing the dead internet", ctx: "About") }
 
     static let openPeepsURL = URL(string: "https://github.com/openpeeps")!
     static let oneBuckURL = URL(string: "https://onebuck.app")!
+
+    /// The makers line, with links on the two names. Kept as one
+    /// translatable sentence: translations must keep both names verbatim,
+    /// which is what the link ranges search for.
+    static var makersLine: String {
+        tr("Made by Humans from OpenPeeps for OneBuck.app", ctx: "About")
+    }
 
     /// Tagline, copyright line, then the makers line with links on the two
     /// names. Small system font and label color, so it reads as panel
     /// furniture rather than app text.
     static func credits() -> NSAttributedString {
-        let full = "\(tagline)\n\n(c) 2026 George Lemon | GPLv3 License\nMade by Humans from OpenPeeps for OneBuck.app"
+        let full = "\(tagline)\n\n(c) 2026 George Lemon | GPLv3 License\n\(makersLine)"
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         let string = NSMutableAttributedString(

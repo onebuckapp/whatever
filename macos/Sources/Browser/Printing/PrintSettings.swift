@@ -53,8 +53,8 @@ struct PrintSettings: Equatable {
 
         var title: String {
             switch self {
-            case .portrait: return "Portrait"
-            case .landscape: return "Landscape"
+            case .portrait: return tr("Portrait", ctx: "Print")
+            case .landscape: return tr("Landscape", ctx: "Print")
             }
         }
 
@@ -74,8 +74,8 @@ struct PrintSettings: Equatable {
 
         var title: String {
             switch self {
-            case .fit: return "Fit to page"
-            case .actual: return "Actual size"
+            case .fit: return tr("Fit to page", ctx: "Print")
+            case .actual: return tr("Actual size", ctx: "Print")
             }
         }
 

@@ -125,21 +125,21 @@ private struct AdBlockPopupCard: View {
                     .foregroundStyle(isBlocking ? Color.accentColor : Color.secondary)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(host ?? "This page")
+                    Text(host ?? tr("This page", ctx: "Blocker"))
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Text(host == nil
-                        ? "Open a website to manage it here."
-                        : (isBlocking ? "Ads and trackers are blocked here."
-                            : "Paused on this site."))
+                        ? tr("Open a website to manage it here.", ctx: "Blocker")
+                        : (isBlocking ? tr("Ads and trackers are blocked here.", ctx: "Blocker")
+                            : tr("Paused on this site.", ctx: "Blocker")))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Divider()
-            Toggle("Block ads and trackers on this site", isOn: blockingBinding)
+            Toggle(tr("Block ads and trackers on this site", ctx: "Blocker"), isOn: blockingBinding)
                 .font(.system(size: 12))
                 .toggleStyle(.switch)
                 .controlSize(.small)
@@ -147,7 +147,7 @@ private struct AdBlockPopupCard: View {
             Divider()
             Button(action: onManage) {
                 HStack {
-                    Text("Content Blocker settings")
+                    Text(tr("Content Blocker settings", ctx: "Blocker"))
                         .font(.system(size: 12))
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")

@@ -75,8 +75,14 @@ struct PrintPreviewPopup: CenterPopup {
 private struct PrintPreviewCard: View {
     @StateObject private var model = PrintPreviewModel(
         webView: PrintPreviewCoordinator.shared.pendingWebView,
-        title: PrintPreviewCoordinator.shared.pendingTitle ?? "Untitled"
+        title: PrintPreviewCoordinator.shared.pendingTitle ?? tr("Untitled", ctx: "Print")
     )
+    // Observed for `revision`: the page-count line re-resolves below
+    // without reopening the preview.
+    @ObservedObject private var localization = Localization.shared
+    /// Finished "N pages" line, resolved core-side: plural form selection
+    /// cannot happen in a synchronous row.
+    @State private var pageLabel = ""
 
     private static let sidebarWidth: CGFloat = 220
 
@@ -105,7 +111,7 @@ private struct PrintPreviewCard: View {
         case .generating:
             VStack(spacing: 12) {
                 ProgressView().controlSize(.small)
-                Text("Preparing preview…")
+                Text(tr("Preparing preview…", ctx: "Print"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -115,9 +121,9 @@ private struct PrintPreviewCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed:
             VStack(spacing: 12) {
-                Text("Could not render this page.")
+                Text(tr("Could not render this page.", ctx: "Print"))
                     .font(.system(size: 13, weight: .semibold))
-                Text("Only loaded web pages can be printed.")
+                Text(tr("Only loaded web pages can be printed.", ctx: "Print"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -134,34 +140,42 @@ private struct PrintPreviewCard: View {
                 .padding(.top, 14)
                 .padding(.bottom, 4)
             if let count = model.pageCount, count > 0 {
-                Text(count == 1 ? "1 page" : "\(count) pages")
+                Text(pageLabel)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 8)
+                    .task(id: "\(count)-\(localization.revision)") {
+                        let texts = await Localization.batch([
+                            LocaleItem("one page", plural: "{n} pages", n: count),
+                        ])
+                        if let text = texts.first {
+                            pageLabel = text
+                        }
+                    }
             }
             Divider()
                 .padding(.vertical, 8)
 
             Group {
-                Stepper("Copies: \(model.settings.clampedCopies)", value: $model.settings.copies, in: 1...99)
-                Picker("Paper", selection: $model.settings.paperSize) {
+                Stepper(tr("Copies: {n}", ctx: "Print", args: ["n": "\(model.settings.clampedCopies)"]), value: $model.settings.copies, in: 1...99)
+                Picker(tr("Paper", ctx: "Print"), selection: $model.settings.paperSize) {
                     ForEach(PrintSettings.PaperSize.allCases) { size in
                         Text(size.title).tag(size)
                     }
                 }
-                Picker("Orientation", selection: $model.settings.orientation) {
+                Picker(tr("Orientation", ctx: "Print"), selection: $model.settings.orientation) {
                     ForEach(PrintSettings.Orientation.allCases) { orientation in
                         Text(orientation.title).tag(orientation)
                     }
                 }
-                Picker("Scale", selection: $model.settings.scale) {
+                Picker(tr("Scale", ctx: "Print"), selection: $model.settings.scale) {
                     ForEach(PrintSettings.Scale.allCases) { scale in
                         Text(scale.title).tag(scale)
                     }
                 }
-                Toggle("Backgrounds", isOn: $model.settings.backgrounds)
-                Toggle("Print stylesheet", isOn: $model.settings.printStylesheet)
+                Toggle(tr("Backgrounds", ctx: "Print"), isOn: $model.settings.backgrounds)
+                Toggle(tr("Print stylesheet", ctx: "Print"), isOn: $model.settings.printStylesheet)
             }
             .pickerStyle(.menu)
             .controlSize(.small)
@@ -175,7 +189,7 @@ private struct PrintPreviewCard: View {
             Button {
                 model.printDocument()
             } label: {
-                Label("Print…", systemImage: "printer")
+                Label(tr("Print…", ctx: "Print"), systemImage: "printer")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -186,7 +200,7 @@ private struct PrintPreviewCard: View {
             Button {
                 model.saveDocument()
             } label: {
-                Label("Save as PDF…", systemImage: "square.and.arrow.down")
+                Label(tr("Save as PDF…", ctx: "Print"), systemImage: "square.and.arrow.down")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)

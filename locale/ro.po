@@ -1,0 +1,3154 @@
+# Romanian translation for Whatever.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever 0.2.4\n"
+"Language: ro\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1?0:(((n%100>19)||((n%100==0)&&(n!=0)))?2:1));\n"
+
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Actualizare software"
+
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Whatever nu se actualizează singur. Verificarea cere GitHub-ului cea mai recentă versiune; descărcarea aduce imaginea de disc pentru acest Mac, iar actualizarea din ea rămâne în mâinile tale."
+
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Browser implicit"
+
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Legăturile accesate din alte aplicații se deschid aici."
+
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Whatever este browserul tău implicit"
+
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Whatever nu este browserul tău implicit"
+
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Acest Mac deschide deja legăturile web în Whatever."
+
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "Preia legăturile http și https de la browserul tău actual."
+
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Folosește Whatever ca browser implicit"
+
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Sesiune"
+
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "Restaurarea redeschide filele ferestrei anterioare."
+
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Restaurează ultima sesiune"
+
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Redeschide filele ferestrei anterioare la pornire."
+
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Închidere"
+
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "A doua apăsare închide imediat, chiar și cu ferestre deschise."
+
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Confirmă înainte de închidere"
+
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "Prima apăsare ⌘Q arată o confirmare; apasă ⌘Q din nou pentru a închide."
+
+msgctxt "Settings.General"
+msgid "History"
+msgstr "Istoric"
+
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Filele private nu sunt înregistrate niciodată, indiferent ce spune asta."
+
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Înregistrează paginile vizitate"
+
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Adaugă vizitele confirmate în istoric."
+
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Grupează repetările din"
+
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Verifică actualizările"
+
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Descarcă actualizarea"
+
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Arată în Finder"
+
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Limbă"
+
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "Limba interfeței. Textul tradus se schimbă imediat."
+
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Sistem"
+
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "Despre Whatever"
+
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Închide Whatever"
+
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Configurări…"
+
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Parole…"
+
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Fereastră nouă"
+
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Fereastră incognito nouă"
+
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Tipărește…"
+
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Închide fila"
+
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Căutare"
+
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Caută în pagină…"
+
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Caută următorul"
+
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Caută precedentul"
+
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Vizualizare"
+
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Reîncarcă pagina"
+
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Reîncarcă de la origine"
+
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Arată bara de marcaje"
+
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Filă"
+
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Caută în istoric"
+
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Activează bara de adrese"
+
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Redeschide fila închisă"
+
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Mută fila într-o fereastră nouă"
+
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Arată fila precedentă"
+
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Arată fila următoare"
+
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Selectează fila {n}"
+
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Divizare"
+
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Divizează cu fila următoare"
+
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Divizează cu fila precedentă"
+
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Activează panoul următor"
+
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Activează panoul precedent"
+
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Restrânge divizarea"
+
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Închide panoul"
+
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Credite"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "un articol"
+msgstr[1] "{n} articole"
+msgstr[2] "{n} de articole"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "un flux disponibil"
+msgstr[1] "{n} fluxuri disponibile"
+msgstr[2] "{n} de fluxuri disponibile"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "un cookie"
+msgstr[1] "{n} cookie-uri"
+msgstr[2] "{n} de cookie-uri"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "un element"
+msgstr[1] "{n} elemente"
+msgstr[2] "{n} de elemente"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "o regulă cosmetică"
+msgstr[1] "{n} reguli cosmetice"
+msgstr[2] "{n} de reguli cosmetice"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "o descărcare"
+msgstr[1] "{n} descărcări"
+msgstr[2] "{n} de descărcări"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "un element descărcat"
+msgstr[1] "{n} elemente descărcate"
+msgstr[2] "{n} de elemente descărcate"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "o excepție"
+msgstr[1] "{n} excepții"
+msgstr[2] "{n} de excepții"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "un host"
+msgstr[1] "{n} hosturi"
+msgstr[2] "{n} de hosturi"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "un element"
+msgstr[1] "{n} elemente"
+msgstr[2] "{n} de elemente"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "o linie ignorată de compilator"
+msgstr[1] "{n} linii ignorate de compilator"
+msgstr[2] "{n} de linii ignorate de compilator"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "o pagină"
+msgstr[1] "{n} pagini"
+msgstr[2] "{n} de pagini"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "o regulă"
+msgstr[1] "{n} reguli"
+msgstr[2] "{n} de reguli"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "o sursă"
+msgstr[1] "{n} surse"
+msgstr[2] "{n} de surse"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "un indisponibil"
+msgstr[1] "{n} indisponibile"
+msgstr[2] "{n} de indisponibile"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "un necitit"
+msgstr[1] "{n} necitite"
+msgstr[2] "{n} de necitite"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "o vizită"
+msgstr[1] "{n} vizite"
+msgstr[2] "{n} de vizite"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Navigând internetul mort"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "Creat de oameni de la OpenPeeps pentru OneBuck.app"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Reclamele și trackerele sunt blocate aici."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Blochează reclamele și trackerele pe acest site"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "Configurări blocator de conținut"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Deschide un site web pentru a-l gestiona aici."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "Întrerupt pe acest site."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Pagina aceasta"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Adresă"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Ești sigur? Nu se poate reveni."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Bara de marcaje"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Șterge"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "Șterge „{item}”?"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "Șterge „{name}”?"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Editează marcajul"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Editează dosarul"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Dosar"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Marcaj nou"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Dosar nou"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Salvează"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Dosarul și elementul din el vor fi eliminate."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Dosarul și {items} din el vor fi eliminate."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Titlu"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "acest marcaj"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "acest dosar"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Copiază legătura"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Șterge"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Editează…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Marcaj nou…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Dosar nou…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Deschide"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Deschide-le pe toate în file noi"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Deschide configurările marcajelor"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Deschide în filă nouă"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Redenumește…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "Partajează ca cod QR"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Captură pe tot ecranul"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Deschide legătura în filă nouă"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Deschide în filă nouă"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Închide celelalte file"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Închide panoul"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Închide fila"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Închide filele din dreapta"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "Copiază URL-ul"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Dublează fila"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Activează panoul următor"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Activează panoul precedent"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "Partajează ca cod QR"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Amuțește fila"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Fereastră incognito nouă"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Fereastră nouă"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Deschide în fereastră nouă"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Fixează fila"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Reîncarcă fila"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Stabilește dimensiunea ferestrei…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Configurări…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Divizează cu fila următoare"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Divizează cu fila precedentă"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Anulează amuțirea filei"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Anulează fixarea filei"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Un limbaj de programare compilat, static tipizat"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "O suită de baze de date încorporate bazate pe WAL"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Limbajul aplicației și al interfeței"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Autor Tomasz Kurylik"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Creat și întreținut de Paweł Kuna"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Creat cu"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "O colecție de parsere și serializatoare minuscule"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Credite"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Design și dezvoltare · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Casa lui Whatever"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Interfață"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Creat de"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Estimator de putere a parolelor (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Bibliotecă criptografică pur-Nim"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Nucleu de stocare"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Unelte și infrastructură"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Scris în"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Deschide"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Pagina aceasta"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "Anulată"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Ștearsă"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Gata"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "Se descarcă"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "Descărcări"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Eșuată"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Nicio descărcare încă."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Nimic descărcat"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Deschide"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Reîmprospătează"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Elimină din listă"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Reîncearcă"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Arată în Finder"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Dimensiune necunoscută"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{received} din {expected}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Nimic de codificat."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Configurările nu au putut fi salvate."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "Bufferul QR a fost respins de nucleu."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "Codificatorul QR a eșuat."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "Codificatorul QR a întors o stare neașteptată ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Serviciul de stocare Whatever nu este disponibil."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "Snapshotul de filtre inclus lipsește."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Acest URL este prea lung pentru un cod QR."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "salvarea sesiunii a expirat"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Înapoi la articole"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Copiază legătura articolului"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Copiază legătura"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Flux"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Fluxuri"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Fluxurile sunt oprite din Configurări."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "Fluxurile nu pot fi salvate dintr-o filă privată."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Marchează ca citit"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Marchează ca necitit"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Marchează citit"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Marchează necitit"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "Niciun articol nu corespunde acestei vizualizări."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Nicio abonare încă."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Doar rezumatul este disponibil pentru acest articol."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Deschide"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Deschide articolul"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Deschide în filă nouă"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Deschide vizualizarea de citire a articolului."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Reîmprospătează"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Elimină marcajul de salvat"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Salvează"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Salvează articolul"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Salvat"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "Abonează-te"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Abonează-te la un flux pentru a începe lectura."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Aceasta nu este o adresă de flux acceptată."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "Abonarea nu a fost găsită după salvare."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Pagina oferă fluxuri, dar filele private nu le pot salva."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Pagina oferă:"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Necitit"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Doar necitite"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Dezabonează-te"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Copiază calea"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Dosar gol"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Mergi la dosarul părinte"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Ascunse"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Dosar părinte"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Reîmprospătează"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Reîncearcă"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Arată în Finder"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Arată fișierele ascunse"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "se afișează primele {shown} din {total}"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "„{directory}” nu a putut fi deschis."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Închide bara de căutare"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Caută în pagină"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Evidențiază tot"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Cu majuscule"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Potrivirea următoare"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Niciun rezultat"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Potrivirea precedentă"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Cuvinte întregi"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{index} din {total}{more}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "Permite"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Întreabă"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Blochează"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Cameră"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Dispozitive de captură"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Opțiunile sunt reținute pentru acest site. Blocarea sau permiterea se aplică la următoarea solicitare a paginii — reîncărcarea încheie orice captură activă."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Închide"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "Pentru {kind}"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "În uz"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Microfon"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "Nesolicitat"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Filă privată: opțiunile se aplică o singură dată și nu sunt reținute niciodată. Reîncărcarea paginii încheie orice captură activă."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Reîncarcă pagina"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "Se așteaptă răspunsul tău"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Vrea să-ți folosească dispozitivele"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "macOS blochează acest dispozitiv — permite Whatever în Configurări sistem, Confidențialitate și securitate."
+
+#. Application menu.
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "Despre Whatever"
+
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Parole…"
+
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Închide Whatever"
+
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Configurări…"
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Fereastră incognito nouă"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Fereastră nouă"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Închide fila"
+
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Fereastră incognito nouă"
+
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Fereastră nouă"
+
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Tipărește…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Căutare"
+
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Caută următorul"
+
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Caută precedentul"
+
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Caută în pagină…"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Restrânge divizarea"
+
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Închide panoul"
+
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Activează panoul următor"
+
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Activează panoul precedent"
+
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Divizare"
+
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Divizează cu fila următoare"
+
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Divizează cu fila precedentă"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Activează bara de adrese"
+
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Mută fila într-o fereastră nouă"
+
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Redeschide fila închisă"
+
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Caută în istoric"
+
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Selectează fila {n}"
+
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Arată fila următoare"
+
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Arată fila precedentă"
+
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Filă"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Reîncarcă de la origine"
+
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Reîncarcă pagina"
+
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Arată bara de marcaje"
+
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Vizualizare"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Adaugă alte date de logare"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Ești sigur? Nu se poate reveni."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "Cu majusculă"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Schimbă indiciul seifului"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Caractere"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Confirmă parola principală"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Copiază parola"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Copiază numele de utilizator"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Creează seiful"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Creează o parolă principală"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Șterge"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Șterge datele de logare"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Șterge aceste date de logare"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Ștergi aceste date de logare?"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Șterge acest site și toate datele de logare din el"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "Șterge „{site}”?"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Cifre"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Punct (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Generează o parolă"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Ascunde parola"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "Indiciu (opțional)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "Indiciu: {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Cratimă (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Deschide seiful. Nu există recuperare: uitarea ei pierde toate parolele salvate."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Lungime: {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Blochează seiful"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Litere mici"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Parolă principală"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Parolă principală (8+ caractere)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Medie"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Mod"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Site nou"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "Niciun indiciu setat"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Niciun site selectat"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Număr"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Parolă"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Parole"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Alege un site din stânga sau adaugă unul."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Regenerează"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Salvează"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Caută"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Separator"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Arată parola"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Se arată după mai multe parole greșite. Niciodată parola însăși."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Nume site"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Puternică"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Simboluri"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Site-ul și toate datele de logare din el vor fi eliminate. Nu se poate reveni."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Seiful nu a putut fi creat."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Linie de subliniere (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Deblochează"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Deblochează parolele"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Site fără nume"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Litere mari"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Folosește"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Indiciu seif"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Slabă"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Cuvinte"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Cuvinte: {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Parolă principală greșită, încearcă din nou."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "acest site"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Dimensiune reală"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Fundaluri"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Copii: {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Pagina nu a putut fi randată."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Încadrează în pagină"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Vedere"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Doar paginile web încărcate pot fi tipărite."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Orientare"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Hârtie"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Portret"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Se pregătește previzualizarea…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Foaie de stil pentru tipărire"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Tipărește…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "Salvează ca PDF…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Scală"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Fără titlu"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Apasă ⌘Q din nou pentru a închide"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "O culoare într-un punct de-a lungul gradientului."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "O textură de granulație de film peste toată fereastra. Fiecare schimbare se aplică pe măsură ce o faci."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Un fișier video pe disc."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Adaugă"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Adaugă punct"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Bara de adrese"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "Pe X"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "Pe Y"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Mereu silențios și mereu în buclă: o fereastră care începe singură să facă zgomot e problema pe care funcția asta o rezolvă, iar un fundal înghețat la final n-ar fi fundalul nimănui."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Un fișier imagine pe disc."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Ancoră"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Unghi"
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Ești sigur? Granulația, fundalul, tema filelor și bara de adrese revin la valorile implicite."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Atașate"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Filele atașate se unesc cu pagina; pastilele plutesc cu un spațiu deasupra și sunt mereu complet rotunjite, ignorând Raza colțurilor de mai jos."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Redare automată"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Înapoi la granulația implicită."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Înapoi la aspectul implicit."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Fundalul și textul pentru fiecare filă, cu excepția celei selectate."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Fundalul și textul pentru fila selectată."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "În spatele paginii. Se aplică fiecărei ferestre pe măsură ce schimbi."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Estompare"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Ambele"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Jos"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "Jos centru"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "Jos stânga"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "Jos dreapta"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Luminozitate"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "Centru"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "Centru stânga"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "Centru dreapta"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Centru X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Centru Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "Alege o imagine statică de afișat până la primul cadru video."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Alege un video de redat în spatele paginii."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Alege un video de redat în spatele filei."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Alege o imagine de afișat în spatele paginii."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Alege o imagine de afișat în spatele filei."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Alege…"
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Golește"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Culoare"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Culoare"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Contrast"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Raza colțurilor"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Fila curentă"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Personalizat"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Respinge"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Efecte"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Opt este limita."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Activat"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Sfârșit"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Înălțimea câmpului"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Umplere"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Umple lățimea disponibilă"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Umple cu"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Filtrează configurările"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Potrivește"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Generează"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Generează o altă granulație"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Gradient"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Granulație"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Dimensiunea granulației"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Ascunde textura fără a pierde aceste configurări."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Orizontal"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Imagine"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "File inactive"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "Raza interioară"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Intensitate"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Tip"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Lasă fundalul să se vadă în spatele paginii."
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Liniar"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Bula de legături"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Aspect"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Lipsește sau e ilizibil. Alege-l din nou."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Monocrom"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Îți trebuie mai întâi un fundal. N-ai ce dezvălui încă."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Model nou"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Niciun fișier ales"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Niciun poster ales"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "Nicio configurare nu corespunde cu {query}."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Niciuna"
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "Oprit implicit. Forțează paginile să fie transparente, dar unele site-uri își pierd fundalul. Va fi parțial: un site care își pictează propriul fundal acoperă media."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Opacitate"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Original"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Raza exterioară"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Colțurile paginii"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Pauză când e ascuns"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Pauză când e inactiv"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Procent"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Pastile"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Puncte"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Poziție"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Radial"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Elimină"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Repetă"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Resetează"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Resetează aspectul"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Resetează configurările de aspect"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Resetezi configurările de aspect?"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Resetează…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Respectă reducerea mișcării"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Restaurează fiecare configurare de pe pagină — granulație, fundal, tema filelor și bara de adrese — la valoarea implicită."
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Rotunjimea fiecărei file atașate. Se aplică live pe măsură ce schimbi."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Aceleași configurări, altă granulație."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Saturație"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Salvează"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Scală"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Formă"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Arată prin pagini"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Dimensiune"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Dimensiunea și forma câmpului. Se aplică live pe măsură ce schimbi."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Solid"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Viteză"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "Ține locul până la primul cadru. E și singurul lucru căruia i se aplică gradarea Efectelor la video."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Start"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Începe la"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Pornește singur la deschiderea ferestrei."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Punctele se aplică în ordine de-a lungul gradientului."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "Se oprește când altă aplicație e în față."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "Se oprește când fereastra e acoperită, minimizată sau aplicația e ascunsă."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Întinde"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "Se întinde între butoane în loc de câmp centrat."
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Sistem"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Colțurile filelor"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Forma filelor"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Culoarea textului"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Fundalul a fost oprit. Alege alt fișier."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "Adresa flotantă afișată la hover pe o legătură."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Sistemul cere momentan mișcare redusă, deci video se pauzează."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Sistemul nu cere mișcare redusă."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Nuanță"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Sus"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "Sus centru"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "Sus stânga"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "Sus dreapta"
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Pagini transparente"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Folosește"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Vertical"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Fundal fereastră"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent}% pe traseu"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "Lista implicită AdAway · CC BY 3.0 · plus extra-urile noastre"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Adaugă"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Aplică regulile"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Blochează reclamele și trackerele"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Blocare"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Snapshot inclus"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Reguli personalizate"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "Excepții"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Liste de filtre"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Linii hosts plus reguli ||, @@ și ##, una pe linie. Se aplică împreună cu snapshotul."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Ultima eroare"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "Nicio excepție."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Paginile se reîncarcă pentru a prelua schimbarea."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "Elimină {host}"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Reguli"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Vine cu aplicația. Nu se descarcă nimic și niciun istoric de navigare nu părăsește mașina: listele se compilează local."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Site-urile pe care blocatorul le lasă în pace, inclusiv subdomeniile."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Linii sărite"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Sursă"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Cererile terțe către hosturile listate nu părăsesc pagina."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Marcaje"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Marcaje indisponibile"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Marcajele adăugate vor fi listate aici."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Niciun marcaj încă"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Elimină tot"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Elimină acest marcaj"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Elimină acest dosar și tot ce e în el"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Arată bara de marcaje"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Golește"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Golește tot"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Golește istoricul"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "Dosar descărcări"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "Istoric descărcări"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Fiecare descărcare ajunge aici. Numele de fișiere se deduplică automat, deci nimic nu e suprascris."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Uită toate rândurile de descărcări."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Uiți fiecare rând de descărcare?"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Rândurile de istoric indică fișiere pe disc. Golirea uită rândurile; fișierele rămân unde sunt."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Locație"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Nicio descărcare încă"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Arată"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Stocare"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "1–2 caractere afișate între titluri."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Aplică"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Aplică retenția"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Articole per flux"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Automat"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Opacitatea fundalului"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Înălțimea barei"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Conținut cache-uit"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Raza colțurilor"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Direcția derulării"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Viteza derulării"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Șterge toate abonările și fluxurile cache-uite."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "Descoperirea doar anunță fluxurile. Nimic nu se descarcă sau salvează până nu te abonezi sau reîmprospătezi."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Descarcă faviconuri"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Activează derularea"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "Activează fluxurile RSS"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Preluare"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Dimensiunea fontului"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Derulare titluri"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "De la stânga la dreapta"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Marchează articolele citite la deschidere"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Nicio sursă abonată."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Nicio abonare"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Oprit"
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Deschiderea unui articol îi șterge punctul de necitit."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Parsare"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Persistă o pictogramă de site validată per abonare."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Curăță fiecare abonare la limita de mai sus."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Doar imagini de la editori"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Citire"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Reîmprospătează"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Reîmprospătează tot"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Reîmprospătează automat"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Interval reîmprospătare"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Reîmprospătează abonările vechi la încărcarea cititorului."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Reîmprospătează sursa acum"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Reîmprospătările folosesc cereri condiționale când editorul le acceptă. Filele private nu se abonează, nu reîmprospătează și nu descarcă."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Se reîmprospătează…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "Refuză fluxurile care pică validarea RSS sau Atom în loc să le recupereze."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Elimină"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Ștergi fiecare abonare și toate articolele și imaginile cache-uite?"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Elimină tot"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Retenție"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "Retenția se aplică după ingerare și la fiecare apăsare pe Aplică. Marcajele de citit și salvat nu provoacă singure curățarea."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "De la dreapta la stânga"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Separator"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Arată controlul din bară pe paginile care anunță un flux și permite abonări noi."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Arată o bară derulantă cu titluri în partea de jos."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Stocare"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "Parsarea strictă respinge fluxurile malformate și RDF/RSS 1.0. Parsarea îngăduitoare recuperează titluri, legături, date și rezumate utilizabile ori de câte ori pot fi identificate."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Validare strictă"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Surse abonate"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Abonările, articolele, faviconurile și thumbnailurile stau în baza separată de fluxuri. Ștergerea totală e ireversibilă."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Derularea se ascunde când n-are ce arăta. Textul folosește mereu culoarea de sistem, deci ține pasul cu Mod Luminos și Întunecat."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Thumbnailuri"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Pornește fluxurile RSS pentru a gestiona abonările."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Dezabonează-te de la sursă"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Dezabonarea elimină abonarea, articolele cache-uite și imaginile persistate."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Golește tot"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Grupează repetările din"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "Șterge ce-i mai vechi de 30 de zile"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "Istoric"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Niciun istoric încă"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Paginile vizitate apar aici."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Filele private nu sunt înregistrate niciodată, indiferent ce spune asta."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Înregistrează paginile vizitate"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Elimină intrarea"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Aspect"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Marcaje"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "Blocator de conținut"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "Descărcări"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Generale"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "Istoric"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS și fluxuri"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Căutare"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Configurări"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Web"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Adaugă un motor pentru căutări unde ăstea nu ajung."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Adresă"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "O adresă și parametrul de interogare pe care-l ia."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Curăță legăturile din rezultate"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Clickurile și legăturile copiate duc destinația."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Motor implicit"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Introdu parametrul de interogare, de obicei q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Introdu adresa de căutare."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Dă-i un nume motorului."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Căutarea mea"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Nume"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Parametru de interogare"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Înregistrează ce cauți"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Elimină motorul"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Legături rezultate"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Salvează"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Împiedică motoarele să schimbe legăturile din rezultate cu hopuri de tracking la apăsare. Activ doar pe paginile de rezultate acceptate."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Adresa nu e validă."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "Adresa trebuie să înceapă cu http:// sau https://"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Unde trimite câmpul de adrese căutarea. Ce arată a adresă web se încarcă direct."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Motoarele tale"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "După 1 oră"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "După 15 minute"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "După 30 de minute"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "După 5 minute"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "Permite JavaScript"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "Se aplică paginilor deschise imediat."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Gesturi înainte/înapoi"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Afișare"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Totul"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Avertismente site-uri frauduloase"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Filele ascunse își pierd pagina după timpul ăsta de inactivitate și eliberează memoria. Afișarea reîncarcă adresa; filele afișate, fixate, cu sunet sau în încărcare nu dorm niciodată."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Interacțiune"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "JavaScript poate deschide ferestre"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Lasă pagina să deschidă o filă fără click. Popupurile aterizează în fereastra asta."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Previzualizări legături"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Mărire"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Media"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Dimensiune minimă font"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Nimic"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Oprit"
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Oprit blochează scripturile, ceea ce oprește și majoritatea site-urilor."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Zoom pagină"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Pagini"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Redă fără click"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Confidențialitate"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Se citește la deschiderea paginii. Schimbările se aplică la pagina următoare."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Mod ciudățenii per site"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Adormi filele nefolosite"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "File adormite"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Unele se aplică la pagina următoare."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "Fila focalizează legături"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Actualizează hosturile cunoscute la HTTPS"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "oprit"
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Certificat"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Detaliile certificatului nu sunt disponibile pentru vizita asta."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Golește"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "Conexiunea nu e securizată."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "Conexiunea e securizată."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Cookie-uri și date site"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Expiră"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Amprentă"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Emis de"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Emis pentru"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Se încarcă datele site-ului."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Nicio dată stocată pentru site."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Deschide un site pentru a-l inspecta aici."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Configurări site"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Pagina aceasta"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Pagina nu e încărcată prin HTTPS, deci n-ai ce certificat să vezi."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Necunoscut"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Închide fila"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Închide filele"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Amuțește fila"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Anulează amuțirea filei"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Adaugă marcaj"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Flux disponibil"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Fluxuri disponibile"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Înapoi"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Marcaje"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Camera sau microfonul în uz — deschide controalele de captură"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Camera sau microfonul solicitate — deschide controalele de captură"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Controale captură"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Golește adresa"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "Blocator de conținut — activ pe site"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "Blocator de conținut — întrerupt pe site"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Blocatorul de conținut e activ pe site"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Blocatorul de conținut e întrerupt pe site"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "Descărcări"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Editează marcajul"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "Înainte"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Incognito"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Conexiune nesecurizată"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Manager parole"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Reîncarcă"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Caută"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Caută sau introdu adresa"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Conexiune securizată"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Configurări"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Informații site"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Stop"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Fereastra e incognito: filele ei nu se salvează în istoric."
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "Întreabă GitHub de ultimul release."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Verifică actualizări"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "N-am putut verifica actualizările"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Descarcă Whatever {version}."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Descarcă actualizarea"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "GitHub a răspuns neașteptat. Mai încearcă."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "GitHub limitează verificările. Mai încearcă puțin."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "GitHub n-are release-uri încă. Mai încearcă."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Actualizare software"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "Verificarea a eșuat. Verifică conexiunea și mai încearcă."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "Descărcarea a eșuat. Verifică conexiunea și mai încearcă."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Actualizare disponibilă"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Actualizare descărcată"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Whatever e la zi"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Whatever {version} e disponibil — tu ai {current}."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Whatever {version} e disponibil, dar n-are imagine de disc pentru Mac-ul ăsta."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Whatever {version} e în {file} — deschide-l pentru actualizare."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Whatever {version} e instalat."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Whatever {version} e ultimul release."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Încărcarea a eșuat"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Se încarcă…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Filă nouă"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Se reîncarcă…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Aplică"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "Anulează"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Introdu numere pozitive pentru lățime și înălțime."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Înălțime"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Lățime"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Dimensiunea ferestrei"

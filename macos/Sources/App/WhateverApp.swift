@@ -25,6 +25,11 @@ import SwiftUI
 @main
 struct WhateverApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    // Observed so a language switch rebuilds the command menus below: menu
+    // titles are `tr()` snapshots, and the revision tick re-renders them
+    // live, with no relaunch. Stock AppKit items (Services, Hide, standard
+    // Edit/Window) stay in the system language — only our items translate.
+    @StateObject private var localization = Localization.shared
 
     var body: some Scene {
         // No `Settings` scene. Declaring one opens a blank window instead of
@@ -36,7 +41,7 @@ struct WhateverApp: App {
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About Whatever") {
+                Button(tr("About Whatever", ctx: "Menu.App")) {
                     AppDelegate.showAbout()
                 }
             }
@@ -46,7 +51,7 @@ struct WhateverApp: App {
             // shutdown, and direct `terminate:` calls never pass through here
             // and keep quitting immediately.
             CommandGroup(replacing: .appTermination) {
-                Button("Quit Whatever") {
+                Button(tr("Quit Whatever", ctx: "Menu.App")) {
                     let source: QuitConfirmation.RequestSource =
                         NSApp.currentEvent?.type == .keyDown ? .keyboard : .menu
                     QuitConfirmation.shared.handleQuitRequest(source: source)
@@ -54,20 +59,20 @@ struct WhateverApp: App {
                 .keyboardShortcut("q", modifiers: .command)
             }
             CommandGroup(replacing: .newItem) {
-                Button("New Tab") {
+                Button(tr("New Tab", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.newTab()
                 }
                 .keyboardShortcut("t", modifiers: .command)
-                Button("New Window") {
+                Button(tr("New Window", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.newWindow()
                 }
                 .keyboardShortcut("n", modifiers: .command)
-                Button("New Incognito Window") {
+                Button(tr("New Incognito Window", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.newPrivateWindow()
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 Divider()
-                Button("Print…") {
+                Button(tr("Print…", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.keyController?.presentPrintPreview()
                 }
                 .keyboardShortcut("p", modifiers: .command)
@@ -76,31 +81,31 @@ struct WhateverApp: App {
                 // key window crashes. No tab just beeps in the action.
             }
             TabCommands()
-            CommandMenu("Find") {
-                Button("Find in Page…") {
+            CommandMenu(tr("Find", ctx: "Menu.Find")) {
+                Button(tr("Find in Page…", ctx: "Menu.Find")) {
                     BrowserCoordinator.shared.keyController?.showFindBar()
                 }
                 .keyboardShortcut("f", modifiers: .command)
-                Button("Find Next") {
+                Button(tr("Find Next", ctx: "Menu.Find")) {
                     BrowserCoordinator.shared.keyController?.findNext()
                 }
                 .keyboardShortcut("g", modifiers: .command)
-                Button("Find Previous") {
+                Button(tr("Find Previous", ctx: "Menu.Find")) {
                     BrowserCoordinator.shared.keyController?.findPrevious()
                 }
                 .keyboardShortcut("g", modifiers: [.command, .shift])
             }
-            CommandMenu("View") {                Button("Reload Page") {
+            CommandMenu(tr("View", ctx: "Menu.View")) {                Button(tr("Reload Page", ctx: "Menu.View")) {
                     BrowserCoordinator.shared.keyController?.reloadPage()
                 }
                 .keyboardShortcut("r", modifiers: .command)
-                Button("Reload From Origin") {
+                Button(tr("Reload From Origin", ctx: "Menu.View")) {
                     BrowserCoordinator.shared.keyController?.reloadPageFromOrigin()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 Divider()
                 Toggle(
-                    "Show Bookmarks Bar",
+                    tr("Show Bookmarks Bar", ctx: "Menu.View"),
                     isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
                 )
                 .keyboardShortcut("b", modifiers: [.command, .shift])
@@ -109,16 +114,16 @@ struct WhateverApp: App {
             // field, which stays. Credits gets its own window rather than
             // joining the About panel so it can carry the full list.
             CommandGroup(after: .help) {
-                Button("Credits") {
+                Button(tr("Credits", ctx: "Menu.Help")) {
                     AppDelegate.showCredits()
                 }
             }
             CommandGroup(replacing: .appSettings) {
-                Button("Settings\u{2026}") {
+                Button(tr("Settings\u{2026}", ctx: "Menu.App")) {
                     AppDelegate.presentSettingsOnFrontWindow()
                 }
                 .keyboardShortcut(",", modifiers: .command)
-                Button("Passwords\u{2026}") {
+                Button(tr("Passwords\u{2026}", ctx: "Menu.App")) {
                     AppDelegate.presentPasswordsOnFrontWindow()
                 }
                 .keyboardShortcut("p", modifiers: [.command, .shift])
@@ -130,18 +135,36 @@ struct WhateverApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// SwiftUI's own File menu owns ⌘W, and it is labelled "Close", but in this
     /// app it closes the current tab and only closes the window when there is no
-    /// tab left. Renamed so the menu says what it does.
+    /// tab left. Retitled so the menu says what it does.
     ///
     /// Best effort by design: the behaviour lives in `BrowserWindow.performClose`,
     /// so if SwiftUI ever rebuilds this menu the worst outcome is the old label
     /// coming back rather than ⌘W going back to closing the window. Anything that
     /// had tried to fix this by clearing the item's key equivalent instead would
     /// have that failure the other way round.
-    private static func renameSystemCloseItemToCloseTab() {
-        guard let fileMenu = NSApp.mainMenu?.items.first(where: { $0.title == "File" }),
-              let item = fileMenu.submenu?.items.first(where: { $0.title == "Close" })
-        else { return }
-        item.title = "Close Tab"
+    ///
+    /// Found by key equivalent rather than by title, so it works whatever the
+    /// system language is (our Tab menu deliberately holds no ⌘W, which is
+    /// what makes the match unique). The item is kept weakly so a language
+    /// switch re-titles it in place instead of searching again.
+    private static weak var closeTabItem: NSMenuItem?
+
+    private static func retitleSystemCloseItem() {
+        let title = tr("Close Tab", ctx: "Menu.File")
+        if let item = closeTabItem {
+            item.title = title
+            return
+        }
+        for topItem in NSApp.mainMenu?.items ?? [] {
+            guard let items = topItem.submenu?.items else { continue }
+            if let close = items.first(where: {
+                $0.keyEquivalent == "w" && $0.keyEquivalentModifierMask.contains(.command)
+            }) {
+                close.title = title
+                closeTabItem = close
+                return
+            }
+        }
     }
 
     /// Opens the standard About panel with Whatever's tagline and
@@ -152,6 +175,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static var creditsController: CreditsWindowController?
+
+    /// Retained system-locale observer: a system language change re-resolves
+    /// the interface language (when the setting follows the system) without
+    /// a relaunch. Block-based observers unregister when the token dies, so
+    /// this lives as long as the app does.
+    private var localeChangeObserver: NSObjectProtocol?
+    /// Same lifetime for the menu retitle observer (see above).
+    private var menuRetitleObserver: NSObjectProtocol?
 
     /// Opens the Credits window, focusing it when already open. Single
     /// instance: the controller is created on first use and held while its
@@ -196,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Self.renameSystemCloseItemToCloseTab()
+        Self.retitleSystemCloseItem()
         // Idle-tab reaping runs for the life of the app once started.
         TabSleeper.shared.start()
         // One subscription, so a web setting changed anywhere — a settings
@@ -234,6 +265,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await SettingsStore.shared.load()
             _ = try? await version
             _ = await bookmarks
+
+            // Resolves the interface language (settings override or system
+            // locale) and caches the active catalog, so the first migrated
+            // screen already reads translated. Fail-open: a failure leaves
+            // English, which is what untranslated builds read anyway.
+            await Localization.shared.refresh()
+            // Follows the system locale for as long as the setting says
+            // "system": a language change in System Settings re-resolves
+            // without a relaunch.
+            localeChangeObserver = NotificationCenter.default.addObserver(
+                forName: NSLocale.currentLocaleDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in
+                    await Localization.shared.refresh()
+                }
+            }
+            // SwiftUI rebuilds our command menus itself on the revision tick,
+            // but the File > Close retitle above is AppKit-owned: re-apply it
+            // on every language switch.
+            menuRetitleObserver = NotificationCenter.default.addObserver(
+                forName: .localizationDidChange,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Self.retitleSystemCloseItem()
+            }
 
             // Compiles the content-blocker lists before the first tab opens,
             // so the first page is already filtered. Fail-open: a failure
@@ -313,17 +372,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         let menu = NSMenu()
         let newTab = NSMenuItem(
-            title: "New Tab",
+            title: tr("New Tab", ctx: "Menu.Dock"),
             action: #selector(dockNewTab),
             keyEquivalent: ""
         )
         let newWindow = NSMenuItem(
-            title: "New Window",
+            title: tr("New Window", ctx: "Menu.Dock"),
             action: #selector(dockNewWindow),
             keyEquivalent: ""
         )
         let newPrivateWindow = NSMenuItem(
-            title: "New Incognito Window",
+            title: tr("New Incognito Window", ctx: "Menu.Dock"),
             action: #selector(dockNewPrivateWindow),
             keyEquivalent: ""
         )

@@ -34,17 +34,19 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
+    /// Sidebar titles, resolved on every read so a language switch
+    /// re-words the list without reopening Settings.
     var title: String {
         switch self {
-        case .general: "General"
-        case .appearance: "Appearance"
-        case .web: "Web"
-        case .contentBlocker: "Content Blocker"
-        case .bookmarks: "Bookmarks"
-        case .rssFeeds: "RSS & Feeds"
-        case .history: "History"
-        case .search: "Search"
-        case .downloads: "Downloads"
+        case .general: tr("General", ctx: "Settings.Nav")
+        case .appearance: tr("Appearance", ctx: "Settings.Nav")
+        case .web: tr("Web", ctx: "Settings.Nav")
+        case .contentBlocker: tr("Content Blocker", ctx: "Settings.Nav")
+        case .bookmarks: tr("Bookmarks", ctx: "Settings.Nav")
+        case .rssFeeds: tr("RSS & Feeds", ctx: "Settings.Nav")
+        case .history: tr("History", ctx: "Settings.Nav")
+        case .search: tr("Search", ctx: "Settings.Nav")
+        case .downloads: tr("Downloads", ctx: "Settings.Nav")
         }
     }
 

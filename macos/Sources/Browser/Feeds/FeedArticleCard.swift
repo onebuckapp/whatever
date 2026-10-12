@@ -47,7 +47,7 @@ struct FeedArticleCard: View {
                         Circle()
                             .fill(Color.accentColor)
                             .frame(width: 7, height: 7)
-                            .accessibilityLabel("Unread")
+                            .accessibilityLabel(tr("Unread", ctx: "Feeds"))
                     }
                 }
                 Text(article.displayTitle)
@@ -65,22 +65,22 @@ struct FeedArticleCard: View {
                 HStack {
                     Button(action: onToggleRead) {
                         Label(
-                            article.isRead ? "Mark unread" : "Mark read",
+                            article.isRead ? tr("Mark unread", ctx: "Feeds") : tr("Mark read", ctx: "Feeds"),
                             systemImage: article.isRead ? "envelope.open" : "envelope"
                         )
                     }
                     Button(action: onToggleSaved) {
                         Label(
-                            article.isSaved ? "Saved" : "Save",
+                            article.isSaved ? tr("Saved", ctx: "Feeds") : tr("Save", ctx: "Feeds"),
                             systemImage: article.isSaved ? "bookmark.fill" : "bookmark"
                         )
                     }
                     Spacer(minLength: 4)
                     Button(action: onCopyLink) {
-                        Label("Copy link", systemImage: "link")
+                        Label(tr("Copy link", ctx: "Feeds"), systemImage: "link")
                             .labelStyle(.iconOnly)
                     }
-                    .help("Copy article link")
+                    .help(tr("Copy article link", ctx: "Feeds"))
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
@@ -96,11 +96,11 @@ struct FeedArticleCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(article.displayTitle). \(article.displaySite)")
-        .accessibilityHint("Opens the article reader view.")
+        .accessibilityHint(tr("Opens the article reader view.", ctx: "Feeds"))
         .contextMenu {
-            Button(article.isRead ? "Mark as unread" : "Mark as read", action: onToggleRead)
-            Button(article.isSaved ? "Remove saved mark" : "Save article", action: onToggleSaved)
-            Button("Copy link", action: onCopyLink)
+            Button(article.isRead ? tr("Mark as unread", ctx: "Feeds") : tr("Mark as read", ctx: "Feeds"), action: onToggleRead)
+            Button(article.isSaved ? tr("Remove saved mark", ctx: "Feeds") : tr("Save article", ctx: "Feeds"), action: onToggleSaved)
+            Button(tr("Copy link", ctx: "Feeds"), action: onCopyLink)
         }
     }
 

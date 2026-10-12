@@ -202,6 +202,12 @@ private struct SiteInfoPopupCard: View {
     let snapshot: SiteInfoSnapshot
     @ObservedObject var loader: SiteInfoDataLoader
     let onManage: () -> Void
+    // Observed for `revision`: the data line re-resolves below without
+    // reopening the card.
+    @ObservedObject private var localization = Localization.shared
+    /// Finished "N cookies · M items" line, resolved core-side: plural form
+    /// selection cannot happen in a synchronous row.
+    @State private var dataLabel = ""
 
     init(
         snapshot: SiteInfoSnapshot,
@@ -227,7 +233,7 @@ private struct SiteInfoPopupCard: View {
             Divider()
             Button(action: onManage) {
                 HStack {
-                    Text("Site settings")
+                    Text(tr("Site settings", ctx: "SiteInfo"))
                         .font(.system(size: 12))
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
@@ -248,7 +254,7 @@ private struct SiteInfoPopupCard: View {
                 .foregroundStyle(snapshot.isSecureConnection ? Color.accentColor : Color.secondary)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(snapshot.host ?? "This page")
+                Text(snapshot.host ?? tr("This page", ctx: "SiteInfo"))
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -262,35 +268,35 @@ private struct SiteInfoPopupCard: View {
 
     private var connectionLine: String {
         guard snapshot.host != nil else {
-            return "Open a website to inspect it here."
+            return tr("Open a website to inspect it here.", ctx: "SiteInfo")
         }
         return snapshot.isSecureConnection
-            ? "Connection is secure."
-            : "Connection is not secure."
+            ? tr("Connection is secure.", ctx: "SiteInfo")
+            : tr("Connection is not secure.", ctx: "SiteInfo")
     }
 
     @ViewBuilder
     private var certificateSection: some View {
         if !snapshot.isSecureConnection || snapshot.host == nil {
-            Text("This page is not loaded over HTTPS, so there is no certificate to show.")
+            Text(tr("This page is not loaded over HTTPS, so there is no certificate to show.", ctx: "SiteInfo"))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         } else if let certificate = snapshot.certificate {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Certificate")
+                Text(tr("Certificate", ctx: "SiteInfo"))
                     .font(.system(size: 12, weight: .medium))
-                detailRow("Issued to", certificate.subject ?? "Unknown")
-                detailRow("Issued by", certificate.issuer ?? "Unknown")
+                detailRow(tr("Issued to", ctx: "SiteInfo"), certificate.subject ?? tr("Unknown", ctx: "SiteInfo"))
+                detailRow(tr("Issued by", ctx: "SiteInfo"), certificate.issuer ?? tr("Unknown", ctx: "SiteInfo"))
                 if let validUntil = certificate.validUntil {
-                    detailRow("Expires", SiteCertificateInfo.displayDate(validUntil))
+                    detailRow(tr("Expires", ctx: "SiteInfo"), SiteCertificateInfo.displayDate(validUntil))
                 }
                 if let fingerprint = certificate.sha256Fingerprint {
-                    detailRow("Fingerprint", fingerprint)
+                    detailRow(tr("Fingerprint", ctx: "SiteInfo"), fingerprint)
                 }
             }
         } else {
-            Text("Certificate details are not available for this visit.")
+            Text(tr("Certificate details are not available for this visit.", ctx: "SiteInfo"))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -313,43 +319,52 @@ private struct SiteInfoPopupCard: View {
 
     private var dataSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Cookies and site data")
+            Text(tr("Cookies and site data", ctx: "SiteInfo"))
                 .font(.system(size: 12, weight: .medium))
             if loader.isLoading {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Loading site data.")
+                    Text(tr("Loading site data.", ctx: "SiteInfo"))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
             } else {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(dataLine)
+                    Text(dataLabel)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 8)
-                    Button("Clear") {
+                    Button(tr("Clear", ctx: "SiteInfo")) {
                         loader.clear()
                     }
                     .controlSize(.small)
                     .disabled(!hasData)
                 }
+                .task(id: "\(loader.cookies)-\(loader.other)-\(localization.revision)") {
+                    await resolveDataLabel()
+                }
             }
         }
     }
 
-    private var dataLine: String {
-        switch (loader.cookies, loader.other) {
-        case (0, 0):
-            "No stored data for this site."
-        case let (cookies, other):
-            "\(count(cookies, singular: "cookie")) · \(count(other, singular: "item"))"
+    /// One batch call resolves the "N cookies · M items" line in its own
+    /// words for every count. Empty storage reads as its own sentence.
+    /// Digit singulars (`{n} cookie`, not `one cookie`): the line reports
+    /// exact counts, so even one reads as a numeral.
+    private func resolveDataLabel() async {
+        let cookies = loader.cookies
+        let other = loader.other
+        guard cookies > 0 || other > 0 else {
+            dataLabel = tr("No stored data for this site.", ctx: "SiteInfo")
+            return
         }
-    }
-
-    private func count(_ n: Int, singular: String) -> String {
-        n == 1 ? "1 \(singular)" : "\(n) \(singular)s"
+        let texts = await Localization.batch([
+            LocaleItem("{n} cookie", ctx: "SiteInfo", plural: "{n} cookies", n: cookies),
+            LocaleItem("{n} item", ctx: "SiteInfo", plural: "{n} items", n: other),
+        ])
+        guard texts.count == 2 else { return }
+        dataLabel = "\(texts[0]) · \(texts[1])"
     }
 }
 

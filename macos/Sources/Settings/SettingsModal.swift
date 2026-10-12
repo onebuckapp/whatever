@@ -112,6 +112,12 @@ private struct SettingsModalCard: View {
     let stackID: PopupStackID
     let popupID: String
 
+    /// Observed for `revision`: the sidebar and every mounted pane re-render
+    /// in the new language without reopening Settings. Lives on the card
+    /// rather than the popup struct, which Mijick requires to stay
+    /// `Sendable`.
+    @ObservedObject private var localization = Localization.shared
+
     /// Which pane the card opened on. The sidebar moves the selection from here.
     @State private var selected: SettingsSection
 
@@ -254,7 +260,7 @@ private struct SettingsModalCard: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Settings")
+            Text(tr("Settings", ctx: "Settings.Nav"))
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, Self.rowInset)
                 .padding(.top, 14)

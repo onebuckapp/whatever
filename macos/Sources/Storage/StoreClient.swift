@@ -639,6 +639,63 @@ final class StoreClient {
             }
         }
     }
+
+    // MARK: Locale
+
+    /// Points the core at the bundled locale directory. Called once at
+    /// launch, before any language is set.
+    func localeInit(moDir: String) async throws {
+        try await perform { proxy, done in
+            proxy.localeInit(moDir, reply: done)
+        }
+    }
+
+    /// Activates the catalog for a BCP-47 tag. A missing catalog falls back
+    /// to English without failing.
+    func setLocale(_ tag: String) async throws {
+        try await perform { proxy, done in
+            proxy.localeSet(tag, reply: done)
+        }
+    }
+
+    /// The active language tag (`ro`, or `en` in English mode).
+    func localeTag() async throws -> String {
+        let proxy = try store()
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
+            proxy.localeGet { tag, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let tag else {
+                    continuation.resume(throwing: StoreErrors.unavailable())
+                    return
+                }
+                continuation.resume(returning: tag)
+            }
+        }
+    }
+
+    /// Shipped translation tags, sorted, without English.
+    func localeLanguages() async throws -> Data {
+        try await document { proxy, done in
+            proxy.localeLanguages(reply: done)
+        }
+    }
+
+    /// The active catalog for shell-side caching.
+    func localeTable() async throws -> Data {
+        try await document { proxy, done in
+            proxy.localeTable(reply: done)
+        }
+    }
+
+    /// Translates a batch document, returning `{"texts":[...]}`.
+    func localeBatch(_ batch: Data) async throws -> Data {
+        try await document { proxy, done in
+            proxy.localeBatch(batch, reply: done)
+        }
+    }
 }
 
 /// What the service reported about itself.

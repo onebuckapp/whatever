@@ -77,11 +77,11 @@ struct BackgroundSettingsGroups: View {
     /// hover code because it is page chrome, like the corners above.
     private var linkBubble: some View {
         SettingsGroup(
-            title: "Link Bubble",
-            footnote: "The floating address shown while hovering a link."
+            title: tr("Link Bubble", ctx: "Settings.Appearance"),
+            footnote: tr("The floating address shown while hovering a link.", ctx: "Settings.Appearance")
         ) {
             SettingsSliderRow(
-                title: "Opacity",
+                title: tr("Opacity", ctx: "Settings.Appearance"),
                 value: store.binding(\.appearance.linkHoverOpacity),
                 range: AppSettings.AppearanceSettings.linkHoverOpacityRange,
                 step: 0.05,
@@ -92,11 +92,11 @@ struct BackgroundSettingsGroups: View {
 
     private var media: some View {
         SettingsGroup(
-            title: "Window Background",
-            footnote: "Behind the page. Applies to every window as you change it."
+            title: tr("Window Background", ctx: "Settings.Appearance"),
+            footnote: tr("Behind the page. Applies to every window as you change it.", ctx: "Settings.Appearance")
         ) {
             SettingsPickerRow(
-                title: "Fill With",
+                title: tr("Fill With", ctx: "Settings.Appearance"),
                 options: BackgroundMediaConfiguration.Kind.allCases,
                 selection: binding(\.appearance.background.kind),
                 isSegmented: false,
@@ -109,10 +109,10 @@ struct BackgroundSettingsGroups: View {
                     subtitle: mediaSubtitle
                 ) {
                     HStack(spacing: 6) {
-                        Button("Choose…") { choose() }
+                        Button(tr("Choose…", ctx: "Settings.Appearance")) { choose() }
                             .controlSize(.small)
                         if background.path != nil {
-                            Button("Clear") {
+                            Button(tr("Clear", ctx: "Settings.Appearance")) {
                                 store.update { $0.appearance.background.path = nil }
                             }
                             .controlSize(.small)
@@ -124,16 +124,16 @@ struct BackgroundSettingsGroups: View {
             if let problem = diagnostics.lastError {
                 SettingsButtonRow(
                     title: problem,
-                    subtitle: "The background has been turned off. Choose a different file."
+                    subtitle: tr("The background has been turned off. Choose a different file.", ctx: "Settings.Appearance")
                 ) {
-                    Button("Dismiss") { diagnostics.clear() }
+                    Button(tr("Dismiss", ctx: "Settings.Appearance")) { diagnostics.clear() }
                         .controlSize(.small)
                 }
             }
 
             // The page's own bottom corners, which frame the background.
             SettingsSliderRow(
-                title: "Page Corners",
+                title: tr("Page Corners", ctx: "Settings.Appearance"),
                 value: store.binding(\.appearance.pageCornerRadius),
                 range: AppSettings.AppearanceSettings.pageCornerRadiusRange,
                 step: 0.5,
@@ -143,17 +143,17 @@ struct BackgroundSettingsGroups: View {
     }
 
     private var mediaTitle: String {
-        guard let path = background.path else { return "No file chosen" }
+        guard let path = background.path else { return tr("No file chosen", ctx: "Settings.Appearance") }
         return URL(fileURLWithPath: path).lastPathComponent
     }
 
     private var mediaSubtitle: String {
         guard let path = background.path else {
-            return background.kind == .video ? "A video file on disk." : "An image file on disk."
+            return background.kind == .video ? tr("A video file on disk.", ctx: "Settings.Appearance") : tr("An image file on disk.", ctx: "Settings.Appearance")
         }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.isReadableFile(atPath: path) else {
-            return "Missing or unreadable. Choose it again."
+            return tr("Missing or unreadable. Choose it again.", ctx: "Settings.Appearance")
         }
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
         let formatted = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
@@ -163,9 +163,9 @@ struct BackgroundSettingsGroups: View {
     // MARK: - Solid
 
     private var solidFill: some View {
-        SettingsGroup(title: "Colour") {
+        SettingsGroup(title: tr("Colour", ctx: "Settings.Appearance")) {
             ColorRow(
-                title: "Fill",
+                title: tr("Fill", ctx: "Settings.Appearance"),
                 color: binding(\.appearance.background.solid.color)
             )
         }
@@ -180,9 +180,9 @@ struct BackgroundSettingsGroups: View {
     /// video with an image's `stretch` or custom scale does not show a segmented
     /// control with nothing selected.
     private var size: some View {
-        SettingsGroup(title: "Size") {
+        SettingsGroup(title: tr("Size", ctx: "Settings.Appearance")) {
             SettingsPickerRow(
-                title: "Fit",
+                title: tr("Fit", ctx: "Settings.Appearance"),
                 options: fitOptions,
                 selection: fitSelection,
                 isSegmented: true,
@@ -190,7 +190,7 @@ struct BackgroundSettingsGroups: View {
             )
             if background.fit == .custom && background.kind == .image {
                 SettingsSliderRow(
-                    title: "Scale",
+                    title: tr("Scale", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.fitScale),
                     range: 10...400,
                     step: 5,
@@ -199,7 +199,7 @@ struct BackgroundSettingsGroups: View {
             }
             if background.kind.showsRepeat {
                 SettingsPickerRow(
-                    title: "Repeat",
+                    title: tr("Repeat", ctx: "Settings.Appearance"),
                     options: BackgroundMediaConfiguration.Repeat.allCases,
                     selection: binding(\.appearance.background.repeatMode),
                     isSegmented: true,
@@ -229,9 +229,9 @@ struct BackgroundSettingsGroups: View {
     }
 
     private var position: some View {
-        SettingsGroup(title: "Position") {
+        SettingsGroup(title: tr("Position", ctx: "Settings.Appearance")) {
             SettingsPickerRow(
-                title: "Anchor",
+                title: tr("Anchor", ctx: "Settings.Appearance"),
                 options: BackgroundMediaConfiguration.Position.allCases,
                 selection: binding(\.appearance.background.position),
                 isSegmented: false,
@@ -239,7 +239,7 @@ struct BackgroundSettingsGroups: View {
             )
             if background.position == .custom {
                 SettingsPickerRow(
-                    title: "Horizontal",
+                    title: tr("Horizontal", ctx: "Settings.Appearance"),
                     options: BackgroundMediaConfiguration.Axis.Mode.allCases,
                     selection: binding(\.appearance.background.customX.mode),
                     isSegmented: true,
@@ -247,7 +247,7 @@ struct BackgroundSettingsGroups: View {
                 )
                 if background.customX.mode == .percent || background.customX.mode == .point {
                     SettingsSliderRow(
-                        title: "X",
+                        title: tr("X", ctx: "Settings.Appearance"),
                         value: binding(\.appearance.background.customX.value),
                         range: background.customX.mode == .percent ? 0...100 : -400...400,
                         step: 1,
@@ -259,7 +259,7 @@ struct BackgroundSettingsGroups: View {
                     )
                 }
                 SettingsPickerRow(
-                    title: "Vertical",
+                    title: tr("Vertical", ctx: "Settings.Appearance"),
                     options: BackgroundMediaConfiguration.Axis.Mode.allCases,
                     selection: binding(\.appearance.background.customY.mode),
                     isSegmented: true,
@@ -267,7 +267,7 @@ struct BackgroundSettingsGroups: View {
                 )
                 if background.customY.mode == .percent || background.customY.mode == .point {
                     SettingsSliderRow(
-                        title: "Y",
+                        title: tr("Y", ctx: "Settings.Appearance"),
                         value: binding(\.appearance.background.customY.value),
                         range: background.customY.mode == .percent ? 0...100 : -400...400,
                         step: 1,
@@ -289,42 +289,42 @@ struct BackgroundSettingsGroups: View {
     /// `BackgroundImageStore` and never touch a colour, a gradient, or a video's
     /// own frames.
     private var effects: some View {
-        SettingsGroup(title: "Effects") {
+        SettingsGroup(title: tr("Effects", ctx: "Settings.Appearance")) {
             SettingsSliderRow(
-                title: "Opacity",
+                title: tr("Opacity", ctx: "Settings.Appearance"),
                 value: binding(\.appearance.background.effects.opacity),
                 range: 0...1,
                 step: 0.05,
                 format: { String(format: "%.0f%%", $0 * 100) }
             )
             ColorRow(
-                title: "Tint",
+                title: tr("Tint", ctx: "Settings.Appearance"),
                 color: binding(\.appearance.background.effects.overlay)
             )
             if background.kind.showsGrading(hasPoster: background.hasPoster) {
                 SettingsSliderRow(
-                    title: "Blur",
+                    title: tr("Blur", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.effects.blurRadius),
                     range: 0...60,
                     step: 1,
                     format: { $0 <= 0.5 ? "None" : String(format: "%.0fpt", $0) }
                 )
                 SettingsSliderRow(
-                    title: "Brightness",
+                    title: tr("Brightness", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.effects.brightness),
                     range: 0.2...2,
                     step: 0.05,
                     format: { String(format: "%.2f×", $0) }
                 )
                 SettingsSliderRow(
-                    title: "Contrast",
+                    title: tr("Contrast", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.effects.contrast),
                     range: 0.2...2,
                     step: 0.05,
                     format: { String(format: "%.2f×", $0) }
                 )
                 SettingsSliderRow(
-                    title: "Saturation",
+                    title: tr("Saturation", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.effects.saturation),
                     range: 0...2,
                     step: 0.05,
@@ -338,11 +338,11 @@ struct BackgroundSettingsGroups: View {
 
     private var gradient: some View {
         SettingsGroup(
-            title: "Gradient",
-            footnote: "Stops are applied in order along the gradient."
+            title: tr("Gradient", ctx: "Settings.Appearance"),
+            footnote: tr("Stops are applied in order along the gradient.", ctx: "Settings.Appearance")
         ) {
             SettingsPickerRow(
-                title: "Kind",
+                title: tr("Kind", ctx: "Settings.Appearance"),
                 options: BackgroundMediaConfiguration.Gradient.Kind.allCases,
                 selection: binding(\.appearance.background.gradient.kind),
                 isSegmented: true,
@@ -350,7 +350,7 @@ struct BackgroundSettingsGroups: View {
             )
             if background.gradient.kind == .linear {
                 SettingsSliderRow(
-                    title: "Angle",
+                    title: tr("Angle", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.gradient.angle),
                     range: 0...360,
                     step: 5,
@@ -358,28 +358,28 @@ struct BackgroundSettingsGroups: View {
                 )
             } else {
                 SettingsSliderRow(
-                    title: "Centre X",
+                    title: tr("Centre X", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.gradient.centerX),
                     range: 0...1,
                     step: 0.01,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
                 SettingsSliderRow(
-                    title: "Centre Y",
+                    title: tr("Centre Y", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.gradient.centerY),
                     range: 0...1,
                     step: 0.01,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
                 SettingsSliderRow(
-                    title: "Inner Radius",
+                    title: tr("Inner Radius", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.gradient.startRadius),
                     range: 0...1,
                     step: 0.01,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
                 SettingsSliderRow(
-                    title: "Outer Radius",
+                    title: tr("Outer Radius", ctx: "Settings.Appearance"),
                     value: binding(\.appearance.background.gradient.endRadius),
                     range: 0...1,
                     step: 0.01,
@@ -394,12 +394,12 @@ struct BackgroundSettingsGroups: View {
                 )
             }
             SettingsButtonRow(
-                title: "Add Stop",
+                title: tr("Add Stop", ctx: "Settings.Appearance"),
                 subtitle: background.gradient.stops.count >= 8
-                    ? "Eight is the limit."
-                    : "A colour at a point along the gradient."
+                    ? tr("Eight is the limit.", ctx: "Settings.Appearance")
+                    : tr("A colour at a point along the gradient.", ctx: "Settings.Appearance")
             ) {
-                Button("Add") { addStop() }
+                Button(tr("Add", ctx: "Settings.Appearance")) { addStop() }
                     .controlSize(.small)
                     .disabled(background.gradient.stops.count >= 8)
             }
@@ -457,40 +457,40 @@ struct BackgroundSettingsGroups: View {
 
     private var videoOptions: some View {
         SettingsGroup(
-            title: "Video",
-            footnote: "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+            title: tr("Video", ctx: "Settings.Appearance"),
+            footnote: tr("Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background.", ctx: "Settings.Appearance")
         ) {
             SettingsToggleRow(
-                title: "Autoplay",
-                subtitle: "Starts on its own when the window opens.",
+                title: tr("Autoplay", ctx: "Settings.Appearance"),
+                subtitle: tr("Starts on its own when the window opens.", ctx: "Settings.Appearance"),
                 isOn: binding(\.appearance.background.video.autoplay)
             )
             SettingsToggleRow(
-                title: "Respect Reduce Motion",
+                title: tr("Respect Reduce Motion", ctx: "Settings.Appearance"),
                 subtitle: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-                    ? "The system currently asks for reduced motion, so this pauses the video."
-                    : "The system is not asking for reduced motion.",
+                    ? tr("The system currently asks for reduced motion, so this pauses the video.", ctx: "Settings.Appearance")
+                    : tr("The system is not asking for reduced motion.", ctx: "Settings.Appearance"),
                 isOn: binding(\.appearance.background.video.respectsReduceMotion)
             )
             SettingsToggleRow(
-                title: "Pause When Inactive",
-                subtitle: "Stops when another app is in front.",
+                title: tr("Pause When Inactive", ctx: "Settings.Appearance"),
+                subtitle: tr("Stops when another app is in front.", ctx: "Settings.Appearance"),
                 isOn: binding(\.appearance.background.video.pauseWhenInactive)
             )
             SettingsToggleRow(
-                title: "Pause When Hidden",
-                subtitle: "Stops when the window is covered, minimized or the app is hidden.",
+                title: tr("Pause When Hidden", ctx: "Settings.Appearance"),
+                subtitle: tr("Stops when the window is covered, minimized or the app is hidden.", ctx: "Settings.Appearance"),
                 isOn: binding(\.appearance.background.video.pauseWhenHidden)
             )
             SettingsSliderRow(
-                title: "Speed",
+                title: tr("Speed", ctx: "Settings.Appearance"),
                 value: binding(\.appearance.background.video.playbackSpeed),
                 range: 0.25...4,
                 step: 0.25,
                 format: { String(format: "%.2f×", $0) }
             )
             SettingsSliderRow(
-                title: "Start At",
+                title: tr("Start At", ctx: "Settings.Appearance"),
                 value: binding(\.appearance.background.video.startTime),
                 range: 0...60,
                 step: 1,
@@ -498,13 +498,13 @@ struct BackgroundSettingsGroups: View {
             )
             SettingsButtonRow(
                 title: posterTitle,
-                subtitle: "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+                subtitle: tr("Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video.", ctx: "Settings.Appearance")
             ) {
                 HStack(spacing: 6) {
-                    Button("Choose…") { choose(.poster) }
+                    Button(tr("Choose…", ctx: "Settings.Appearance")) { choose(.poster) }
                         .controlSize(.small)
                     if background.video.posterPath != nil {
-                        Button("Clear") {
+                        Button(tr("Clear", ctx: "Settings.Appearance")) {
                             store.update { $0.appearance.background.video.posterPath = nil }
                         }
                         .controlSize(.small)
@@ -515,7 +515,7 @@ struct BackgroundSettingsGroups: View {
     }
 
     private var posterTitle: String {
-        guard let path = background.video.posterPath else { return "No poster chosen" }
+        guard let path = background.video.posterPath else { return tr("No poster chosen", ctx: "Settings.Appearance") }
         return URL(fileURLWithPath: path).lastPathComponent
     }
 
@@ -523,14 +523,14 @@ struct BackgroundSettingsGroups: View {
 
     private var transparency: some View {
         SettingsGroup(
-            title: "Show Through Pages",
-            footnote: "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+            title: tr("Show Through Pages", ctx: "Settings.Appearance"),
+            footnote: tr("Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media.", ctx: "Settings.Appearance")
         ) {
             SettingsToggleRow(
-                title: "Transparent Pages",
+                title: tr("Transparent Pages", ctx: "Settings.Appearance"),
                 subtitle: background.isActive
-                    ? "Lets the background show behind the page."
-                    : "Needs a background first. Nothing to reveal yet.",
+                    ? tr("Lets the background show behind the page.", ctx: "Settings.Appearance")
+                    : tr("Needs a background first. Nothing to reveal yet.", ctx: "Settings.Appearance"),
                 isOn: binding(\.appearance.background.showThroughPages)
             )
             .disabled(!background.isActive)
@@ -558,12 +558,12 @@ struct BackgroundSettingsGroups: View {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = isPoster ? [.image] : (background.kind == .video ? [.movie] : [.image])
-        panel.prompt = "Use"
+        panel.prompt = tr("Use", ctx: "Settings.Appearance")
         panel.message = isPoster
-            ? "Choose a still to show until the first video frame arrives."
+            ? tr("Choose a still to show until the first video frame arrives.", ctx: "Settings.Appearance")
             : (background.kind == .video
-                ? "Choose a video to play behind the page."
-                : "Choose an image to show behind the page.")
+                ? tr("Choose a video to play behind the page.", ctx: "Settings.Appearance")
+                : tr("Choose an image to show behind the page.", ctx: "Settings.Appearance"))
 
         let apply: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .OK, let url = panel.url else { return }
@@ -604,7 +604,7 @@ struct GradientStopRow: View {
     var body: some View {
         SettingsButtonRow(
             title: stop.color.hexString,
-            subtitle: String(format: "%.0f%% along", stop.location * 100)
+            subtitle: tr("{percent}% along", ctx: "Settings.Appearance", args: ["percent": String(format: "%.0f", stop.location * 100)])
         ) {
             HStack(spacing: 6) {
                 Slider(value: $stop.location, in: 0...1, step: 0.01)
@@ -612,7 +612,7 @@ struct GradientStopRow: View {
                 ColorPicker("", selection: colorBinding, supportsOpacity: true)
                     .labelsHidden()
                     .controlSize(.small)
-                Button("Remove", action: onDelete)
+                Button(tr("Remove", ctx: "Settings.Appearance"), action: onDelete)
                     .controlSize(.small)
                     .disabled(!canRemove)
             }

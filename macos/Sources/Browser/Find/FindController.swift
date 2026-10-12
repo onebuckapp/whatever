@@ -56,6 +56,10 @@ final class FindController {
     private var highlightsLive = false
     private var lastTotal = 0
     private var lastHasMore = false
+    /// Last count render, re-applied on every language switch: AppKit
+    /// labels do not rebuild on the revision tick.
+    private var lastIndex: Int?
+    private var lastCount: Int?
 
     var isOpen: Bool {
         bar?.superview != nil
@@ -74,6 +78,12 @@ final class FindController {
         Publishers.CombineLatest(tab.tabController.$url, tab.tabController.$isLoading)
             .sink { [weak self] url, loading in
                 self?.pageDidSettle(url: url, loading: loading)
+            }
+            .store(in: &cancellables)
+        NotificationCenter.default.publisher(for: .localizationDidChange)
+            .sink { [weak self] _ in
+                self?.bar?.applyLanguage()
+                self?.renderCount()
             }
             .store(in: &cancellables)
     }
@@ -279,15 +289,27 @@ final class FindController {
     }
 
     private func updateCount(index: Int?, count: Int?) {
+        lastIndex = index
+        lastCount = count
+        renderCount()
+    }
+
+    /// Writes the count label in the active language: "No results" or
+    /// "N of M" (plus a "+" when the core total outruns the kept matches).
+    private func renderCount() {
         guard let bar else { return }
-        guard let count, count > 0, let index, index >= 0 else {
-            bar.setCount(queryIsEmpty ? "" : "No results")
+        guard let count = lastCount, count > 0, let index = lastIndex, index >= 0 else {
+            bar.setCount(queryIsEmpty ? "" : tr("No results", ctx: "Find"))
             return
         }
         // The JS count is the wrapped (kept) matches; the core total can be
         // larger when the limit cut the list.
         let total = lastHasMore ? lastTotal : count
-        bar.setCount("\(index + 1) of \(total)\(lastHasMore ? "+" : "")")
+        bar.setCount(tr("{index} of {total}{more}", ctx: "Find", args: [
+            "index": "\(index + 1)",
+            "total": "\(total)",
+            "more": lastHasMore ? "+" : "",
+        ]))
     }
 
     private var queryIsEmpty: Bool {

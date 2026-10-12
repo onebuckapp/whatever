@@ -42,16 +42,45 @@ enum SettingsDetailView {
 
 // MARK: - General
 
+/// One language picker option: the settings tag (`system`, following the
+/// system locale, or a shipped BCP-47 tag like `ro`).
+struct LanguageOption: Hashable, Identifiable {
+    let tag: String
+    var id: String { tag }
+}
+
 struct GeneralSettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
+    // Observed for `revision`: a language switch re-renders every migrated
+    // literal below without a relaunch.
+    @ObservedObject private var localization = Localization.shared
     @StateObject private var defaultBrowser = DefaultBrowserSettings()
     @StateObject private var updater = AppUpdateSettings()
+    @State private var shippedLanguages: [String] = []
+
+    /// Picker options: System first, then every shipped translation tag.
+    private var languageOptions: [LanguageOption] {
+        [LanguageOption(tag: "system")] + shippedLanguages.map(LanguageOption.init(tag:))
+    }
+
+    private var languageSelection: Binding<LanguageOption> {
+        Binding(
+            get: { LanguageOption(tag: store.settings.general.language) },
+            set: { store.binding(\.general.language).wrappedValue = $0.tag }
+        )
+    }
+
+    private func languageLabel(for option: LanguageOption) -> String {
+        option.tag == "system"
+            ? tr("System", ctx: "Settings.General")
+            : Localization.displayName(for: option.tag)
+    }
 
     var body: some View {
         SettingsDetailStack {
             SettingsGroup(
-                title: "Software Update",
-                footnote: "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+                title: tr("Software Update", ctx: "Settings.General"),
+                footnote: tr("Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands.", ctx: "Settings.General")
             ) {
                 HStack(spacing: 12) {
                     // The app's own icon, fixed at 32pt: it names what the
@@ -72,19 +101,19 @@ struct GeneralSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Default Browser",
-                footnote: "Links clicked in other apps open here."
+                title: tr("Default Browser", ctx: "Settings.General"),
+                footnote: tr("Links clicked in other apps open here.", ctx: "Settings.General")
             ) {
                 SettingsButtonRow(
                     title: defaultBrowser.isDefault
-                        ? "Whatever is your default browser"
-                        : "Whatever is not your default browser",
+                        ? tr("Whatever is your default browser", ctx: "Settings.General")
+                        : tr("Whatever is not your default browser", ctx: "Settings.General"),
                     subtitle: defaultBrowser.isDefault
-                        ? "This Mac already opens web links in Whatever."
-                        : "Claim http and https links from your current browser."
+                        ? tr("This Mac already opens web links in Whatever.", ctx: "Settings.General")
+                        : tr("Claim http and https links from your current browser.", ctx: "Settings.General")
                 ) {
                     if !defaultBrowser.isDefault {
-                        Button("Set Whatever as Default Browser") {
+                        Button(tr("Set Whatever as Default Browser", ctx: "Settings.General")) {
                             Task { await defaultBrowser.makeDefault() }
                         }
                         .controlSize(.small)
@@ -93,47 +122,63 @@ struct GeneralSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Session",
-                footnote: "Restoring reopens the previous window's tabs."
+                title: tr("Session", ctx: "Settings.General"),
+                footnote: tr("Restoring reopens the previous window's tabs.", ctx: "Settings.General")
             ) {
                 SettingsToggleRow(
-                    title: "Restore last session",
-                    subtitle: "Reopen the previous window's tabs at launch.",
+                    title: tr("Restore last session", ctx: "Settings.General"),
+                    subtitle: tr("Reopen the previous window's tabs at launch.", ctx: "Settings.General"),
                     isOn: store.binding(\.general.restoreSession)
                 )
             }
 
             SettingsGroup(
-                title: "Quitting",
-                footnote: "The second press quits at once, even with windows open."
+                title: tr("Quitting", ctx: "Settings.General"),
+                footnote: tr("The second press quits at once, even with windows open.", ctx: "Settings.General")
             ) {
                 SettingsToggleRow(
-                    title: "Confirm before quitting",
-                    subtitle: "First ⌘Q shows a prompt; press ⌘Q again to quit.",
+                    title: tr("Confirm before quitting", ctx: "Settings.General"),
+                    subtitle: tr("First ⌘Q shows a prompt; press ⌘Q again to quit.", ctx: "Settings.General"),
                     isOn: store.binding(\.general.warnBeforeQuitting)
                 )
             }
 
             SettingsGroup(
-                title: "History",
-                footnote: "Private tabs are never recorded, whatever this says."
+                title: tr("History", ctx: "Settings.General"),
+                footnote: tr("Private tabs are never recorded, whatever this says.", ctx: "Settings.General")
             ) {
                 SettingsToggleRow(
-                    title: "Record visited pages",
-                    subtitle: "Adds committed main-frame visits to history.",
+                    title: tr("Record visited pages", ctx: "Settings.General"),
+                    subtitle: tr("Adds committed main-frame visits to history.", ctx: "Settings.General"),
                     isOn: store.binding(\.general.recordsHistory)
                 )
                 SettingsSliderRow(
-                    title: "Collapse repeats within",
+                    title: tr("Collapse repeats within", ctx: "Settings.General"),
                     value: store.binding(\.general.historyCollapseWindow),
                     range: 0...120,
                     step: 1,
                     format: { String(format: "%.0f s", $0) }
                 )
             }
+
+            SettingsGroup(
+                title: tr("Language", ctx: "Settings.General"),
+                footnote: tr("The interface language. Translated text switches right away.", ctx: "Settings.General")
+            ) {
+                SettingsPickerRow(
+                    title: tr("Language", ctx: "Settings.General"),
+                    options: languageOptions,
+                    selection: languageSelection,
+                    label: languageLabel(for:)
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { defaultBrowser.refresh() }
+        .task { shippedLanguages = await Localization.shippedTags() }
+        .onChange(of: store.settings.general.language) {
+            Task { await Localization.shared.refresh() }
+        }
     }
 
     /// The update row's trailing control under `updater.status`: a check
@@ -143,7 +188,7 @@ struct GeneralSettingsView: View {
     private var updateAccessory: some View {
         switch updater.status {
         case .idle, .upToDate, .failed, .noCompatibleDownload:
-            Button("Check for Updates") {
+            Button(tr("Check for Updates", ctx: "Settings.General")) {
                 Task { await updater.checkForUpdates() }
             }
             .controlSize(.small)
@@ -151,12 +196,12 @@ struct GeneralSettingsView: View {
             ProgressView()
                 .controlSize(.small)
         case .available:
-            Button("Download Update") {
+            Button(tr("Download Update", ctx: "Settings.General")) {
                 Task { await updater.downloadUpdate() }
             }
             .controlSize(.small)
         case .downloaded:
-            Button("Show in Finder") {
+            Button(tr("Show in Finder", ctx: "Settings.General")) {
                 updater.revealDownload()
             }
             .controlSize(.small)
@@ -264,7 +309,7 @@ struct AppearanceSettingsView: View {
                     resetGroup
                 }
                 if !filter.isEmpty, !hasAnyMatch {
-                    Text("No settings match “\(filter.trimmingCharacters(in: .whitespacesAndNewlines))”.")
+                    Text(tr("No settings match {query}.", ctx: "Settings.Appearance", args: ["query": "“\(filter.trimmingCharacters(in: .whitespacesAndNewlines))”"]))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -273,13 +318,13 @@ struct AppearanceSettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .alert("Reset appearance settings?", isPresented: $confirmingReset) {
-            Button("Reset", role: .destructive) {
+        .alert(tr("Reset appearance settings?", ctx: "Settings.Appearance"), isPresented: $confirmingReset) {
+            Button(tr("Reset", ctx: "Settings.Appearance"), role: .destructive) {
                 resetAppearance()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(tr("Cancel", ctx: "Settings.Appearance"), role: .cancel) {}
         } message: {
-            Text("Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults.")
+            Text(tr("Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults.", ctx: "Settings.Appearance"))
         }
     }
 
@@ -290,7 +335,7 @@ struct AppearanceSettingsView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .font(.system(size: 12))
-            TextField("Filter settings", text: $filter)
+            TextField(tr("Filter settings", ctx: "Settings.Appearance"), text: $filter)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
             if !filter.isEmpty {
@@ -334,28 +379,28 @@ struct AppearanceSettingsView: View {
 
     private var grainGroup: some View {
         SettingsGroup(
-            title: "Grain",
-            footnote: "A film-grain texture over the whole window. Every change applies as you make it."
+            title: tr("Grain", ctx: "Settings.Appearance"),
+            footnote: tr("A film-grain texture over the whole window. Every change applies as you make it.", ctx: "Settings.Appearance")
         ) {
             SettingsToggleRow(
-                title: "Enabled",
-                subtitle: "Hides the texture without losing these settings.",
+                title: tr("Enabled", ctx: "Settings.Appearance"),
+                subtitle: tr("Hides the texture without losing these settings.", ctx: "Settings.Appearance"),
                 isOn: grain.enabledBinding
             )
             SettingsButtonRow(
-                title: "New pattern",
-                subtitle: "Same settings, different grain."
+                title: tr("New pattern", ctx: "Settings.Appearance"),
+                subtitle: tr("Same settings, different grain.", ctx: "Settings.Appearance")
             ) {
-                Button("Generate") {
+                Button(tr("Generate", ctx: "Settings.Appearance")) {
                     grain.rerollSeed()
                 }
                 .controlSize(.small)
             }
             SettingsButtonRow(
-                title: "Reset",
-                subtitle: "Back to the built-in grain."
+                title: tr("Reset", ctx: "Settings.Appearance"),
+                subtitle: tr("Back to the built-in grain.", ctx: "Settings.Appearance")
             ) {
-                Button("Reset") {
+                Button(tr("Reset", ctx: "Settings.Appearance")) {
                     grain.reset()
                 }
                 .controlSize(.small)
@@ -365,39 +410,39 @@ struct AppearanceSettingsView: View {
 
     private var lookGroup: some View {
         SettingsGroup(
-            title: "Look",
+            title: tr("Look", ctx: "Settings.Appearance"),
             isEnabled: grain.configuration.isEnabled
         ) {
             SettingsPickerRow(
-                title: "Color",
+                title: tr("Color", ctx: "Settings.Appearance"),
                 options: GrainColorMode.allCases,
                 selection: grain.colorModeBinding,
                 isSegmented: true,
                 label: { $0.title }
             )
             SettingsSliderRow(
-                title: "Opacity",
+                title: tr("Opacity", ctx: "Settings.Appearance"),
                 value: grain.opacityBinding,
                 range: 0...0.5,
                 step: 0.05,
                 format: { String(format: "%.2f", $0) }
             )
             SettingsSliderRow(
-                title: "Intensity",
+                title: tr("Intensity", ctx: "Settings.Appearance"),
                 value: grain.intensityBinding,
                 range: 0...1,
                 step: 0.05,
                 format: { String(format: "%.2f", $0) }
             )
             SettingsSliderRow(
-                title: "Contrast",
+                title: tr("Contrast", ctx: "Settings.Appearance"),
                 value: grain.contrastBinding,
                 range: 1...8,
                 step: 0.1,
                 format: { String(format: "%.1f", $0) }
             )
             SettingsSliderRow(
-                title: "Grain Size",
+                title: tr("Grain Size", ctx: "Settings.Appearance"),
                 value: grain.grainScaleBinding,
                 range: 1...4,
                 step: 0.1,
@@ -408,14 +453,14 @@ struct AppearanceSettingsView: View {
 
     private var resetGroup: some View {
         SettingsGroup(
-            title: "Reset Appearance",
-            footnote: "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+            title: tr("Reset Appearance", ctx: "Settings.Appearance"),
+            footnote: tr("Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default.", ctx: "Settings.Appearance")
         ) {
             SettingsButtonRow(
-                title: "Reset appearance settings",
-                subtitle: "Back to the built-in look."
+                title: tr("Reset appearance settings", ctx: "Settings.Appearance"),
+                subtitle: tr("Back to the built-in look.", ctx: "Settings.Appearance")
             ) {
-                Button("Reset…") {
+                Button(tr("Reset…", ctx: "Settings.Appearance")) {
                     confirmingReset = true
                 }
                 .controlSize(.small)
@@ -441,31 +486,31 @@ struct WebSettingsView: View {
     var body: some View {
         SettingsDetailStack {
             SettingsGroup(
-                title: "Pages",
+                title: tr("Pages", ctx: "Settings.Web"),
                 footnote: Self.effect(of: [\AppSettings.WebSettings.allowsJavaScript])
             ) {
                 SettingsToggleRow(
-                    title: "Allow JavaScript",
-                    subtitle: "Off blocks scripts, which also stops most sites from working.",
+                    title: tr("Allow JavaScript", ctx: "Settings.Web"),
+                    subtitle: tr("Off blocks scripts, which also stops most sites from working.", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.allowsJavaScript)
                 )
                 SettingsToggleRow(
-                    title: "Upgrade known hosts to HTTPS",
+                    title: tr("Upgrade known hosts to HTTPS", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.upgradeKnownHostsToHTTPS)
                 )
                 SettingsToggleRow(
-                    title: "JavaScript may open windows",
-                    subtitle: "Lets a page open a tab without a click. Popups land in this window.",
+                    title: tr("JavaScript may open windows", ctx: "Settings.Web"),
+                    subtitle: tr("Lets a page open a tab without a click. Popups land in this window.", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.javaScriptCanOpenWindowsAutomatically)
                 )
             }
 
             SettingsGroup(
-                title: "Media",
+                title: tr("Media", ctx: "Settings.Web"),
                 footnote: Self.effect(of: [\AppSettings.WebSettings.mediaAutoplay])
             ) {
                 SettingsPickerRow(
-                    title: "Play without a click",
+                    title: tr("Play without a click", ctx: "Settings.Web"),
                     options: AppSettings.MediaAutoplayPolicy.allCases,
                     selection: store.binding(\.web.mediaAutoplay),
                     label: Self.autoplayLabel
@@ -473,74 +518,74 @@ struct WebSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Privacy",
+                title: tr("Privacy", ctx: "Settings.Web"),
                 footnote: Self.effect(of: [
                     \AppSettings.WebSettings.fraudulentWebsiteWarningEnabled,
                     \AppSettings.WebSettings.siteSpecificQuirksModeEnabled,
                 ])
             ) {
                 SettingsToggleRow(
-                    title: "Fraudulent website warnings",
+                    title: tr("Fraudulent website warnings", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.fraudulentWebsiteWarningEnabled)
                 )
                 SettingsToggleRow(
-                    title: "Site-specific quirks mode",
+                    title: tr("Site-specific quirks mode", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.siteSpecificQuirksModeEnabled)
                 )
             }
 
             SettingsGroup(
-                title: "Display",
+                title: tr("Display", ctx: "Settings.Web"),
                 footnote: Self.effect(of: [
                     \AppSettings.WebSettings.pageZoom,
                     \AppSettings.WebSettings.minimumFontSize,
                 ])
             ) {
                 SettingsSliderRow(
-                    title: "Page zoom",
+                    title: tr("Page zoom", ctx: "Settings.Web"),
                     value: store.binding(\.web.pageZoom),
                     range: 0.5...3,
                     step: 0.05,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
                 SettingsSliderRow(
-                    title: "Minimum font size",
+                    title: tr("Minimum font size", ctx: "Settings.Web"),
                     value: store.binding(\.web.minimumFontSize),
                     range: 0...24,
                     step: 1,
-                    format: { $0 == 0 ? "off" : String(format: "%.0f pt", $0) }
+                    format: { $0 == 0 ? tr("off", ctx: "Settings.Web") : String(format: "%.0f pt", $0) }
                 )
             }
 
-            SettingsGroup(title: "Interaction") {
+            SettingsGroup(title: tr("Interaction", ctx: "Settings.Web")) {
                 SettingsToggleRow(
-                    title: "Back/forward gestures",
+                    title: tr("Back/forward gestures", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.allowsBackForwardNavigationGestures)
                 )
                 SettingsToggleRow(
-                    title: "Magnification",
+                    title: tr("Magnification", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.allowsMagnification)
                 )
                 SettingsToggleRow(
-                    title: "Link previews",
+                    title: tr("Link previews", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.allowsLinkPreview)
                 )
                 SettingsToggleRow(
-                    title: "Tab focuses links",
+                    title: tr("Tab focuses links", ctx: "Settings.Web"),
                     isOn: store.binding(\.web.tabFocusesLinks)
                 )
             }
 
             SettingsGroup(
-                title: "Sleeping tabs",
+                title: tr("Sleeping tabs", ctx: "Settings.Web"),
                 // Hand-written rather than the derived engine footnote: this
                 // is app behaviour, not a WebKit property, and neither
                 // "applies immediately" nor "needs a new page" describes a
                 // minute-cadence reaper.
-                footnote: "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+                footnote: tr("Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep.", ctx: "Settings.Web")
             ) {
                 SettingsPickerRow(
-                    title: "Sleep unused tabs",
+                    title: tr("Sleep unused tabs", ctx: "Settings.Web"),
                     options: AppSettings.InactiveTabSleep.allCases,
                     selection: store.binding(\.web.sleepInactiveTabs),
                     label: { $0.label }
@@ -565,20 +610,20 @@ struct WebSettingsView: View {
     private static func effect<Value>(of keyPaths: [KeyPath<AppSettings.WebSettings, Value>]) -> String {
         let needsNewPage = keyPaths.filter { AppSettings.needsNewPage($0) }.count
         if needsNewPage == 0 {
-            return "Applies to open pages immediately."
+            return tr("Applies to open pages immediately.", ctx: "Settings.Web")
         }
         if needsNewPage == keyPaths.count {
-            return "Read when a page is opened. Changes take effect on the next page."
+            return tr("Read when a page is opened. Changes take effect on the next page.", ctx: "Settings.Web")
         }
-        return "Some of these take effect on the next page."
+        return tr("Some of these take effect on the next page.", ctx: "Settings.Web")
     }
 
     private static func autoplayLabel(_ policy: AppSettings.MediaAutoplayPolicy) -> String {
         switch policy {
-        case .never: "Nothing"
-        case .video: "Video"
-        case .audio: "Audio"
-        case .all: "Everything"
+        case .never: tr("Nothing", ctx: "Settings.Web")
+        case .video: tr("Video", ctx: "Settings.Web")
+        case .audio: tr("Audio", ctx: "Settings.Web")
+        case .all: tr("Everything", ctx: "Settings.Web")
         }
     }
 }
@@ -613,7 +658,7 @@ struct BookmarksSettingsView: View {
     private var visibility: some View {
         HStack {
             Toggle(
-                "Show bookmarks bar",
+                tr("Show bookmarks bar", ctx: "Settings.Bookmarks"),
                 isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
             )
             .toggleStyle(.switch)
@@ -627,10 +672,10 @@ struct BookmarksSettingsView: View {
 
     private var header: some View {
         HStack {
-            Text("Bookmarks")
+            Text(tr("Bookmarks", ctx: "Settings.Bookmarks"))
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
-            Button("Remove All") {
+            Button(tr("Remove All", ctx: "Settings.Bookmarks")) {
                 store.removeAll()
             }
             .controlSize(.small)
@@ -656,14 +701,14 @@ struct BookmarksSettingsView: View {
         } else if let failure = store.lastError, store.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "exclamationmark.triangle",
-                title: "Bookmarks unavailable",
+                title: tr("Bookmarks unavailable", ctx: "Settings.Bookmarks"),
                 message: failure
             )
         } else if store.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "bookmark",
-                title: "No bookmarks yet",
-                message: "Bookmarks you add will be listed here."
+                title: tr("No bookmarks yet", ctx: "Settings.Bookmarks"),
+                message: tr("Bookmarks you add will be listed here.", ctx: "Settings.Bookmarks")
             )
         } else {
             listed {
@@ -740,8 +785,8 @@ private struct BookmarkSettingsRow: View {
             .controlSize(.small)
             .help(
                 node.isFolder
-                    ? "Remove this folder and everything in it"
-                    : "Remove this bookmark"
+                    ? tr("Remove this folder and everything in it", ctx: "Settings.Bookmarks")
+                    : tr("Remove this bookmark", ctx: "Settings.Bookmarks")
             )
         }
     }
@@ -751,8 +796,14 @@ private struct BookmarkSettingsRow: View {
 
 struct HistorySettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
+    // Observed for `revision`: visit-count labels re-resolve below without
+    // reopening Settings.
+    @ObservedObject private var localization = Localization.shared
     @State private var entries: [HistoryEntry] = []
     @State private var isLoading = true
+    /// Finished "N visits" labels by entry id, resolved core-side (plural
+    /// form selection cannot happen in a synchronous row).
+    @State private var visitLabels: [String: String] = [:]
 
     var body: some View {
         list
@@ -761,19 +812,22 @@ struct HistorySettingsView: View {
             .onChange(of: store.settings.general.recordsHistory) {
                 Task { await load() }
             }
+            .onChange(of: localization.revision) {
+                Task { await resolveVisitLabels() }
+            }
     }
 
     private var header: some View {
         HStack {
-            Text("History")
+            Text(tr("History", ctx: "Settings.History"))
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
-            Button("Delete Older Than 30 Days") {
+            Button(tr("Delete Older Than 30 Days", ctx: "Settings.History")) {
                 Task { await deleteOlderThan() }
             }
             .controlSize(.small)
             .disabled(isLoading)
-            Button("Clear All") {
+            Button(tr("Clear All", ctx: "Settings.History")) {
                 Task { await clearAll() }
             }
             .controlSize(.small)
@@ -786,12 +840,12 @@ struct HistorySettingsView: View {
     private var recordingControls: some View {
         VStack(alignment: .leading, spacing: 4) {
             SettingsToggleRow(
-                title: "Record visited pages",
-                subtitle: "Private tabs are never recorded, whatever this says.",
+                title: tr("Record visited pages", ctx: "Settings.History"),
+                subtitle: tr("Private tabs are never recorded, whatever this says.", ctx: "Settings.History"),
                 isOn: store.binding(\.general.recordsHistory)
             )
             SettingsSliderRow(
-                title: "Collapse repeats within",
+                title: tr("Collapse repeats within", ctx: "Settings.History"),
                 value: store.binding(\.general.historyCollapseWindow),
                 range: 0...120,
                 step: 1,
@@ -813,8 +867,8 @@ struct HistorySettingsView: View {
         } else if entries.isEmpty {
             SettingsPlaceholder(
                 symbol: "clock",
-                title: "No history yet",
-                message: "Pages you visit show up here."
+                title: tr("No history yet", ctx: "Settings.History"),
+                message: tr("Pages you visit show up here.", ctx: "Settings.History")
             )
         } else {
             listed {
@@ -855,7 +909,7 @@ struct HistorySettingsView: View {
                     .truncationMode(.middle)
             }
             Spacer(minLength: 8)
-            Text(entry.visitCount > 1 ? "\(entry.visitCount) visits" : "")
+            Text(visitLabels[entry.id] ?? "")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
             Button {
@@ -865,7 +919,7 @@ struct HistorySettingsView: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("Remove this entry")
+            .help(tr("Remove this entry", ctx: "Settings.History"))
         }
         .padding(.vertical, 6)
     }
@@ -877,6 +931,26 @@ struct HistorySettingsView: View {
             entries = []
         }
         isLoading = false
+        await resolveVisitLabels()
+    }
+
+    /// One batch call resolves every visible "N visits" label, in order.
+    /// Single-visit rows keep no label, exactly as before.
+    private func resolveVisitLabels() async {
+        let counted = entries.filter { $0.visitCount > 1 }
+        guard !counted.isEmpty else {
+            visitLabels = [:]
+            return
+        }
+        let items = counted.map { entry in
+            LocaleItem("one visit", plural: "{n} visits", n: entry.visitCount)
+        }
+        let texts = await Localization.batch(items)
+        var labels: [String: String] = [:]
+        for (offset, entry) in counted.enumerated() where offset < texts.count {
+            labels[entry.id] = texts[offset]
+        }
+        visitLabels = labels
     }
 
     private func remove(_ entry: HistoryEntry) async {
@@ -921,13 +995,13 @@ struct SearchSettingsView: View {
     var body: some View {
         SettingsDetailStack {
             SettingsGroup(
-                title: "Default Engine",
-                footnote: "What the address field sends a search to. Anything that looks like a web address still loads directly."
+                title: tr("Default Engine", ctx: "Settings.Search"),
+                footnote: tr("What the address field sends a search to. Anything that looks like a web address still loads directly.", ctx: "Settings.Search")
             ) {
                 ForEach(PredefinedSearchEngine.allCases) { engine in
                     SettingsRadioRow(
                         title: engine.title,
-                        subtitle: engine.isPrivate ? nil : "Records what you search for",
+                        subtitle: engine.isPrivate ? nil : tr("Records what you search for", ctx: "Settings.Search"),
                         isSelected: store.settings.search.isSelected(engine.rawValue)
                     ) {
                         select(engine.rawValue)
@@ -938,12 +1012,12 @@ struct SearchSettingsView: View {
             customGroup
 
             SettingsGroup(
-                title: "Result Links",
-                footnote: "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+                title: tr("Result Links", ctx: "Settings.Search"),
+                footnote: tr("Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only.", ctx: "Settings.Search")
             ) {
                 SettingsToggleRow(
-                    title: "Clean search result links",
-                    subtitle: "Clicks and copied links carry the destination.",
+                    title: tr("Clean search result links", ctx: "Settings.Search"),
+                    subtitle: tr("Clicks and copied links carry the destination.", ctx: "Settings.Search"),
                     isOn: store.binding(\.search.cleanResultLinks)
                 )
             }
@@ -958,9 +1032,9 @@ struct SearchSettingsView: View {
     @ViewBuilder
     private var customGroup: some View {
         SettingsGroup(
-            title: "Your Engines",
+            title: tr("Your Engines", ctx: "Settings.Search"),
             footnote: store.settings.search.customEngines.isEmpty
-                ? "Add an engine to search somewhere these do not go."
+                ? tr("Add an engine to search somewhere these do not go.", ctx: "Settings.Search")
                 : nil
         ) {
             ForEach(store.settings.search.customEngines) { engine in
@@ -978,15 +1052,15 @@ struct SearchSettingsView: View {
                     }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
-                    .help("Remove this engine")
+                    .help(tr("Remove this engine", ctx: "Settings.Search"))
                 }
             }
 
             SettingsButtonRow(
-                title: isAdding ? "Cancel" : "Add Engine",
-                subtitle: "An address, and the query parameter it takes."
+                title: tr(isAdding ? "Cancel" : "Add Engine", ctx: "Settings.Search"),
+                subtitle: tr("An address, and the query parameter it takes.", ctx: "Settings.Search")
             ) {
-                Button(isAdding ? "Cancel" : "Add") {
+                Button(tr(isAdding ? "Cancel" : "Add", ctx: "Settings.Search")) {
                     if isAdding {
                         isAdding = false
                     } else {
@@ -1012,9 +1086,9 @@ struct SearchSettingsView: View {
     /// is the whole reason to show it at all.
     private var addForm: some View {
         VStack(alignment: .leading, spacing: 2) {
-            labelledField("Name", text: $draft.name, placeholder: "My search", field: .name)
-            labelledField("Address", text: $draft.address, placeholder: "https://example.com/search", field: .address)
-            labelledField("Query parameter", text: $draft.queryItem, placeholder: "q", field: .queryItem)
+            labelledField(tr("Name", ctx: "Settings.Search"), text: $draft.name, placeholder: tr("My search", ctx: "Settings.Search"), field: .name)
+            labelledField(tr("Address", ctx: "Settings.Search"), text: $draft.address, placeholder: "https://example.com/search", field: .address)
+            labelledField(tr("Query parameter", ctx: "Settings.Search"), text: $draft.queryItem, placeholder: "q", field: .queryItem)
 
             if let problem {
                 Text(problem)
@@ -1026,11 +1100,11 @@ struct SearchSettingsView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button(tr("Cancel", ctx: "Settings.Search")) {
                     isAdding = false
                 }
                 .controlSize(.small)
-                Button("Save") {
+                Button(tr("Save", ctx: "Settings.Search")) {
                     add()
                 }
                 .controlSize(.small)
@@ -1172,19 +1246,25 @@ struct SearchSettingsView: View {
 
 struct DownloadsSettingsView: View {
     @StateObject private var store = DownloadsStore()
+    // Observed for `revision`: the count summary re-resolves below without
+    // reopening Settings.
+    @ObservedObject private var localization = Localization.shared
     @State private var isConfirmingClear = false
+    /// Finished "N downloads" subtitle, resolved core-side: plural form
+    /// selection cannot happen in a synchronous row.
+    @State private var itemSummary = ""
 
     var body: some View {
         SettingsDetailStack {
             SettingsGroup(
-                title: "Location",
-                footnote: "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+                title: tr("Location", ctx: "Settings.Downloads"),
+                footnote: tr("Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten.", ctx: "Settings.Downloads")
             ) {
                 SettingsButtonRow(
-                    title: "Download folder",
+                    title: tr("Download folder", ctx: "Settings.Downloads"),
                     subtitle: DownloadsCenter.downloadsDirectory.path
                 ) {
-                    Button("Reveal") {
+                    Button(tr("Reveal", ctx: "Settings.Downloads")) {
                         NSWorkspace.shared.activateFileViewerSelecting([DownloadsCenter.downloadsDirectory])
                     }
                     .controlSize(.small)
@@ -1192,27 +1272,27 @@ struct DownloadsSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Storage",
-                footnote: "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+                title: tr("Storage", ctx: "Settings.Downloads"),
+                footnote: tr("History rows point at files on disk. Clearing forgets the rows; files stay where they are.", ctx: "Settings.Downloads")
             ) {
                 SettingsButtonRow(
-                    title: "Download history",
-                    subtitle: store.items.isEmpty ? "No downloads yet" : "\(store.items.count) items"
+                    title: tr("Download history", ctx: "Settings.Downloads"),
+                    subtitle: itemSummary
                 ) {
                     EmptyView()
                 }
                 if isConfirmingClear {
-                    Text("Forget every download row?")
+                    Text(tr("Forget every download row?", ctx: "Settings.Downloads"))
                         .font(.system(size: 11))
                         .foregroundStyle(.red)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack {
                         Spacer(minLength: 0)
-                        Button("Cancel") {
+                        Button(tr("Cancel", ctx: "Settings.Downloads")) {
                             isConfirmingClear = false
                         }
                         .controlSize(.small)
-                        Button("Clear everything", role: .destructive) {
+                        Button(tr("Clear everything", ctx: "Settings.Downloads"), role: .destructive) {
                             isConfirmingClear = false
                             Task { await store.clear() }
                         }
@@ -1220,10 +1300,10 @@ struct DownloadsSettingsView: View {
                     }
                 } else {
                     SettingsButtonRow(
-                        title: "Clear history",
-                        subtitle: "Forget all download rows."
+                        title: tr("Clear history", ctx: "Settings.Downloads"),
+                        subtitle: tr("Forget all download rows.", ctx: "Settings.Downloads")
                     ) {
-                        Button("Clear", role: .destructive) {
+                        Button(tr("Clear", ctx: "Settings.Downloads"), role: .destructive) {
                             isConfirmingClear = true
                         }
                         .controlSize(.small)
@@ -1236,6 +1316,23 @@ struct DownloadsSettingsView: View {
             await DownloadsCenter.shared.reconcileInterrupted()
             store.load()
         }
+        .task(id: "\(store.items.count)-\(localization.revision)") {
+            await resolveItemSummary()
+        }
+    }
+
+    /// One batch call resolves the "N downloads" subtitle, in the row's own
+    /// words for every count. Empty history reads as its own sentence.
+    private func resolveItemSummary() async {
+        let count = store.items.count
+        guard count > 0 else {
+            itemSummary = tr("No downloads yet", ctx: "Settings.Downloads")
+            return
+        }
+        let texts = await Localization.batch([
+            LocaleItem("one download", plural: "{n} downloads", n: count),
+        ])
+        itemSummary = texts.first ?? "\(count) downloads"
     }
 }
 
@@ -1244,9 +1341,17 @@ struct DownloadsSettingsView: View {
 struct ContentBlockerSettingsView: View {
     @ObservedObject private var store = SettingsStore.shared
     @ObservedObject private var blocker = ContentBlockerStore.shared
+    // Observed for `revision`: the stat summaries re-resolve below without
+    // reopening Settings.
+    @ObservedObject private var localization = Localization.shared
     @State private var rulesDraft = ""
     @State private var rulesSeeded = false
     @State private var hostDraft = ""
+    /// Finished stat subtitles, resolved core-side in one batch call:
+    /// plural form selection cannot happen in synchronous rows.
+    @State private var snapshotSummary = ""
+    @State private var rulesSummary = ""
+    @State private var skippedSummary = ""
 
     private var exceptions: [String] {
         store.settings.adblock.exceptions.sorted()
@@ -1255,49 +1360,49 @@ struct ContentBlockerSettingsView: View {
     var body: some View {
         SettingsDetailStack {
             SettingsGroup(
-                title: "Blocking",
-                footnote: "Pages reload to pick up a change."
+                title: tr("Blocking", ctx: "Settings.Blocker"),
+                footnote: tr("Pages reload to pick up a change.", ctx: "Settings.Blocker")
             ) {
                 SettingsToggleRow(
-                    title: "Block ads and trackers",
-                    subtitle: "Third-party requests to listed hosts never leave the page.",
+                    title: tr("Block ads and trackers", ctx: "Settings.Blocker"),
+                    subtitle: tr("Third-party requests to listed hosts never leave the page.", ctx: "Settings.Blocker"),
                     isOn: store.binding(\.adblock.enabled)
                 )
             }
 
             SettingsGroup(
-                title: "Filter lists",
-                footnote: "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+                title: tr("Filter lists", ctx: "Settings.Blocker"),
+                footnote: tr("Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device.", ctx: "Settings.Blocker")
             ) {
                 SettingsButtonRow(
-                    title: "Bundled snapshot",
-                    subtitle: "\(store.settings.adblock.snapshotVersion ?? "—") · \(blocker.lastMeta?.ruleCount ?? 0) rules"
+                    title: tr("Bundled snapshot", ctx: "Settings.Blocker"),
+                    subtitle: snapshotSummary
                 ) {
                     EmptyView()
                 }
                 SettingsButtonRow(
-                    title: "Source",
-                    subtitle: "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+                    title: tr("Source", ctx: "Settings.Blocker"),
+                    subtitle: tr("AdAway default blocklist · CC BY 3.0 · plus our own extras", ctx: "Settings.Blocker")
                 ) {
                     EmptyView()
                 }
-                if let meta = blocker.lastMeta {
+                if blocker.lastMeta != nil {
                     SettingsButtonRow(
-                        title: "Rules",
-                        subtitle: "\(meta.blockCount) hosts · \(meta.cosmeticCount) hiding · \(meta.exceptionCount) exceptions"
+                        title: tr("Rules", ctx: "Settings.Blocker"),
+                        subtitle: rulesSummary
                     ) {
                         EmptyView()
                     }
                     SettingsButtonRow(
-                        title: "Skipped lines",
-                        subtitle: "\(meta.skippedLines) lines the compiler ignored"
+                        title: tr("Skipped lines", ctx: "Settings.Blocker"),
+                        subtitle: skippedSummary
                     ) {
                         EmptyView()
                     }
                 }
                 if let error = blocker.lastError {
                     SettingsButtonRow(
-                        title: "Last error",
+                        title: tr("Last error", ctx: "Settings.Blocker"),
                         subtitle: error
                     ) {
                         EmptyView()
@@ -1306,25 +1411,25 @@ struct ContentBlockerSettingsView: View {
             }
 
             SettingsGroup(
-                title: "Custom rules",
-                footnote: "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+                title: tr("Custom rules", ctx: "Settings.Blocker"),
+                footnote: tr("Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot.", ctx: "Settings.Blocker")
             ) {
                 TextEditor(text: $rulesDraft)
                     .font(.system(size: 11, design: .monospaced))
                     .frame(minHeight: 120)
                 HStack {
                     Spacer(minLength: 0)
-                    Button("Apply rules") { applyRules() }
+                    Button(tr("Apply rules", ctx: "Settings.Blocker")) { applyRules() }
                         .controlSize(.small)
                 }
             }
 
             SettingsGroup(
-                title: "Exceptions",
-                footnote: "Sites the blocker leaves alone, subdomains included."
+                title: tr("Exceptions", ctx: "Settings.Blocker"),
+                footnote: tr("Sites the blocker leaves alone, subdomains included.", ctx: "Settings.Blocker")
             ) {
                 if exceptions.isEmpty {
-                    Text("No exceptions.")
+                    Text(tr("No exceptions.", ctx: "Settings.Blocker"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 3)
@@ -1341,7 +1446,7 @@ struct ContentBlockerSettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Remove \(host)")
+                            .accessibilityLabel(tr("Remove {host}", ctx: "Settings.Blocker", args: ["host": host]))
                         }
                         .padding(.vertical, 3)
                     }
@@ -1351,7 +1456,7 @@ struct ContentBlockerSettingsView: View {
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 12))
                         .onSubmit { add() }
-                    Button("Add", action: add)
+                    Button(tr("Add", ctx: "Settings.Blocker"), action: add)
                         .controlSize(.small)
                         .disabled(normalizedHost(hostDraft) == nil)
                 }
@@ -1367,6 +1472,46 @@ struct ContentBlockerSettingsView: View {
                 rulesSeeded = true
             }
         }
+        .task(id: "\(statSignature)-\(localization.revision)") {
+            await resolveStatSummaries()
+        }
+    }
+
+    /// Everything the stat rows show, so one batch call refreshes them
+    /// together whenever the fingerprint or the language moves.
+    private var statSignature: String {
+        let meta = blocker.lastMeta
+        return [
+            store.settings.adblock.snapshotVersion ?? "",
+            "\(meta?.ruleCount ?? -1)",
+            "\(meta?.blockCount ?? -1)",
+            "\(meta?.cosmeticCount ?? -1)",
+            "\(meta?.exceptionCount ?? -1)",
+            "\(meta?.skippedLines ?? -1)",
+        ].joined(separator: "|")
+    }
+
+    /// One batch call resolves the snapshot, rules, and skipped-lines
+    /// subtitles in the row's own words for every count. Joined
+    /// client-side around opaque values, exactly like the English text.
+    private func resolveStatSummaries() async {
+        let version = store.settings.adblock.snapshotVersion ?? "—"
+        let meta = blocker.lastMeta
+        let texts = await Localization.batch([
+            LocaleItem("one rule", plural: "{n} rules", n: meta?.ruleCount ?? 0),
+            LocaleItem("one host", plural: "{n} hosts", n: meta?.blockCount ?? 0),
+            LocaleItem("one cosmetic rule", plural: "{n} cosmetic rules", n: meta?.cosmeticCount ?? 0),
+            LocaleItem("one exception", plural: "{n} exceptions", n: meta?.exceptionCount ?? 0),
+            LocaleItem(
+                "one line the compiler ignored",
+                plural: "{n} lines the compiler ignored",
+                n: meta?.skippedLines ?? 0
+            ),
+        ])
+        guard texts.count == 5 else { return }
+        snapshotSummary = "\(version) · \(texts[0])"
+        rulesSummary = "\(texts[1]) · \(texts[2]) · \(texts[3])"
+        skippedSummary = texts[4]
     }
 
     private func applyRules() {

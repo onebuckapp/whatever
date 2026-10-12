@@ -58,6 +58,7 @@ final class TabBarItemView: NSView {
     private let closeButton: NSButton
     private let audioButton: NSButton
     private var cancellables = Set<AnyCancellable>()
+    private var localeObserver: NSObjectProtocol?
     private var trackingArea: NSTrackingArea?
     private var hover = false
     private var selected = false
@@ -101,7 +102,7 @@ final class TabBarItemView: NSView {
         let button = NSButton(frame: .zero)
         button.image = NSImage(
             systemSymbolName: "xmark.circle.fill",
-            accessibilityDescription: "Close Tab"
+            accessibilityDescription: tr("Close Tab", ctx: "Tabs")
         )
         button.imagePosition = .imageOnly
         self.closeButton = button
@@ -415,12 +416,32 @@ final class TabBarItemView: NSView {
 
         applyLoading(tab.tabController.isLoading)
         applyCornerRadius()
+        applyLanguage()
+        localeObserver = NotificationCenter.default.addObserver(
+            forName: .localizationDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyLanguage()
+        }
     }
 
     deinit {
         if let videoPath {
             TabVideoPool.shared.release(path: videoPath)
         }
+        if let localeObserver {
+            NotificationCenter.default.removeObserver(localeObserver)
+        }
+    }
+
+    /// Re-applies VoiceOver names and tooltips: AppKit views do not rebuild
+    /// on the revision tick. The audio label re-applies through its state
+    /// pass by resetting the applied-symbol guard.
+    private func applyLanguage() {
+        closeButton.image?.accessibilityDescription = tr("Close Tab", ctx: "Tabs")
+        appliedAudioSymbol = nil
+        applyAudioState()
     }
 
     private func audioStateChanged() {
@@ -443,7 +464,7 @@ final class TabBarItemView: NSView {
         let symbol = tab.tabController.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"
         if symbol != appliedAudioSymbol {
             appliedAudioSymbol = symbol
-            let label = tab.tabController.isMuted ? "Unmute Tab" : "Mute Tab"
+            let label = tab.tabController.isMuted ? tr("Unmute Tab", ctx: "Tabs") : tr("Mute Tab", ctx: "Tabs")
             audioButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
             audioButton.toolTip = label
         }

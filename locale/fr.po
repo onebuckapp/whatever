@@ -1,0 +1,3090 @@
+# Whatever French translation.
+#
+# This file names every translatable string (`en`, like `ro` and friends)
+# and doubles as the translators' template: copy it to `<lang>.po` and fill
+# in `msgstr`.
+#
+# Conventions for translators and for code:
+#
+#   * `msgid` is always English and is used verbatim at the call site:
+#     `tr("Restore last session", ctx: "Settings.General")`. Never
+#     reword a shipped msgid; add a new entry instead, so existing
+#     translations keep matching.
+#   * `msgctxt` disambiguates repeats: the same English word in two places
+#     (a group title vs. a menu item) gets one entry per context, named
+#     `Screen.Area`, e.g. `Settings.General`.
+#   * Interpolation uses `{name}` placeholders. Translators may reorder
+#     or drop them freely; values are opaque strings (versions, file
+#     names, counts already picked), so filling them in is pure
+#     substitution and every shell does it the same way. Never add
+#     printf-style verbs. Anything where the VALUE shapes the wording —
+#     plural form selection by a count — uses `msgid`/`msgid_plural` plus
+#     `batch` instead, evaluated core-side.
+#   * Plurals use `msgid` (singular) + `msgid_plural`; the core picks the
+#     form for `n` using your header's `Plural-Forms` rule.
+#   * Lines starting with `#.` are developer notes for the entry below.
+#   * This file is the source of truth; `whatever.mo` per language is
+#     generated from `<lang>.po` at build time and never edited by hand.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever\n"
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n>1);\n"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Mise à jour logicielle"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Whatever ne se met jamais à jour tout seul. La vérification demande à GitHub la dernière version ; le téléchargement récupère son image disque pour ce Mac, et la mise à jour depuis celle-ci reste entre vos mains."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Navigateur par défaut"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Les liens cliqués dans d'autres apps s'ouvrent ici."
+
+#. Settings > General > default-browser row when Whatever is default.
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Whatever est votre navigateur par défaut"
+
+#. Settings > General > default-browser row when it is not.
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Whatever n'est pas votre navigateur par défaut"
+
+#. Settings > General > default-browser subtitle when Whatever is default.
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Ce Mac ouvre déjà les liens web dans Whatever."
+
+#. Settings > General > default-browser subtitle when it is not.
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "Récupérez les liens http et https depuis votre navigateur actuel."
+
+#. Settings > General > button claiming http/https handling.
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Définir Whatever comme navigateur par défaut"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Session"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "La restauration rouvre les onglets de la fenêtre précédente."
+
+#. Settings > General > toggle: reopen the previous window's tabs at launch.
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Restaurer la dernière session"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Rouvrir les onglets de la fenêtre précédente au lancement."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Quitter"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "La seconde pression quitte aussitôt, même avec des fenêtres ouvertes."
+
+#. Settings > General > toggle: first ⌘Q prompts instead of quitting.
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Confirmer avant de quitter"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "Le premier ⌘Q affiche une confirmation ; appuyez de nouveau sur ⌘Q pour quitter."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "History"
+msgstr "Historique"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Les onglets privés ne sont jamais enregistrés, quoi qu'indique ce réglage."
+
+#. Settings > General > toggle: record main-frame visits in history.
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Enregistrer les pages visitées"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Ajoute à l'historique les visites du cadre principal."
+
+#. Settings > General > slider: collapse near-duplicate revisits (seconds).
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Regrouper les doublons dans un délai de"
+
+#. Settings > General > update button at rest.
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Rechercher les mises à jour"
+
+#. Settings > General > update button when a release is ready.
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Télécharger la mise à jour"
+
+#. Settings > General > update button after the disk image landed.
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Afficher dans le Finder"
+
+#. Settings > General > group title for the interface language picker.
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Langue"
+
+#. Settings > General > language group footnote.
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "La langue de l'interface. Le texte traduit change aussitôt."
+
+#. Settings > General > language picker option following the system locale.
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Système"
+
+#. App menu > About item (replaces the stock one).
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "À propos de Whatever"
+
+#. App menu > Quit item (warns instead of quitting at once).
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Quitter Whatever"
+
+#. App menu > opens our Settings modal.
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Réglages…"
+
+#. App menu > opens the password manager.
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Mots de passe…"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Nouvel onglet"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Nouvelle fenêtre"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Nouvelle fenêtre privée"
+
+#. File menu > print preview.
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Imprimer…"
+
+#. File menu > the system Close item, retitled: it closes the tab.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Fermer l'onglet"
+
+#. Top-level Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Rechercher"
+
+#. Find menu > find bar.
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Rechercher dans la page…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Rechercher le suivant"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Rechercher le précédent"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Présentation"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Recharger la page"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Recharger depuis l'origine"
+
+#. View menu > bookmark bar toggle.
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Afficher la barre des favoris"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Onglet"
+
+#. Tab menu > focuses the address bar in history mode.
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Rechercher dans l'historique"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Aller à la barre d'adresse"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Rouvrir l'onglet fermé"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Déplacer l'onglet vers une nouvelle fenêtre"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Afficher l'onglet précédent"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Afficher l'onglet suivant"
+
+#. Tab menu > one item per number 1-9. {n} is filled per item, core-side.
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Sélectionner l'onglet {n}"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Fractionner"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Fractionner avec l'onglet suivant"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Fractionner avec l'onglet précédent"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Aller au panneau suivant"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Aller au panneau précédent"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Réduire la vue fractionnée"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Fermer le panneau"
+
+#. Help menu > credits window.
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Crédits"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "un article"
+msgstr[1] "{n} articles"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "un flux disponible"
+msgstr[1] "{n} flux disponibles"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "{n} cookie"
+msgstr[1] "{n} cookies"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "{n} élément"
+msgstr[1] "{n} éléments"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "une règle cosmétique"
+msgstr[1] "{n} règles cosmétiques"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "un téléchargement"
+msgstr[1] "{n} téléchargements"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "un élément téléchargé"
+msgstr[1] "{n} éléments téléchargés"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "une exception"
+msgstr[1] "{n} exceptions"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "un hôte"
+msgstr[1] "{n} hôtes"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "un élément"
+msgstr[1] "{n} éléments"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "une ligne ignorée par le compilateur"
+msgstr[1] "{n} lignes ignorées par le compilateur"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "une page"
+msgstr[1] "{n} pages"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "une règle"
+msgstr[1] "{n} règles"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "une source"
+msgstr[1] "{n} sources"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "un indisponible"
+msgstr[1] "{n} indisponibles"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "un non lu"
+msgstr[1] "{n} non lus"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "une visite"
+msgstr[1] "{n} visites"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Surfer sur l'internet mort"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "Fait par des humains, avec OpenPeeps, pour OneBuck.app"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Les pubs et les traqueurs sont bloqués ici."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Bloquer les pubs et les traqueurs sur ce site"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "Réglages du bloqueur de contenu"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Ouvrez un site web pour le gérer ici."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "En pause sur ce site."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Cette page"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Adresse"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Êtes-vous sûr ? Cette action est irréversible."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Barre des favoris"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Supprimer"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "Supprimer « {item} » ?"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "Supprimer « {name} » ?"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Modifier le favori"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Modifier le dossier"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Dossier"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Nouveau favori"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Nouveau dossier"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Enregistrer"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Le dossier et l'élément qu'il contient seront supprimés."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Le dossier et les {items} qu'il contient seront supprimés."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Titre"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "ce favori"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "ce dossier"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Copier le lien"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Supprimer"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Modifier…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Nouveau favori…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Nouveau dossier…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Ouvrir"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Tout ouvrir dans de nouveaux onglets"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Ouvrir les réglages des favoris"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Ouvrir dans un nouvel onglet"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Renommer…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "Partager comme code QR"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Capture plein écran"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Ouvrir le lien dans un nouvel onglet"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Ouvrir dans un nouvel onglet"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Fermer les autres onglets"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Fermer le panneau"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Fermer l'onglet"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Fermer les onglets à droite"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "Copier l'URL"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Dupliquer l'onglet"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Aller au panneau suivant"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Aller au panneau précédent"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "Partager comme code QR"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Couper le son de l'onglet"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Nouvelle fenêtre privée"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Nouvel onglet"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Nouvelle fenêtre"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Ouvrir dans une nouvelle fenêtre"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Épingler l'onglet"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Recharger l'onglet"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Définir la taille de la fenêtre…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Réglages…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Fractionner avec l'onglet suivant"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Fractionner avec l'onglet précédent"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Réactiver le son de l'onglet"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Désépingler l'onglet"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Un langage de programmation système compilé à typage statique"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "Une suite de magasins de données embarqués basés sur WAL"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Langue de l'app et de l'interface"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Auteur Tomasz Kurylik"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Créé et maintenu par Paweł Kuna"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Conçu avec"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "Collection de petits analyseurs et sérialiseurs"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Crédits"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Conception et développement · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Site de Whatever"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Interface"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Réalisé par"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Estimateur de robustesse des mots de passe (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Bibliothèque cryptographique en pur Nim"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Cœur du stockage"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Outillage et infrastructure"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Écrit en"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Ouvrir"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Cette page"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "Annulé"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Supprimé"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Terminé"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "Téléchargement en cours"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "Téléchargements"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Échoué"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Aucun téléchargement pour l'instant."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Rien de téléchargé"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Ouvrir"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Actualiser"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Retirer de la liste"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Réessayer"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Afficher dans le Finder"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Taille inconnue"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{received} sur {expected}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Rien à encoder."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Les réglages n'ont pas pu être enregistrés."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "Le tampon QR a été rejeté par le cœur."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "L'encodeur QR a échoué."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "L'encodeur QR a renvoyé un état inattendu ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Le service de stockage Whatever est indisponible."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "L'instantané de filtres embarqué est manquant."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Cette URL est trop longue pour tenir dans un code QR."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "l'enregistrement de la session a expiré"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Retour aux articles"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Copier le lien de l'article"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Copier le lien"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Flux"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Flux"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Les flux sont désactivés dans les réglages."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "Les flux ne peuvent pas être enregistrés depuis un onglet privé."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Marquer comme lu"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Marquer comme non lu"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Marquer comme lu"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Marquer comme non lu"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "Aucun article ne correspond à cette vue."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Aucun abonnement pour l'instant."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Seul le résumé est disponible pour cet article."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Ouvrir"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Ouvrir l'article"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Ouvrir dans un nouvel onglet"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Ouvre la vue de lecture de l'article."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Actualiser"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Retirer l'enregistrement"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Enregistrer"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Enregistrer l'article"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Enregistré"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "S'abonner"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Abonnez-vous à un flux pour commencer à lire."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Ce n'est pas une adresse de flux prise en charge."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "L'abonnement est introuvable après son enregistrement."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Cette page propose des flux, mais les onglets privés ne peuvent pas les enregistrer."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Cette page propose :"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Non lus"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Non lus uniquement"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Se désabonner"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Copier le chemin"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Dossier vide"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Aller au dossier parent"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Masqués"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Dossier parent"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Actualiser"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Réessayer"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Afficher dans le Finder"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Afficher les fichiers masqués"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "affichage des {shown} premiers sur {total}"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "« {directory} » n'a pas pu être ouvert."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Fermer la barre de recherche"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Rechercher dans la page"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Tout surligner"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Respecter la casse"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Occurrence suivante"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Aucun résultat"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Occurrence précédente"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Mots entiers"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{index} sur {total}{more}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "Autoriser"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Demander"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Bloquer"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Caméra"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Périphériques de capture"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Les choix sont mémorisés pour ce site. Le blocage ou l'autorisation s'applique quand la page le demande à nouveau — recharger met fin à toute capture en cours."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Fermer"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "Pour {kind}"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "En cours d'utilisation"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Microphone"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "Non demandé"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Onglet privé : les choix s'appliquent une seule fois et ne sont jamais mémorisés. Recharger la page met fin à toute capture en cours."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Recharger la page"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "En attente de votre réponse"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Souhaite utiliser vos périphériques"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "macOS bloque ce périphérique — autorisez Whatever dans Réglages Système, Confidentialité et sécurité."
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Nouvelle fenêtre privée"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Nouvel onglet"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Nouvelle fenêtre"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Ajouter un autre identifiant"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Êtes-vous sûr ? Cette action est irréversible."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "Capitaliser"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Modifier l'indice du coffre"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Caractères"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Confirmez le mot de passe maître"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Copier le mot de passe"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Copier le nom d'utilisateur"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Créer le coffre"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Créer un mot de passe maître"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Supprimer"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Supprimer l'identifiant"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Supprimer cet identifiant"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Supprimer cet identifiant ?"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Supprimer ce site et tous les identifiants qu'il contient"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "Supprimer « {site} » ?"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Chiffres"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Point (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Générer un mot de passe"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Masquer le mot de passe"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "Indice (facultatif)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "Indice : {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Trait d'union (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Il ouvre votre coffre. Aucune récupération possible : l'oublier fait perdre tous les mots de passe enregistrés."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Longueur : {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Verrouiller le coffre"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Minuscules"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Mot de passe maître"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Mot de passe maître (8 caractères minimum)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Moyen"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Mode"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Nouveau site"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "Aucun indice défini"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Aucun site sélectionné"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Nombre"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Mot de passe"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Mots de passe"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Choisissez un site web à gauche, ou ajoutez-en un."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Régénérer"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Enregistrer"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Rechercher"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Séparateur"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Afficher le mot de passe"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Affiché après plusieurs mots de passe erronés. Jamais le mot de passe lui-même."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Nom du site"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Fort"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Symboles"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Le site et tous les identifiants qu'il contient seront supprimés. Cette action est irréversible."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Le coffre n'a pas pu être créé."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Tiret bas (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Déverrouiller"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Déverrouiller les mots de passe"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Site sans titre"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Majuscules"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Utiliser"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Indice du coffre"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Faible"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Mots"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Mots : {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Mot de passe maître incorrect, réessayez."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "ce site"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Taille réelle"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Arrière-plans"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Copies : {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Impossible de générer cette page."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Ajuster à la page"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Paysage"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Seules les pages web chargées peuvent être imprimées."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Orientation"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Papier"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Portrait"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Préparation de l'aperçu…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Feuille de style d'impression"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Imprimer…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "Enregistrer au format PDF…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Échelle"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Sans titre"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Appuyez de nouveau sur ⌘Q pour quitter"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "Une couleur à un point du dégradé."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "Une texture de grain de film sur toute la fenêtre. Chaque modification s'applique aussitôt."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Un fichier vidéo sur le disque."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Ajouter"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Ajouter un arrêt"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Barre d'adresse"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "Selon X"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "Selon Y"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Toujours muet et toujours en boucle : une fenêtre qui se mettrait à faire du bruit toute seule est le problème que cette fonction est là pour résoudre, et un fond figé sur la fin ne serait le fond de personne."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Un fichier image sur le disque."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Ancre"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Angle"
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Êtes-vous sûr ? Le grain, le fond, le thème des onglets et la barre d'adresse reviendront à leurs réglages intégrés."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Attachés"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Les onglets attachés rejoignent la page ; les pastilles flottent avec un espace au-dessus et sont toujours entièrement arrondies, ignorant le rayon des coins ci-dessous."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Lecture automatique"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Revenir au grain intégré."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Revenir à l'aspect intégré."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Fond et texte pour tous les onglets sauf celui sélectionné."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Fond et texte pour l'onglet sélectionné."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "Derrière la page. S'applique à toutes les fenêtres au fur et à mesure."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Flou"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Les deux"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Bas"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "En bas au centre"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "En bas à gauche"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "En bas à droite"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Luminosité"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "Centre"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "Centré à gauche"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "Centré à droite"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Centre X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Centre Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "Choisissez une image fixe à afficher jusqu'à l'arrivée de la première image vidéo."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Choisissez une vidéo à lire derrière la page."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Choisissez une vidéo à lire derrière l'onglet."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Choisissez une image à afficher derrière la page."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Choisissez une image à afficher derrière l'onglet."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Choisir…"
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Effacer"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Couleur"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Couleur"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Contraste"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Rayon des coins"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Onglet actuel"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Personnalisé"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Ignorer"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Effets"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Huit, c'est la limite."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Activé"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Fin"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Hauteur du champ"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Remplir"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Remplir la largeur disponible"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Remplir avec"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Réglages du filtre"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Ajuster"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Générer"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Générer un grain différent"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Dégradé"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Grain"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Taille du grain"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Masque la texture sans perdre ces réglages."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Horizontal"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Image"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "Onglets inactifs"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "Rayon intérieur"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Intensité"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Type"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Laisse apparaître le fond derrière la page."
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Linéaire"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Bulle de lien"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Aspect"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Manquant ou illisible. Choisissez-le à nouveau."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Monochrome"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Nécessite d'abord un fond. Rien à révéler pour l'instant."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Nouveau motif"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Aucun fichier choisi"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Aucune image choisie"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "Aucun réglage ne correspond à {query}."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Aucun"
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "Désactivé par défaut. Force les pages à être transparentes, ce sur quoi certains sites perdent leur fond. Attendez-vous à un résultat partiel : un site qui peint son propre fond recouvre toujours le média."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Opacité"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Original"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Rayon extérieur"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Coins de la page"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Pause quand masqué"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Pause quand inactif"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Pourcentage"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Pastilles"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Points"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Position"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Radial"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Retirer"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Répéter"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Réinitialiser"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Réinitialiser l'apparence"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Réinitialiser les réglages d'apparence"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Réinitialiser les réglages d'apparence ?"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Réinitialiser…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Respecter « Réduire les animations »"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Restaure chaque réglage de cette page — grain, fond, thème des onglets et barre d'adresse — à sa valeur intégrée."
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Arrondi de chaque cellule d'onglet attaché. Suit en direct."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Mêmes réglages, grain différent."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Saturation"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Enregistrer"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Échelle"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Forme"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Voir à travers les pages"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Taille"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Taille et forme du champ. Suit en direct."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Uni"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Vitesse"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "Remplace en attendant la première image. C'est aussi la seule chose à laquelle l'étalonnage des effets s'applique pour une vidéo."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Début"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Commencer à"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Démarre toute seule à l'ouverture de la fenêtre."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Les arrêts sont appliqués dans l'ordre le long du dégradé."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "S'arrête quand une autre app passe devant."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "S'arrête quand la fenêtre est couverte, réduite ou l'app masquée."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Étirer"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "S'étire entre les boutons au lieu d'un champ centré."
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Système"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Coins des onglets"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Forme des onglets"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Couleur du texte"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Le fond a été désactivé. Choisissez un autre fichier."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "L'adresse flottante affichée au survol d'un lien."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Le système demande actuellement des animations réduites, donc ceci met la vidéo en pause."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Le système ne demande pas d'animations réduites."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Teinte"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Haut"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "En haut au centre"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "En haut à gauche"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "En haut à droite"
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Pages transparentes"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Utiliser"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Vertical"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Vidéo"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Fond de la fenêtre"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent} % le long"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "Liste de blocage AdAway par défaut · CC BY 3.0 · plus nos propres ajouts"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Ajouter"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Appliquer les règles"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Bloquer les pubs et les traqueurs"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Blocage"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Instantané embarqué"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Règles personnalisées"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "Exceptions"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Listes de filtres"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Lignes d'hôtes plus règles ||, @@ et ##, une par ligne. Appliquées avec l'instantané."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Dernière erreur"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "Aucune exception."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Les pages se rechargent pour prendre en compte les modifications."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "Retirer {host}"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Règles"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Livré avec l'app. Rien n'est téléchargé et aucune donnée de navigation ne quitte la machine : les listes sont compilées sur l'appareil."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Sites que le bloqueur laisse tranquilles, sous-domaines inclus."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Lignes ignorées"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Source"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Les requêtes tierces vers les hôtes listés ne quittent jamais la page."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Favoris"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Favoris indisponibles"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Les favoris que vous ajoutez seront listés ici."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Aucun favori pour l'instant"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Tout retirer"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Retirer ce favori"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Retirer ce dossier et tout son contenu"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Afficher la barre des favoris"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Effacer"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Tout effacer"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Effacer l'historique"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "Dossier de téléchargement"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "Historique des téléchargements"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Chaque téléchargement arrive ici. Les noms de fichiers sont dédoublonnés automatiquement, donc rien n'est jamais écrasé."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Oublier toutes les lignes de téléchargement."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Oublier toutes les lignes de téléchargement ?"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Les lignes d'historique pointent vers des fichiers sur le disque. Effacer oublie les lignes ; les fichiers restent où ils sont."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Emplacement"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Aucun téléchargement pour l'instant"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Afficher"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Stockage"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "1 à 2 caractères affichés entre les titres."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Appliquer"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Appliquer la conservation"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Articles par flux"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Automatique"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Opacité du fond"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Hauteur de la barre"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Contenu en cache"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Rayon des coins"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Sens du défilement"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Vitesse de défilement"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Supprimer tous les abonnements et les flux en cache."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "La découverte ne fait que signaler les flux. Rien n'est téléchargé ni enregistré tant qu'un flux n'est ni abonné ni actualisé."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Télécharger les favicons"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Activer le défilement"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "Activer les flux RSS"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Récupération"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Taille de la police"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Défilement des titres"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "De gauche à droite"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Marquer les articles comme lus à l'ouverture"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Aucune source abonnée."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Aucun abonnement"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Désactivé"
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Ouvrir un article efface son point de non-lecture."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Analyse"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Conserver une icône de site validée par abonnement."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Réduire chaque abonnement à la limite ci-dessus."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Images d'éditeur uniquement"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Lecture"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Actualiser"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Tout actualiser"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Actualiser automatiquement"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Intervalle d'actualisation"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Actualiser les abonnements périmés quand le lecteur les charge."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Actualiser cette source maintenant"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Les actualisations utilisent des requêtes conditionnelles quand l'éditeur les prend en charge. Les onglets privés ne s'abonnent, n'actualisent ni ne téléchargent jamais."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Actualisation…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "Refuser les flux qui échouent à la validation RSS ou Atom au lieu de les récupérer."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Retirer"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Supprimer chaque abonnement ainsi que tous les articles et images en cache ?"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Tout supprimer"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Conservation"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "La conservation s'applique après l'ingestion et à chaque pression sur Appliquer. Les marques de lecture et d'enregistrement ne provoquent jamais d'élagage à elles seules."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "De droite à gauche"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Séparateur"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Afficher le contrôle de la barre d'outils sur les pages qui signalent un flux et autoriser les nouveaux abonnements."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Affiche une barre défilante qui montre les titres en bas."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Stockage"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "L'analyse stricte rejette les flux mal formés et RDF/RSS 1.0. L'analyse souple récupère titres, liens, dates et résumés utilisables chaque fois qu'ils peuvent encore être identifiés."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Validation stricte"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Sources abonnées"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Abonnements, articles, favicons et miniatures vivent dans la base de flux séparée. Tout supprimer est irréversible."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Le défilement se masque quand il n'y a rien à montrer. Le texte utilise toujours la couleur d'étiquette système, donc il suit les modes clair et sombre."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Miniatures"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Activez les flux RSS pour gérer les abonnements."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Se désabonner de cette source"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Se désabonner supprime l'abonnement, ses articles en cache et ses images conservées."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Tout effacer"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Regrouper les doublons dans un délai de"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "Supprimer les plus de 30 jours"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "Historique"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Aucun historique pour l'instant"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Les pages que vous visitez s'affichent ici."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Les onglets privés ne sont jamais enregistrés, quoi qu'indique ce réglage."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Enregistrer les pages visitées"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Retirer cette entrée"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Apparence"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Favoris"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "Bloqueur de contenu"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "Téléchargements"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Général"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "Historique"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS et flux"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Recherche"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Réglages"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Web"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Ajoutez un moteur pour chercher là où ceux-ci ne vont pas."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Adresse"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "Une adresse, et le paramètre de requête qu'elle prend."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Nettoyer les liens de résultats de recherche"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Les clics et les liens copiés portent la destination."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Moteur par défaut"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Saisissez le paramètre de requête, généralement q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Saisissez l'adresse de recherche."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Donnez un nom au moteur."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Ma recherche"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Nom"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Paramètre de requête"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Enregistre ce que vous cherchez"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Retirer ce moteur"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Liens de résultats"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Enregistrer"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Empêche les moteurs de recherche de remplacer les liens de résultats par des sauts de traqueurs quand vous cliquez dessus. Actif uniquement sur les pages de résultats prises en charge."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Cette adresse n'est pas valide."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "L'adresse doit commencer par http:// ou https://"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Ce à quoi le champ d'adresse envoie une recherche. Tout ce qui ressemble à une adresse web se charge toujours directement."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Vos moteurs"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "Après 1 heure"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "Après 15 minutes"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "Après 30 minutes"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "Après 5 minutes"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "Autoriser JavaScript"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "S'applique aussitôt aux pages ouvertes."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Gestes avant/arrière"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Affichage"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Tout"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Alertes de sites web frauduleux"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Les onglets masqués au-delà de ce délai d'inactivité perdent leur page et libèrent sa mémoire. En afficher un recharge son adresse ; les onglets affichés, épinglés, sonores et en cours de chargement ne dorment jamais."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Interaction"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "JavaScript peut ouvrir des fenêtres"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Permet à une page d'ouvrir un onglet sans clic. Les popups atterrissent dans cette fenêtre."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Aperçus des liens"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Agrandissement"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Médias"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Taille de police minimale"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Rien"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Désactivé"
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Désactivé bloque les scripts, ce qui empêche aussi la plupart des sites de fonctionner."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Zoom de la page"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Pages"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Lire sans clic"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Confidentialité"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Lu à l'ouverture d'une page. Les modifications prennent effet à la page suivante."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Mode de compatibilité par site"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Mettre en veille les onglets inutilisés"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "Onglets en veille"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Certains prennent effet à la page suivante."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "La touche Tab cible les liens"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Passer les hôtes connus en HTTPS"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Vidéo"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "désactivé"
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Certificat"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Les détails du certificat ne sont pas disponibles pour cette visite."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Effacer"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "La connexion n'est pas sécurisée."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "La connexion est sécurisée."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Cookies et données du site"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Expire"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Empreinte"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Délivré par"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Délivré à"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Chargement des données du site."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Aucune donnée stockée pour ce site."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Ouvrez un site web pour l'inspecter ici."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Réglages du site"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Cette page"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Cette page n'est pas chargée en HTTPS, donc il n'y a pas de certificat à afficher."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Inconnu"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Fermer l'onglet"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Fermer les onglets"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Couper le son de l'onglet"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Nouvel onglet"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Réactiver le son de l'onglet"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Ajouter un favori"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Flux disponible"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Flux disponibles"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Précédent"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Favoris"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Caméra ou micro en cours d'utilisation — ouvrir les contrôles de capture"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Caméra ou micro demandé — ouvrir les contrôles de capture"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Contrôles de capture"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Effacer l'adresse"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "Bloqueur de contenu — actif sur ce site"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "Bloqueur de contenu — en pause sur ce site"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Bloqueur de contenu actif sur ce site"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Bloqueur de contenu en pause sur ce site"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "Téléchargements"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Modifier le favori"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "Suivant"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Privé"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Connexion non sécurisée"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Gestionnaire de mots de passe"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Recharger"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Rechercher"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Rechercher ou saisir une adresse"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Connexion sécurisée"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Réglages"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Informations sur le site"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Arrêter"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Cette fenêtre est privée : ses onglets ne sont pas enregistrés dans l'historique."
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "Demande de la dernière version à GitHub."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Recherche de mises à jour"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "Impossible de rechercher les mises à jour"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Téléchargement de Whatever {version}."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Téléchargement de la mise à jour"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "GitHub a répondu de façon inattendue. Réessayez plus tard."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "GitHub limite les vérifications de mises à jour. Réessayez dans un moment."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "GitHub ne signale encore aucune version. Réessayez plus tard."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Mise à jour logicielle"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "La vérification a échoué. Vérifiez votre connexion et réessayez."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "Le téléchargement a échoué. Vérifiez votre connexion et réessayez."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Mise à jour disponible"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Mise à jour téléchargée"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Whatever est à jour"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Whatever {version} est disponible — vous avez {current}."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Whatever {version} est disponible, mais sans image disque pour ce Mac."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Whatever {version} est dans {file} — ouvrez-le pour mettre à jour."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Whatever {version} est installé."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Whatever {version} est la dernière version."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Échec du chargement"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Chargement…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Nouvel onglet"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Rechargement…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Appliquer"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Saisissez des nombres positifs pour la largeur et la hauteur."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Hauteur"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Largeur"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Taille de la fenêtre"

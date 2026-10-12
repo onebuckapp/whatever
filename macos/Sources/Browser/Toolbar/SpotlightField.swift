@@ -142,10 +142,22 @@ final class SpotlightField: NSView {
         configureTextField()
         configureLeadingGlyph()
         configureClearButton()
+        applyLanguage()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    /// Re-applies the placeholder, tooltip, and VoiceOver names: AppKit
+    /// views do not rebuild on the revision tick, so the controller calls
+    /// this on every language switch (and once at build, above).
+    func applyLanguage() {
+        textField.placeholderString = tr("Search or enter address", ctx: "Toolbar")
+        leadingGlyph.toolTip = tr("Site information", ctx: "Toolbar")
+        updateLeadingGlyph()
+        clearButton.toolTip = tr("Clear address", ctx: "Toolbar")
+        clearButton.image?.accessibilityDescription = tr("Clear address", ctx: "Toolbar")
     }
 
     private func configureTextField() {
@@ -172,9 +184,8 @@ final class SpotlightField: NSView {
         field.cell?.wraps = false
         field.cell?.truncatesLastVisibleLine = true
         field.font = .systemFont(ofSize: 14)
-        field.placeholderString = "Search or enter address"
-        field.delegate = self
-        // The window-sizing trap: AppKit grows a window to satisfy content
+        field.placeholderString = tr("Search or enter address", ctx: "Toolbar")
+        field.delegate = self        // The window-sizing trap: AppKit grows a window to satisfy content
         // whose compression resistance is above `NSLayoutPriorityWindowSizeStayPut`
         // (500), and an NSTextField's default is 750. In "fill available
         // width" mode the address container has no width cap of its own, so a
@@ -210,7 +221,7 @@ final class SpotlightField: NSView {
         leadingGlyph.isBordered = false
         leadingGlyph.imagePosition = .imageOnly
         leadingGlyph.focusRingType = .none
-        leadingGlyph.toolTip = "Site information"
+        leadingGlyph.toolTip = tr("Site information", ctx: "Toolbar")
         leadingGlyph.target = self
         leadingGlyph.action = #selector(lockTapped)
         addSubview(leadingGlyph)
@@ -235,13 +246,13 @@ final class SpotlightField: NSView {
         if isEditing {
             leadingGlyph.image = NSImage(
                 systemSymbolName: "magnifyingglass",
-                accessibilityDescription: "Search"
+                accessibilityDescription: tr("Search", ctx: "Toolbar")
             )
             return
         }
         let image = NSImage(named: isSecure ? "Lock" : "LockOff")
         image?.accessibilityDescription = isSecure
-            ? "Secure connection" : "Not secure connection"
+            ? tr("Secure connection", ctx: "Toolbar") : tr("Not secure connection", ctx: "Toolbar")
         image?.isTemplate = true
         image?.size = NSSize(width: Self.glyphSide, height: Self.glyphSide)
         leadingGlyph.image = image
@@ -255,7 +266,7 @@ final class SpotlightField: NSView {
         clearButton.translatesAutoresizingMaskIntoConstraints = false
         clearButton.image = NSImage(
             systemSymbolName: "xmark.circle.fill",
-            accessibilityDescription: "Clear address"
+            accessibilityDescription: tr("Clear address", ctx: "Toolbar")
         )
         clearButton.isBordered = false
         clearButton.contentTintColor = .tertiaryLabelColor

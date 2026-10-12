@@ -33,8 +33,11 @@ final class QuitConfirmation {
     /// How long the second press stays valid. Seconds.
     static let confirmationWindow: TimeInterval = 2.0
 
-    /// The prompt copy. Native ⌘ symbol, never "Cmd".
-    static let promptText = "Press ⌘Q again to quit"
+    /// The prompt copy. Native ⌘ symbol, never "Cmd". Resolved on every
+    /// access so a language switch re-words the next prompt. Nonisolated
+    /// on purpose: the lookup is lock-guarded, and the panel's initializer
+    /// reads it as a default argument from outside the actor.
+    nonisolated static var promptText: String { tr("Press ⌘Q again to quit", ctx: "Quit") }
 
     /// Where the quit request came from. The WhateverApp action maps
     /// `NSApp.currentEvent`: a keyDown is the shortcut, anything else is a

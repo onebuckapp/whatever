@@ -94,6 +94,43 @@ enum BrowserCore {
     static func historyShouldRecord(_ url: String) async throws -> Bool {
         try await StoreClient.shared.historyShouldRecord(url)
     }
+
+    /// Points the core at the bundled locale directory. Called once at
+    /// launch, before any language is set.
+    static func localeInit(moDir: String) async throws {
+        try await StoreClient.shared.localeInit(moDir: moDir)
+    }
+
+    /// Activates the catalog for a BCP-47 tag. A missing catalog falls back
+    /// to English without failing.
+    static func setLocale(_ tag: String) async throws {
+        try await StoreClient.shared.setLocale(tag)
+    }
+
+    /// The active language tag (`ro`, or `en` in English mode).
+    static func localeTag() async throws -> String {
+        try await StoreClient.shared.localeTag()
+    }
+
+    /// Shipped translation tags, sorted, including English.
+    static func localeLanguages() async throws -> [String] {
+        let data = try await StoreClient.shared.localeLanguages()
+        return try JSONDecoder().decode([String].self, from: data)
+    }
+
+    /// The active catalog for shell-side caching.
+    static func localeTable() async throws -> LocaleTable {
+        let data = try await StoreClient.shared.localeTable()
+        return try JSONDecoder().decode(LocaleTable.self, from: data)
+    }
+
+    /// Translates batch items in order, returning one finished string each.
+    /// Plurals and `{name}` formatting resolve core-side.
+    static func localeBatch(_ items: [LocaleItem]) async throws -> [String] {
+        let document = try JSONEncoder().encode(LocaleBatch(items: items))
+        let data = try await StoreClient.shared.localeBatch(document)
+        return try JSONDecoder().decode(LocaleBatchResult.self, from: data).texts
+    }
 }
 
 /// One find-in-page result set, mirrored from the core's `bc_find_matches`
@@ -125,6 +162,54 @@ struct FilterMeta: Decodable {
     let skippedLines: Int
     let inputHashHex: String
     let sourceVersion: String
+}
+
+/// The active catalog for shell-side caching, mirrored from the core's
+/// `bc_locale_table` document. `strings` maps a msgid — or
+/// `msgctxt + "\u{04}" + msgid` — onto its translation. Singular entries
+/// only; plural entries resolve through `localeBatch`.
+struct LocaleTable: Decodable {
+    let lang: String
+    let strings: [String: String]
+}
+
+/// One batch translation item, mirrored from the core's `bc_locale_batch`
+/// shape. `plural` + `n` pick a plural form; `args` fills `{name}`
+/// placeholders. Encodes `args` as a string map; numbers stringify
+/// core-side, so callers pass them pre-stringified.
+///
+/// `n` only picks the FORM core-side — the `{n}` placeholder still needs a
+/// value, so the init fills `args["n"]` from `n` unless the caller already
+/// set it. Without this every plural label rendered its template
+/// literally ("{n} visits"), since no call site passed the count twice.
+struct LocaleItem: Codable {
+    let msgid: String
+    let msgctxt: String?
+    let plural: String?
+    let n: Int?
+    let args: [String: String]?
+
+    init(_ msgid: String, ctx: String? = nil, plural: String? = nil, n: Int? = nil, args: [String: String]? = nil) {
+        self.msgid = msgid
+        self.msgctxt = ctx
+        self.plural = plural
+        self.n = n
+        if let n, args?["n"] == nil {
+            var filled = args ?? [:]
+            filled["n"] = "\(n)"
+            self.args = filled
+        } else {
+            self.args = args
+        }
+    }
+}
+
+struct LocaleBatch: Codable {
+    let items: [LocaleItem]
+}
+
+struct LocaleBatchResult: Decodable {
+    let texts: [String]
 }
 
 /// Error correction level requested from the Nim QR encoder. Raw values mirror
@@ -185,17 +270,17 @@ enum BrowserCoreError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .badInput:
-            "Nothing to encode."
+            tr("Nothing to encode.", ctx: "Errors")
         case .payloadTooLong:
-            "This URL is too long to fit in a QR code."
+            tr("This URL is too long to fit in a QR code.", ctx: "Errors")
         case .bufferTooSmall:
-            "The QR buffer was rejected by the core."
+            tr("The QR buffer was rejected by the core.", ctx: "Errors")
         case let .encoderFailed(detail):
-            detail.isEmpty ? "The QR encoder failed." : detail
+            detail.isEmpty ? tr("The QR encoder failed.", ctx: "Errors") : detail
         case .storeUnavailable:
-            "The Whatever store service is not available."
+            tr("The Whatever store service is not available.", ctx: "Errors")
         case let .unknown(code):
-            "The QR encoder returned an unexpected status (\(code))."
+            tr("The QR encoder returned an unexpected status ({code}).", ctx: "Errors", args: ["code": "\(code)"])
         }
     }
 }

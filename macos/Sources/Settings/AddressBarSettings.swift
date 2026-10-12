@@ -53,23 +53,23 @@ struct AddressBarSettingsGroups: View {
 
     var body: some View {
         SettingsGroup(
-            title: "Address Bar",
-            footnote: "Size and shape of the field. Follows live as it changes."
+            title: tr("Address Bar", ctx: "Settings.Appearance"),
+            footnote: tr("Size and shape of the field. Follows live as it changes.", ctx: "Settings.Appearance")
         ) {
             SettingsToggleRow(
-                title: "Fill Available Width",
-                subtitle: "Stretches between the buttons instead of a centred field.",
+                title: tr("Fill Available Width", ctx: "Settings.Appearance"),
+                subtitle: tr("Stretches between the buttons instead of a centred field.", ctx: "Settings.Appearance"),
                 isOn: store.binding(\.addressBar.fillsWidth)
             )
             SettingsSliderRow(
-                title: "Corner Radius",
+                title: tr("Corner Radius", ctx: "Settings.Appearance"),
                 value: store.binding(\.addressBar.cornerRadius),
                 range: AddressBarSettings.cornerRadiusRange,
                 step: 0.5,
                 format: { String(format: "%.1f pt", $0) }
             )
             SettingsSliderRow(
-                title: "Field Height",
+                title: tr("Field Height", ctx: "Settings.Appearance"),
                 value: store.binding(\.addressBar.fieldHeight),
                 range: AddressBarSettings.fieldHeightRange,
                 step: 1,

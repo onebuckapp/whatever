@@ -94,46 +94,46 @@ enum BrowserTabContextMenu {
         let target = controller.tabMenuTarget(for: tab)
         let menu = NSMenu()
 
-        add("New Tab", .newTab, to: menu, target: target)
-        add("Duplicate Tab", .duplicateTab, to: menu, target: target)
-        add(tab.presentation.isPinned ? "Unpin Tab" : "Pin Tab", .togglePin, to: menu, target: target)
+        add(tr("New Tab", ctx: "Context.Tab"), .newTab, to: menu, target: target)
+        add(tr("Duplicate Tab", ctx: "Context.Tab"), .duplicateTab, to: menu, target: target)
+        add(tab.presentation.isPinned ? tr("Unpin Tab", ctx: "Context.Tab") : tr("Pin Tab", ctx: "Context.Tab"), .togglePin, to: menu, target: target)
 
         menu.addItem(.separator())
 
         // Offered only when the clicked tab has a next sibling: on the last
         // tab there is nothing to split with, so no item and no beep.
         if BrowserWindowController.nextTab(after: tab, in: controller.tabs) != nil {
-            add("Split with Next Tab", .splitWithNextTab, to: menu, target: target)
+            add(tr("Split with Next Tab", ctx: "Context.Tab"), .splitWithNextTab, to: menu, target: target)
         }
         if controller.displayedTabs.count > 1 {
-            add("Split with Previous Tab", .splitWithPreviousTab, to: menu, target: target)
-            add("Close Pane", .closePane, to: menu, target: target)
-            add("Focus Next Pane", .focusNextPane, to: menu, target: target)
-            add("Focus Previous Pane", .focusPreviousPane, to: menu, target: target)
+            add(tr("Split with Previous Tab", ctx: "Context.Tab"), .splitWithPreviousTab, to: menu, target: target)
+            add(tr("Close Pane", ctx: "Context.Tab"), .closePane, to: menu, target: target)
+            add(tr("Focus Next Pane", ctx: "Context.Tab"), .focusNextPane, to: menu, target: target)
+            add(tr("Focus Previous Pane", ctx: "Context.Tab"), .focusPreviousPane, to: menu, target: target)
         }
 
         menu.addItem(.separator())
 
-        add("Reload Tab", .reloadTab, to: menu, target: target)
+        add(tr("Reload Tab", ctx: "Context.Tab"), .reloadTab, to: menu, target: target)
         add(
-            tab.tabController.isMuted ? "Unmute Tab" : "Mute Tab",
+            tab.tabController.isMuted ? tr("Unmute Tab", ctx: "Context.Tab") : tr("Mute Tab", ctx: "Context.Tab"),
             .toggleMute,
             to: menu,
             target: target
         )
-        add("Open in New Window", .openInNewWindow, to: menu, target: target)
-        add("Copy URL", .copyURL, to: menu, target: target)
-        add("Generate QR Code", .qrCode, to: menu, target: target)
+        add(tr("Open in New Window", ctx: "Context.Tab"), .openInNewWindow, to: menu, target: target)
+        add(tr("Copy URL", ctx: "Context.Tab"), .copyURL, to: menu, target: target)
+        add(tr("Share as QR Code", ctx: "Context.Tab"), .qrCode, to: menu, target: target)
 
         menu.addItem(.separator())
 
-        add("Close Tab", .closeTab, to: menu, target: target)
-        add("Close Other Tabs", .closeOtherTabs, to: menu, target: target)
-        add("Close Tabs to the Right", .closeTabsToTheRight, to: menu, target: target)
+        add(tr("Close Tab", ctx: "Context.Tab"), .closeTab, to: menu, target: target)
+        add(tr("Close Other Tabs", ctx: "Context.Tab"), .closeOtherTabs, to: menu, target: target)
+        add(tr("Close Tabs to the Right", ctx: "Context.Tab"), .closeTabsToTheRight, to: menu, target: target)
 
         menu.addItem(.separator())
 
-        add("Settings\u{2026}", .settings, to: menu, target: target)
+        add(tr("Settings\u{2026}", ctx: "Context.Tab"), .settings, to: menu, target: target)
 
         return menu
     }
@@ -253,11 +253,11 @@ enum BrowserTabStripMenu {
         // stays alive while the menu is on screen.
         controller.retainStripMenuTarget(target)
         let menu = NSMenu()
-        add("New Tab", .newTab, to: menu, target: target)
-        add("New Window", .newWindow, to: menu, target: target)
-        add("New Incognito Window", .newPrivateWindow, to: menu, target: target)
+        add(tr("New Tab", ctx: "Context.Tab"), .newTab, to: menu, target: target)
+        add(tr("New Window", ctx: "Context.Tab"), .newWindow, to: menu, target: target)
+        add(tr("New Incognito Window", ctx: "Context.Tab"), .newPrivateWindow, to: menu, target: target)
         menu.addItem(.separator())
-        add("Set Window Size\u{2026}", .setWindowSize, to: menu, target: target)
+        add(tr("Set Window Size\u{2026}", ctx: "Context.Tab"), .setWindowSize, to: menu, target: target)
         return menu
     }
 
@@ -329,8 +329,8 @@ enum BrowserTabGroupMenu {
         // stays alive while the menu is on screen.
         controller.retainGroupMenuTarget(target)
         let menu = NSMenu()
-        add("Close Pane", .ungroupSplit, to: menu, target: target)
-        add("Open in New Window", .openGroupInNewWindow, to: menu, target: target)
+        add(tr("Close Pane", ctx: "Context.Tab"), .ungroupSplit, to: menu, target: target)
+        add(tr("Open in New Window", ctx: "Context.Tab"), .openGroupInNewWindow, to: menu, target: target)
         return menu
     }
 

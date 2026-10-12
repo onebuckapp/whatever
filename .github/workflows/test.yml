@@ -65,6 +65,19 @@ jobs:
         # memory manager that ships (ARC), or they are not testing the core.
         run: clue test --threads:on --mm:arc -d:boogieNoCrashHandlers
 
+  locale:
+    name: translation template check
+    # No toolchain needed: the checker is a stdlib-only python script, so it
+    # runs on the cheapest runner. xgettext does not parse Swift, so this is
+    # what keeps every tr() literal and en.po in agreement.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every translation literal exists in the template
+        shell: bash
+        run: python3 locale/check-tr.py
+
   swift:
     name: swift app tests
     runs-on: macos-latest

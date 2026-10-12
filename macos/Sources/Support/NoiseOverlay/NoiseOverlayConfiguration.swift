@@ -23,12 +23,13 @@ enum GrainColorMode: String, Codable, CaseIterable, Identifiable {
     case monochrome
     case color
 
-    var id: String { title }
+    /// Stable across languages: titles translate, raw values do not.
+    var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .monochrome: "Monochrome"
-        case .color: "Color"
+        case .monochrome: tr("Monochrome", ctx: "Settings.Appearance")
+        case .color: tr("Color", ctx: "Settings.Appearance")
         }
     }
 }

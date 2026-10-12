@@ -43,9 +43,9 @@ final class FindBarView: NSView {
     private let prevButton = BrowserToolbarButton()
     private let nextButton = BrowserToolbarButton()
     private let closeButton = BrowserToolbarButton()
-    let highlightAllBox = NSButton(checkboxWithTitle: "Highlight All", target: nil, action: nil)
-    let matchCaseBox = NSButton(checkboxWithTitle: "Match Case", target: nil, action: nil)
-    let wholeWordsBox = NSButton(checkboxWithTitle: "Whole Words", target: nil, action: nil)
+    let highlightAllBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let matchCaseBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let wholeWordsBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -59,6 +59,7 @@ final class FindBarView: NSView {
         configureButtons()
         configureBoxes()
         installStack()
+        applyLanguage()
     }
 
     required init?(coder: NSCoder) {
@@ -74,6 +75,26 @@ final class FindBarView: NSView {
 
     func setCount(_ text: String) {
         countLabel.stringValue = text
+    }
+
+    /// Re-applies every title, placeholder, and tooltip: AppKit views do
+    /// not rebuild on the revision tick, so the controller calls this on
+    /// every language switch (and once at build, above).
+    func applyLanguage() {
+        highlightAllBox.title = tr("Highlight All", ctx: "Find")
+        matchCaseBox.title = tr("Match Case", ctx: "Find")
+        wholeWordsBox.title = tr("Whole Words", ctx: "Find")
+        queryField.placeholderString = tr("Find in page", ctx: "Find")
+        setHelp(prevButton, tr("Previous match", ctx: "Find"))
+        setHelp(nextButton, tr("Next match", ctx: "Find"))
+        setHelp(closeButton, tr("Close find bar", ctx: "Find"))
+    }
+
+    /// Tooltip plus the glyph's VoiceOver name, which was snapshotted from
+    /// the English help at build time.
+    private func setHelp(_ button: BrowserToolbarButton, _ help: String) {
+        button.toolTip = help
+        button.image?.accessibilityDescription = help
     }
 
     private func configureField() {

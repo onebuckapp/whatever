@@ -27,11 +27,19 @@ final class BrowserWebView: WKWebView {
     static let generateQRCodeItemID = NSUserInterfaceItemIdentifier(
         rawValue: "com.onebuckapp.whatever.generateQRCode"
     )
+    static let fullScreenCaptureItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.fullScreenCapture"
+    )
 
     /// Called when the injected page-menu item is chosen, with the
     /// right-clicked link's address when the menu was opened on a link, or
     /// nil for the page itself. Set by the hosting pane.
     var onGenerateQRCode: ((URL?) -> Void)?
+
+    /// Called when the injected full-screen-capture item is chosen. Set by
+    /// the hosting pane, which owns the page and the window the save panel
+    /// sheets onto.
+    var onFullScreenCapture: (() -> Void)?
 
     /// Called when link hover changes, with the hovered link or nil when the
     /// pointer leaves links. Set by the hosting pane, which owns the bubble.
@@ -74,14 +82,19 @@ final class BrowserWebView: WKWebView {
     /// What the retargeted "Open Link" item is renamed to. WebKit's title
     /// describes its own behavior (load in place); ours opens a new tab, and
     /// the menu should say so next to "Open Link in New Window".
-    static let openLinkInNewTabTitle = "Open Link in New Tab"
+    /// Retargeted by identifier, retitled by us: ours to translate.
+    /// Nonisolated like its image-menu sibling above.
+    nonisolated static var openLinkInNewTabTitle: String { tr("Open Link in New Tab", ctx: "Context.Page") }
 
     /// The image menu's own first item. WebKit offers no image-in-new-tab
     /// item of its own, so this one is inserted, not retargeted.
     static let openImageInNewTabItemID = NSUserInterfaceItemIdentifier(
         rawValue: "com.onebuckapp.whatever.openImageInNewTab"
     )
-    static let openImageInNewTabTitle = "Open in New Tab"
+    /// Inserted by us (stable id), so this title is ours to translate.
+    /// Nonisolated: the lookup is lock-guarded, and tests read it
+    /// off-actor.
+    nonisolated static var openImageInNewTabTitle: String { tr("Open in New Tab", ctx: "Context.Page") }
 
     /// The right-clicked link's address for the open menu, resolving while
     /// the menu opens and read when an item is chosen.
@@ -321,16 +334,33 @@ final class BrowserWebView: WKWebView {
 
         // WebKit can reuse a menu object, so do not stack duplicate items.
         if !menu.items.contains(where: { $0.identifier == Self.generateQRCodeItemID }) {
-            let item = NSMenuItem(
-                title: "Generate QR Code",
+            let qrItem = NSMenuItem(
+                title: tr("Share as QR Code", ctx: "Context.Page"),
                 action: #selector(handleGenerateQRCode(_:)),
                 keyEquivalent: ""
             )
-            item.identifier = Self.generateQRCodeItemID
-            item.target = self
-            item.isEnabled = true
-            menu.insertItem(item, at: 0)
+            qrItem.identifier = Self.generateQRCodeItemID
+            qrItem.target = self
+            qrItem.isEnabled = true
+            menu.insertItem(qrItem, at: 0)
             menu.insertItem(.separator(), at: 1)
+        }
+        // Belongs right after the QR item: both act on the page on screen.
+        // A reused menu that already carries the QR item (built before this
+        // item existed cannot happen in-process, but a defensive insert
+        // costs nothing) still gets its capture item.
+        if !menu.items.contains(where: { $0.identifier == Self.fullScreenCaptureItemID }),
+           let qrIndex = menu.items.firstIndex(where: { $0.identifier == Self.generateQRCodeItemID })
+        {
+            let captureItem = NSMenuItem(
+                title: tr("Full Screen Capture", ctx: "Context.Page"),
+                action: #selector(handleFullScreenCapture(_:)),
+                keyEquivalent: ""
+            )
+            captureItem.identifier = Self.fullScreenCaptureItemID
+            captureItem.target = self
+            captureItem.isEnabled = true
+            menu.insertItem(captureItem, at: qrIndex + 1)
         }
 
         retargetLinkItems(in: menu)
@@ -346,6 +376,10 @@ final class BrowserWebView: WKWebView {
             guard let self else { return }
             self.onGenerateQRCode?(await resolution?.value)
         }
+    }
+
+    @objc private func handleFullScreenCapture(_ sender: NSMenuItem?) {
+        onFullScreenCapture?()
     }
 
     /// Picks the point the menu resolves its link from.

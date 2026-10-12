@@ -68,7 +68,7 @@ enum FileSystemEnumerator {
         let directory: String
 
         var errorDescription: String? {
-            "“\(directory)” could not be opened."
+            tr("\u{201C}{directory}\u{201D} could not be opened.", ctx: "Files", args: ["directory": directory])
         }
     }
 

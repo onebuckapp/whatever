@@ -63,33 +63,33 @@ final class BookmarkMenuTarget: NSObject {
 enum BookmarkContextMenu {
     static func barMenu(target: BookmarkMenuTarget) -> NSMenu {
         let menu = NSMenu()
-        add("New Folder\u{2026}", .newFolder, parentID: nil, nodeID: nil, to: menu, target: target)
-        add("New Bookmark\u{2026}", .newBookmark, parentID: nil, nodeID: nil, to: menu, target: target)
+        add(tr("New Folder\u{2026}", ctx: "Context.Bookmarks"), .newFolder, parentID: nil, nodeID: nil, to: menu, target: target)
+        add(tr("New Bookmark\u{2026}", ctx: "Context.Bookmarks"), .newBookmark, parentID: nil, nodeID: nil, to: menu, target: target)
         menu.addItem(.separator())
-        add("Open Bookmarks Settings", .openBookmarksSettings, parentID: nil, nodeID: nil, to: menu, target: target)
+        add(tr("Open Bookmarks Settings", ctx: "Context.Bookmarks"), .openBookmarksSettings, parentID: nil, nodeID: nil, to: menu, target: target)
         return menu
     }
 
     static func linkMenu(node: BookmarkNode, target: BookmarkMenuTarget) -> NSMenu {
         let menu = NSMenu()
-        add("Open", .open, parentID: nil, nodeID: node.id, to: menu, target: target)
-        add("Open in New Tab", .openInNewTab, parentID: nil, nodeID: node.id, to: menu, target: target)
-        add("Copy Link", .copyURL, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Open", ctx: "Context.Bookmarks"), .open, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Open in New Tab", ctx: "Context.Bookmarks"), .openInNewTab, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Copy Link", ctx: "Context.Bookmarks"), .copyURL, parentID: nil, nodeID: node.id, to: menu, target: target)
         menu.addItem(.separator())
-        add("Edit\u{2026}", .edit, parentID: nil, nodeID: node.id, to: menu, target: target)
-        add("Delete", .delete, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Edit\u{2026}", ctx: "Context.Bookmarks"), .edit, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Delete", ctx: "Context.Bookmarks"), .delete, parentID: nil, nodeID: node.id, to: menu, target: target)
         return menu
     }
 
     static func folderMenu(node: BookmarkNode, target: BookmarkMenuTarget) -> NSMenu {
         let menu = NSMenu()
-        add("Open All in New Tabs", .openAllInNewTabs, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Open All in New Tabs", ctx: "Context.Bookmarks"), .openAllInNewTabs, parentID: nil, nodeID: node.id, to: menu, target: target)
         menu.addItem(.separator())
-        add("New Folder\u{2026}", .newFolder, parentID: node.id, nodeID: nil, to: menu, target: target)
-        add("New Bookmark\u{2026}", .newBookmark, parentID: node.id, nodeID: nil, to: menu, target: target)
+        add(tr("New Folder\u{2026}", ctx: "Context.Bookmarks"), .newFolder, parentID: node.id, nodeID: nil, to: menu, target: target)
+        add(tr("New Bookmark\u{2026}", ctx: "Context.Bookmarks"), .newBookmark, parentID: node.id, nodeID: nil, to: menu, target: target)
         menu.addItem(.separator())
-        add("Rename\u{2026}", .edit, parentID: nil, nodeID: node.id, to: menu, target: target)
-        add("Delete", .delete, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Rename\u{2026}", ctx: "Context.Bookmarks"), .edit, parentID: nil, nodeID: node.id, to: menu, target: target)
+        add(tr("Delete", ctx: "Context.Bookmarks"), .delete, parentID: nil, nodeID: node.id, to: menu, target: target)
         return menu
     }
 

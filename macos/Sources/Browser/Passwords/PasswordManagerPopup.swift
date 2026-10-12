@@ -71,6 +71,9 @@ struct PasswordManagerPopup: CenterPopup {
 /// popup struct above stays `Sendable` with lets only.
 private struct PasswordManagerCard: View {
     @ObservedObject private var store = PasswordStore.shared
+    // Observed for `revision`: every label below re-resolves without
+    // reopening the manager.
+    @ObservedObject private var localization = Localization.shared
     @State private var selectedID: String?
     @State private var query = ""
     @State private var editingHint = false
@@ -142,7 +145,7 @@ private struct PasswordManagerCard: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Passwords")
+            Text(tr("Passwords", ctx: "Passwords"))
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, Self.rowInset)
                 .padding(.top, 14)
@@ -150,7 +153,7 @@ private struct PasswordManagerCard: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search", text: $query)
+                TextField(tr("Search", ctx: "Passwords"), text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .focused($searchFocused)
@@ -185,7 +188,7 @@ private struct PasswordManagerCard: View {
                     let site = store.createSite(name: "", url: "")
                     selectedID = site.id
                 } label: {
-                    Label("New Site", systemImage: "plus")
+                    Label(tr("New Site", ctx: "Passwords"), systemImage: "plus")
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
@@ -201,11 +204,11 @@ private struct PasswordManagerCard: View {
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
-                .help("Lock the vault")
+                .help(tr("Lock the vault", ctx: "Passwords"))
                 .padding(.trailing, Self.rowInset)
             }
             HStack(spacing: 4) {
-                Text(store.vaultHint.map { "Hint: \($0)" } ?? "No hint set")
+                Text(store.vaultHint.map { tr("Hint: {hint}", ctx: "Passwords", args: ["hint": $0]) } ?? tr("No hint set", ctx: "Passwords"))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -219,7 +222,7 @@ private struct PasswordManagerCard: View {
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
-                .help("Change the vault hint")
+                .help(tr("Change the vault hint", ctx: "Passwords"))
                 .padding(.trailing, Self.rowInset)
             }
             .padding(.leading, Self.rowInset)
@@ -228,18 +231,18 @@ private struct PasswordManagerCard: View {
         .frame(width: Self.sidebarWidth)
         .padding(.bottom, 10)
         .background(Color(nsColor: .underPageBackgroundColor))
-        .alert("Vault hint", isPresented: $editingHint) {
-            TextField("Hint (optional)", text: $hintDraft)
-            Button("Save") {
+        .alert(tr("Vault hint", ctx: "Passwords"), isPresented: $editingHint) {
+            TextField(tr("Hint (optional)", ctx: "Passwords"), text: $hintDraft)
+            Button(tr("Save", ctx: "Passwords")) {
                 Task { @MainActor in
                     if await store.setHint(hintDraft.trimmingCharacters(in: .whitespacesAndNewlines)) {
                         editingHint = false
                     }
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(tr("Cancel", ctx: "Passwords"), role: .cancel) {}
         } message: {
-            Text("Shown after several wrong passwords. Never the password itself.")
+            Text(tr("Shown after several wrong passwords. Never the password itself.", ctx: "Passwords"))
         }
     }
 
@@ -284,8 +287,8 @@ private struct PasswordManagerCard: View {
         } else {
             SettingsPlaceholder(
                 symbol: "key",
-                title: "No site selected",
-                message: "Pick a website on the left, or add one."
+                title: tr("No site selected", ctx: "Passwords"),
+                message: tr("Pick a website on the left, or add one.", ctx: "Passwords")
             )
         }
     }
@@ -341,24 +344,24 @@ private struct PasswordSetupView: View {
             Image(systemName: "key.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(Color.accentColor)
-            Text("Create a master password")
+            Text(tr("Create a master password", ctx: "Passwords"))
                 .font(.system(size: 14, weight: .semibold))
-            Text("It opens your vault. There is no recovery: forgetting it loses every saved password.")
+            Text(tr("It opens your vault. There is no recovery: forgetting it loses every saved password.", ctx: "Passwords"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 380)
-            SecureField("Master password (8+ characters)", text: $password)
+            SecureField(tr("Master password (8+ characters)", ctx: "Passwords"), text: $password)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .frame(maxWidth: 300)
                 .focused($focusedField, equals: .password)
-            SecureField("Confirm master password", text: $confirm)
+            SecureField(tr("Confirm master password", ctx: "Passwords"), text: $confirm)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .frame(maxWidth: 300)
                 .focused($focusedField, equals: .confirm)
-            TextField("Hint (optional)", text: $hint)
+            TextField(tr("Hint (optional)", ctx: "Passwords"), text: $hint)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .frame(maxWidth: 300)
@@ -368,7 +371,7 @@ private struct PasswordSetupView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
             }
-            Button("Create Vault") {
+            Button(tr("Create Vault", ctx: "Passwords")) {
                 Task { @MainActor in
                     failure = nil
                     if await store.setup(
@@ -379,7 +382,7 @@ private struct PasswordSetupView: View {
                         confirm = ""
                         hint = ""
                     } else {
-                        failure = store.lastError ?? "The vault could not be created."
+                        failure = store.lastError ?? tr("The vault could not be created.", ctx: "Passwords")
                     }
                 }
             }
@@ -474,15 +477,15 @@ private struct PasswordUnlockView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text("Unlock Passwords")
+            Text(tr("Unlock Passwords", ctx: "Passwords"))
                 .font(.system(size: 14, weight: .semibold))
-            SecureField("Master password", text: $password)
+            SecureField(tr("Master password", ctx: "Passwords"), text: $password)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .frame(maxWidth: 300)
                 .focused($focusedField, equals: .password)
             if wrongPassword {
-                Text("Wrong master password, try again.")
+                Text(tr("Wrong master password, try again.", ctx: "Passwords"))
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
             } else if let failure {
@@ -491,13 +494,13 @@ private struct PasswordUnlockView: View {
                     .foregroundStyle(.red)
             }
             if attempts > 3, let hint = store.vaultHint {
-                Text("Hint: \(hint)")
+                Text(tr("Hint: {hint}", ctx: "Passwords", args: ["hint": hint]))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 340)
             }
-            Button("Unlock") {
+            Button(tr("Unlock", ctx: "Passwords")) {
                 Task { @MainActor in
                     await attempt()
                 }
@@ -618,7 +621,7 @@ private struct PasswordSiteDetail: View {
                 Button {
                     _ = store.addCredential(to: siteID, username: "", password: "")
                 } label: {
-                    Label("Add another credential", systemImage: "plus")
+                    Label(tr("Add another credential", ctx: "Passwords"), systemImage: "plus")
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
@@ -633,13 +636,18 @@ private struct PasswordSiteDetail: View {
         .task(id: siteID) {
             await fetchFaviconIfMissing()
         }
-        .alert("Delete \u{201C}\(site?.displayName ?? "this site")\u{201D}?", isPresented: $confirmingDelete) {
-            Button("Delete", role: .destructive) {
+        .alert(
+            tr("Delete \u{201C}{site}\u{201D}?", ctx: "Passwords", args: [
+                "site": site?.displayName ?? tr("this site", ctx: "Passwords"),
+            ]),
+            isPresented: $confirmingDelete
+        ) {
+            Button(tr("Delete", ctx: "Passwords"), role: .destructive) {
                 store.deleteSite(siteID)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(tr("Cancel", ctx: "Passwords"), role: .cancel) {}
         } message: {
-            Text("The site and every credential in it will be removed. This cannot be reverted.")
+            Text(tr("The site and every credential in it will be removed. This cannot be reverted.", ctx: "Passwords"))
         }
         .onAppear {
             // Explicit Tab cycling for the whole detail: one monitor, one
@@ -712,7 +720,7 @@ private struct PasswordSiteDetail: View {
         HStack(alignment: .top, spacing: 10) {
             PasswordSiteIcon(base64: site?.favicon, size: 20)
             VStack(alignment: .leading, spacing: 8) {
-                TextField("Site name", text: $name)
+                TextField(tr("Site name", ctx: "Passwords"), text: $name)
                     .font(.system(size: 13, weight: .semibold))
                     .textFieldStyle(.plain)
                     .focused($focusedField, equals: .name)
@@ -732,7 +740,7 @@ private struct PasswordSiteDetail: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("Delete this site and every credential in it")
+            .help(tr("Delete this site and every credential in it", ctx: "Passwords"))
         }
     }
 
@@ -827,7 +835,7 @@ private struct PasswordCredentialRow: View {
                             .font(.system(size: 12))
                             .focused(focus, equals: .username(credentialID))
                             .onChange(of: username) { scheduleSave() }
-                        PasswordIconButton(help: "Copy username", action: { copy(username) }) {
+                        PasswordIconButton(help: tr("Copy username", ctx: "Passwords"), action: { copy(username) }) {
                             Image(systemName: "doc.on.doc")
                         }
                     }
@@ -836,10 +844,10 @@ private struct PasswordCredentialRow: View {
                     HStack(spacing: 2) {
                         Group {
                             if revealed {
-                                TextField("Password", text: $password)
+                                TextField(tr("Password", ctx: "Passwords"), text: $password)
                                     .focused(focus, equals: .password(credentialID))
                             } else {
-                                SecureField("Password", text: $password)
+                                SecureField(tr("Password", ctx: "Passwords"), text: $password)
                                     .focused(focus, equals: .password(credentialID))
                             }
                         }
@@ -847,7 +855,7 @@ private struct PasswordCredentialRow: View {
                         .font(.system(size: 12))
                         .onChange(of: password) { scheduleSave() }
                         PasswordIconButton(
-                            help: revealed ? "Hide password" : "Show password",
+                            help: revealed ? tr("Hide password", ctx: "Passwords") : tr("Show password", ctx: "Passwords"),
                             action: { revealed.toggle() }
                         ) {
                             Image(nsImage: revealImage)
@@ -855,10 +863,10 @@ private struct PasswordCredentialRow: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 14, height: 14)
                         }
-                        PasswordIconButton(help: "Copy password", action: { copy(password) }) {
+                        PasswordIconButton(help: tr("Copy password", ctx: "Passwords"), action: { copy(password) }) {
                             Image(systemName: "doc.on.doc")
                         }
-                        PasswordIconButton(help: "Generate a password", action: { showGenerator.toggle() }) {
+                        PasswordIconButton(help: tr("Generate a password", ctx: "Passwords"), action: { showGenerator.toggle() }) {
                             Image(nsImage: generateImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
@@ -878,21 +886,21 @@ private struct PasswordCredentialRow: View {
                     Button {
                         confirmingDeleteCredential = true
                     } label: {
-                        Label("Delete credential", systemImage: "trash")
+                        Label(tr("Delete credential", ctx: "Passwords"), systemImage: "trash")
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.borderless)
-                    .help("Delete this credential")
+                    .help(tr("Delete this credential", ctx: "Passwords"))
                 }
             }
         }
-        .alert("Delete this credential?", isPresented: $confirmingDeleteCredential) {
-            Button("Delete", role: .destructive) {
+        .alert(tr("Delete this credential?", ctx: "Passwords"), isPresented: $confirmingDeleteCredential) {
+            Button(tr("Delete", ctx: "Passwords"), role: .destructive) {
                 store.deleteCredential(siteID: siteID, credentialID)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(tr("Cancel", ctx: "Passwords"), role: .cancel) {}
         } message: {
-            Text("Are you sure? This cannot be reverted.")
+            Text(tr("Are you sure? This cannot be reverted.", ctx: "Passwords"))
         }
         .onAppear(perform: loadDrafts)
         .onChange(of: credentialID) { loadDrafts() }
@@ -920,7 +928,7 @@ private struct PasswordCredentialRow: View {
     @ViewBuilder
     private var strengthMeter: some View {
         if let strength {
-            Text(strength.level.rawValue.capitalized)
+            Text(strength.level.label)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(strengthColor(strength.level))
         }
@@ -976,7 +984,12 @@ private struct PasswordGeneratorPanel: View {
         case words
 
         var id: String { rawValue }
-        var title: String { rawValue.capitalized }
+        var title: String {
+            switch self {
+            case .characters: tr("Characters", ctx: "Passwords")
+            case .words: tr("Words", ctx: "Passwords")
+            }
+        }
     }
 
     let wordlist: [String]
@@ -996,7 +1009,7 @@ private struct PasswordGeneratorPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker("Mode", selection: $mode) {
+            Picker(tr("Mode", ctx: "Passwords"), selection: $mode) {
                 ForEach(Mode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -1005,35 +1018,35 @@ private struct PasswordGeneratorPanel: View {
             .onChange(of: mode) { regenerate() }
             if mode == .characters {
                 HStack {
-                    Text("Length: \(Int(length))")
+                    Text(tr("Length: {n}", ctx: "Passwords", args: ["n": "\(Int(length))"]))
                         .font(.system(size: 12))
                     Slider(value: $length, in: 8 ... 64, step: 1)
                         .onChange(of: length) { regenerate() }
                 }
                 toggles(
-                    ("Lowercase", $lowercase),
-                    ("Uppercase", $uppercase),
-                    ("Digits", $digits),
-                    ("Symbols", $symbols)
+                    (tr("Lowercase", ctx: "Passwords"), $lowercase),
+                    (tr("Uppercase", ctx: "Passwords"), $uppercase),
+                    (tr("Digits", ctx: "Passwords"), $digits),
+                    (tr("Symbols", ctx: "Passwords"), $symbols)
                 )
             } else {
                 HStack {
-                    Text("Words: \(Int(wordCount))")
+                    Text(tr("Words: {n}", ctx: "Passwords", args: ["n": "\(Int(wordCount))"]))
                         .font(.system(size: 12))
                     Slider(value: $wordCount, in: 3 ... 8, step: 1)
                         .onChange(of: wordCount) { regenerate() }
                 }
                 HStack {
-                    Picker("Separator", selection: $separator) {
+                    Picker(tr("Separator", ctx: "Passwords"), selection: $separator) {
                         ForEach(PasswordGenerator.separatorChoices, id: \.self) { choice in
                             Text(separatorTitle(choice)).tag(choice)
                         }
                     }
                     .frame(maxWidth: 150)
                     .onChange(of: separator) { regenerate() }
-                    Toggle("Capitalize", isOn: $capitalize)
+                    Toggle(tr("Capitalize", ctx: "Passwords"), isOn: $capitalize)
                         .onChange(of: capitalize) { regenerate() }
-                    Toggle("Number", isOn: $appendNumber)
+                    Toggle(tr("Number", ctx: "Passwords"), isOn: $appendNumber)
                         .onChange(of: appendNumber) { regenerate() }
                 }
                 .font(.system(size: 12))
@@ -1054,9 +1067,9 @@ private struct PasswordGeneratorPanel: View {
                 )
             HStack {
                 Spacer()
-                Button("Regenerate") { regenerate() }
+                Button(tr("Regenerate", ctx: "Passwords")) { regenerate() }
                     .controlSize(.small)
-                Button("Use") { onUse(preview) }
+                Button(tr("Use", ctx: "Passwords")) { onUse(preview) }
                     .controlSize(.small)
                     .keyboardShortcut(.defaultAction)
                     .disabled(preview.isEmpty)
@@ -1082,9 +1095,9 @@ private struct PasswordGeneratorPanel: View {
 
     private func separatorTitle(_ separator: String) -> String {
         switch separator {
-        case "-": "Hyphen (-)"
-        case "_": "Underscore (_)"
-        case ".": "Dot (.)"
+        case "-": tr("Hyphen (-)", ctx: "Passwords")
+        case "_": tr("Underscore (_)", ctx: "Passwords")
+        case ".": tr("Dot (.)", ctx: "Passwords")
         case " ": "Space"
         case "": "None"
         default: separator

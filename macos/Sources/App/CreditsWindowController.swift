@@ -29,6 +29,7 @@ final class CreditsWindowController {
 
     private var window: NSWindow?
     private var closeObserver: NSObjectProtocol?
+    private var localeObserver: NSObjectProtocol?
 
     var isOpen: Bool { window != nil }
 
@@ -71,9 +72,18 @@ final class CreditsWindowController {
             defer: false
         )
         window.contentView = content
-        window.title = "Credits"
+        window.title = tr("Credits", ctx: "Credits")
         window.isReleasedWhenClosed = false
         window.center()
+        // AppKit windows do not rebuild on the revision tick, so the title
+        // re-applies on every language switch like the File > Close item.
+        localeObserver = NotificationCenter.default.addObserver(
+            forName: .localizationDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak window] _ in
+            window?.title = tr("Credits", ctx: "Credits")
+        }
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
@@ -81,6 +91,7 @@ final class CreditsWindowController {
         ) { [weak self] _ in
             self?.window = nil
             self?.closeObserver = nil
+            self?.localeObserver = nil
         }
         self.window = window
         window.makeKeyAndOrderFront(nil)

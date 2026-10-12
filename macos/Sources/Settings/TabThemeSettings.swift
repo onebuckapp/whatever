@@ -31,21 +31,21 @@ struct TabThemeSettingsGroups: View {
 
     var body: some View {
         TabThemeGroup(
-            title: "Inactive Tabs",
-            footnote: "Background and text for every tab but the selected one.",
+            title: tr("Inactive Tabs", ctx: "Settings.Appearance"),
+            footnote: tr("Background and text for every tab but the selected one.", ctx: "Settings.Appearance"),
             theme: store.binding(\.appearance.tabTheme)
         )
         TabThemeGroup(
-            title: "Current Tab",
-            footnote: "Background and text for the selected tab.",
+            title: tr("Current Tab", ctx: "Settings.Appearance"),
+            footnote: tr("Background and text for the selected tab.", ctx: "Settings.Appearance"),
             theme: store.binding(\.appearance.activeTabTheme)
         )
         SettingsGroup(
-            title: "Tab Shape",
-            footnote: "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+            title: tr("Tab Shape", ctx: "Settings.Appearance"),
+            footnote: tr("Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below.", ctx: "Settings.Appearance")
         ) {
             SettingsPickerRow(
-                title: "Shape",
+                title: tr("Shape", ctx: "Settings.Appearance"),
                 options: TabShape.allCases,
                 selection: store.binding(\.appearance.tabShape),
                 isSegmented: true,
@@ -53,11 +53,11 @@ struct TabThemeSettingsGroups: View {
             )
         }
         SettingsGroup(
-            title: "Tab Corners",
-            footnote: "Roundness of every attached tab cell. Follows live as it changes."
+            title: tr("Tab Corners", ctx: "Settings.Appearance"),
+            footnote: tr("Roundness of every attached tab cell. Follows live as it changes.", ctx: "Settings.Appearance")
         ) {
             SettingsSliderRow(
-                title: "Corner Radius",
+                title: tr("Corner Radius", ctx: "Settings.Appearance"),
                 value: store.binding(\.appearance.tabCornerRadius),
                 range: AppSettings.AppearanceSettings.tabCornerRadiusRange,
                 step: 0.5,
@@ -84,7 +84,7 @@ private struct TabThemeGroup: View {
     var body: some View {
         SettingsGroup(title: title, footnote: footnote) {
             SettingsPickerRow(
-                title: "Fill With",
+                title: tr("Fill With", ctx: "Settings.Appearance"),
                 options: [
                     BackgroundMediaConfiguration.Kind.none,
                     .solid,
@@ -102,7 +102,7 @@ private struct TabThemeGroup: View {
                 EmptyView()
             case .solid:
                 TabThemeColorRow(
-                    title: "Fill",
+                    title: tr("Fill", ctx: "Settings.Appearance"),
                     color: $theme.background.solid.color
                 )
             case .gradient:
@@ -110,7 +110,7 @@ private struct TabThemeGroup: View {
             case .image:
                 mediaButtons
                 SettingsPickerRow(
-                    title: "Fit",
+                    title: tr("Fit", ctx: "Settings.Appearance"),
                     options: [
                         BackgroundMediaConfiguration.Fit.fill,
                         .contain,
@@ -122,7 +122,7 @@ private struct TabThemeGroup: View {
                 )
                 if theme.background.fit == .custom {
                     SettingsSliderRow(
-                        title: "Scale",
+                        title: tr("Scale", ctx: "Settings.Appearance"),
                         value: $theme.background.fitScale,
                         range: 10...400,
                         step: 5,
@@ -130,7 +130,7 @@ private struct TabThemeGroup: View {
                     )
                 }
                 SettingsPickerRow(
-                    title: "Position",
+                    title: tr("Position", ctx: "Settings.Appearance"),
                     options: TabImageVerticalAnchor.allCases,
                     selection: anchorBinding,
                     isSegmented: true,
@@ -147,14 +147,14 @@ private struct TabThemeGroup: View {
             // nothing or a flat fill these rows would do nothing visible.
             if background.kind == .image || background.kind == .video {
                 SettingsSliderRow(
-                    title: "Opacity",
+                    title: tr("Opacity", ctx: "Settings.Appearance"),
                     value: $theme.background.effects.opacity,
                     range: 0...1,
                     step: 0.05,
                     format: { String(format: "%.0f%%", $0 * 100) }
                 )
                 TabThemeColorRow(
-                    title: "Tint",
+                    title: tr("Tint", ctx: "Settings.Appearance"),
                     color: $theme.background.effects.overlay
                 )
             }
@@ -171,7 +171,7 @@ private struct TabThemeGroup: View {
     @ViewBuilder
     private var gradientEditor: some View {
         SettingsPickerRow(
-            title: "Kind",
+            title: tr("Kind", ctx: "Settings.Appearance"),
             options: BackgroundMediaConfiguration.Gradient.Kind.allCases,
             selection: $theme.background.gradient.kind,
             isSegmented: true,
@@ -179,7 +179,7 @@ private struct TabThemeGroup: View {
         )
         if theme.background.gradient.kind == .linear {
             SettingsSliderRow(
-                title: "Angle",
+                title: tr("Angle", ctx: "Settings.Appearance"),
                 value: $theme.background.gradient.angle,
                 range: 0...360,
                 step: 5,
@@ -187,28 +187,28 @@ private struct TabThemeGroup: View {
             )
         } else {
             SettingsSliderRow(
-                title: "Centre X",
+                title: tr("Centre X", ctx: "Settings.Appearance"),
                 value: $theme.background.gradient.centerX,
                 range: 0...1,
                 step: 0.01,
                 format: { String(format: "%.0f%%", $0 * 100) }
             )
             SettingsSliderRow(
-                title: "Centre Y",
+                title: tr("Centre Y", ctx: "Settings.Appearance"),
                 value: $theme.background.gradient.centerY,
                 range: 0...1,
                 step: 0.01,
                 format: { String(format: "%.0f%%", $0 * 100) }
             )
             SettingsSliderRow(
-                title: "Inner Radius",
+                title: tr("Inner Radius", ctx: "Settings.Appearance"),
                 value: $theme.background.gradient.startRadius,
                 range: 0...1,
                 step: 0.01,
                 format: { String(format: "%.0f%%", $0 * 100) }
             )
             SettingsSliderRow(
-                title: "Outer Radius",
+                title: tr("Outer Radius", ctx: "Settings.Appearance"),
                 value: $theme.background.gradient.endRadius,
                 range: 0...1,
                 step: 0.01,
@@ -223,12 +223,12 @@ private struct TabThemeGroup: View {
             )
         }
         SettingsButtonRow(
-            title: "Add Stop",
+            title: tr("Add Stop", ctx: "Settings.Appearance"),
             subtitle: theme.background.gradient.stops.count >= 8
-                ? "Eight is the limit."
-                : "A colour at a point along the gradient."
+                ? tr("Eight is the limit.", ctx: "Settings.Appearance")
+                : tr("A colour at a point along the gradient.", ctx: "Settings.Appearance")
         ) {
-            Button("Add") { addStop() }
+            Button(tr("Add", ctx: "Settings.Appearance")) { addStop() }
                 .controlSize(.small)
                 .disabled(theme.background.gradient.stops.count >= 8)
         }
@@ -279,10 +279,10 @@ private struct TabThemeGroup: View {
             subtitle: mediaSubtitle
         ) {
             HStack(spacing: 6) {
-                Button("Choose…") { choose() }
+                Button(tr("Choose…", ctx: "Settings.Appearance")) { choose() }
                     .controlSize(.small)
                 if background.path != nil {
-                    Button("Clear") {
+                    Button(tr("Clear", ctx: "Settings.Appearance")) {
                         theme.background.path = nil
                     }
                     .controlSize(.small)
@@ -301,16 +301,16 @@ private struct TabThemeGroup: View {
         )
     }
 
-    private var mediaTitle: String {        guard let path = background.path else { return "No file chosen" }
+    private var mediaTitle: String {        guard let path = background.path else { return tr("No file chosen", ctx: "Settings.Appearance") }
         return URL(fileURLWithPath: path).lastPathComponent
     }
 
     private var mediaSubtitle: String {
         guard let path = background.path else {
-            return background.kind == .video ? "A video file on disk." : "An image file on disk."
+            return background.kind == .video ? tr("A video file on disk.", ctx: "Settings.Appearance") : tr("An image file on disk.", ctx: "Settings.Appearance")
         }
         guard FileManager.default.isReadableFile(atPath: path) else {
-            return "Missing or unreadable. Choose it again."
+            return tr("Missing or unreadable. Choose it again.", ctx: "Settings.Appearance")
         }
         let url = URL(fileURLWithPath: path)
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
@@ -328,10 +328,10 @@ private struct TabThemeGroup: View {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = isVideo ? [.movie] : [.image]
-        panel.prompt = "Use"
+        panel.prompt = tr("Use", ctx: "Settings.Appearance")
         panel.message = isVideo
-            ? "Choose a video to play behind the tab."
-            : "Choose an image to show behind the tab."
+            ? tr("Choose a video to play behind the tab.", ctx: "Settings.Appearance")
+            : tr("Choose an image to show behind the tab.", ctx: "Settings.Appearance")
 
         NSApp.activate(ignoringOtherApps: true)
         guard let window = NSApp.keyWindow else { return }
@@ -356,9 +356,9 @@ enum TabImageVerticalAnchor: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .top: return "Top"
-        case .center: return "Center"
-        case .bottom: return "Bottom"
+        case .top: return tr("Top", ctx: "Settings.Appearance")
+        case .center: return tr("Center", ctx: "Settings.Appearance")
+        case .bottom: return tr("Bottom", ctx: "Settings.Appearance")
         }
     }
 
@@ -394,7 +394,7 @@ private struct TabThemeColorRow: View {
     var body: some View {
         SettingsButtonRow(
             title: title,
-            subtitle: color.alpha <= 0.001 ? "None" : color.hexString
+            subtitle: color.alpha <= 0.001 ? tr("None", ctx: "Settings.Appearance") : color.hexString
         ) {
             HStack(spacing: 6) {
                 Slider(value: opacityBinding, in: 0...1, step: 0.05)
@@ -432,12 +432,12 @@ private struct TabThemeForegroundRow: View {
 
     var body: some View {
         SettingsButtonRow(
-            title: "Text Colour",
-            subtitle: foreground?.hexString ?? "System"
+            title: tr("Text Colour", ctx: "Settings.Appearance"),
+            subtitle: foreground?.hexString ?? tr("System", ctx: "Settings.Appearance")
         ) {
             HStack(spacing: 6) {
                 if foreground != nil {
-                    Button("System") {
+                    Button(tr("System", ctx: "Settings.Appearance")) {
                         foreground = nil
                     }
                     .controlSize(.small)

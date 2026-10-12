@@ -34,6 +34,15 @@ final class SpotlightController {
     private var results: [HistoryFuzzyEntry] = []
     private var selectedIndex: Int?
 
+    /// Finished "N visits" labels by entry id, for the rows the dropdown is
+    /// showing. Resolved in one batch call per result set: per-row lookups
+    /// would put an IPC round trip on every keystroke.
+    private var visitLabels: [String: String] = [:]
+    /// Entry ids the labels above were resolved for. Selection moves reuse
+    /// them; new results re-resolve.
+    private var labeledEntryIDs: [String] = []
+    private var localeObserver: NSObjectProtocol?
+
     /// The user's typed text, stashed on every keystroke and focus visit.
     /// Arrowing onto a history row replaces the field with that row's URL;
     /// arrowing back onto the search row restores this rather than leaving
@@ -102,6 +111,17 @@ final class SpotlightController {
             self?.tabThroughSelection(forward: forward) ?? false
         }
         field.onDismiss = { [weak self] in self?.close() }
+        // An open dropdown re-resolves its count labels in the new language;
+        // a closed one has nothing to show, so it just drops the cache.
+        localeObserver = NotificationCenter.default.addObserver(
+            forName: .localizationDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.fieldView?.applyLanguage()
+            self?.labeledEntryIDs = []
+            self?.refreshResults()
+        }
     }
 
     // MARK: - Querying
@@ -449,9 +469,40 @@ final class SpotlightController {
     }
 
     private func refreshResults(scrollToSelection: Bool = false) {
-        dropdown?.setResults(results, selectedID: selectedEntry?.id, scrollToSelection: scrollToSelection, onHover: { [weak self] entry in self?.hover(entry) }) { [weak self] entry in
+        let ids = results.map(\.id)
+        if ids != labeledEntryIDs {
+            // New rows: show first with whatever labels stand, then re-enter
+            // once the batch lands. Selection-only moves skip this: their ids
+            // match and the cached labels are current.
+            Task { [weak self] in
+                await self?.resolveVisitLabels(for: ids, scrollToSelection: scrollToSelection)
+            }
+        }
+        dropdown?.setResults(results, selectedID: selectedEntry?.id, scrollToSelection: scrollToSelection, visitLabels: visitLabels, onHover: { [weak self] entry in self?.hover(entry) }) { [weak self] entry in
             self?.choose(entry)
         }
+    }
+
+    /// One batch call resolves every visible "N visits" label in the row's
+    /// own words for every count, then re-enters `refreshResults`, whose id
+    /// check terminates. Stale answers (the list moved on mid-flight) are
+    /// dropped, and an empty batch keeps English fallbacks in the rows.
+    private func resolveVisitLabels(for ids: [String], scrollToSelection: Bool) async {
+        let counted = results.filter { $0.visitCount > 1 }
+        var labels: [String: String] = [:]
+        if !counted.isEmpty {
+            let items = counted.map { entry in
+                LocaleItem("one visit", plural: "{n} visits", n: entry.visitCount)
+            }
+            let texts = await Localization.batch(items)
+            for (offset, entry) in counted.enumerated() where offset < texts.count {
+                labels[entry.id] = texts[offset]
+            }
+        }
+        guard results.map(\.id) == ids else { return }
+        visitLabels = labels
+        labeledEntryIDs = ids
+        refreshResults(scrollToSelection: scrollToSelection)
     }
 
     /// Hovering a row makes it the active one, so the mouse and the arrow keys

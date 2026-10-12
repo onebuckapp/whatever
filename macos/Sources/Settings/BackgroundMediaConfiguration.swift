@@ -42,11 +42,11 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .none: "None"
-            case .solid: "Solid"
-            case .gradient: "Gradient"
-            case .image: "Image"
-            case .video: "Video"
+            case .none: tr("None", ctx: "Settings.Appearance")
+            case .solid: tr("Solid", ctx: "Settings.Appearance")
+            case .gradient: tr("Gradient", ctx: "Settings.Appearance")
+            case .image: tr("Image", ctx: "Settings.Appearance")
+            case .video: tr("Video", ctx: "Settings.Appearance")
             }
         }
 
@@ -103,11 +103,11 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .original: "Original"
-            case .contain: "Fit"
-            case .fill: "Fill"
-            case .stretch: "Stretch"
-            case .custom: "Scale"
+            case .original: tr("Original", ctx: "Settings.Appearance")
+            case .contain: tr("Fit", ctx: "Settings.Appearance")
+            case .fill: tr("Fill", ctx: "Settings.Appearance")
+            case .stretch: tr("Stretch", ctx: "Settings.Appearance")
+            case .custom: tr("Scale", ctx: "Settings.Appearance")
             }
         }
 
@@ -144,10 +144,10 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .none: "None"
-            case .horizontal: "Along X"
-            case .vertical: "Along Y"
-            case .both: "Both"
+            case .none: tr("None", ctx: "Settings.Appearance")
+            case .horizontal: tr("Along X", ctx: "Settings.Appearance")
+            case .vertical: tr("Along Y", ctx: "Settings.Appearance")
+            case .both: tr("Both", ctx: "Settings.Appearance")
             }
         }
     }
@@ -163,16 +163,16 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .topLeft: "Top Left"
-            case .topCenter: "Top Center"
-            case .topRight: "Top Right"
-            case .centerLeft: "Center Left"
-            case .center: "Center"
-            case .centerRight: "Center Right"
-            case .bottomLeft: "Bottom Left"
-            case .bottomCenter: "Bottom Center"
-            case .bottomRight: "Bottom Right"
-            case .custom: "Custom"
+            case .topLeft: tr("Top Left", ctx: "Settings.Appearance")
+            case .topCenter: tr("Top Center", ctx: "Settings.Appearance")
+            case .topRight: tr("Top Right", ctx: "Settings.Appearance")
+            case .centerLeft: tr("Center Left", ctx: "Settings.Appearance")
+            case .center: tr("Center", ctx: "Settings.Appearance")
+            case .centerRight: tr("Center Right", ctx: "Settings.Appearance")
+            case .bottomLeft: tr("Bottom Left", ctx: "Settings.Appearance")
+            case .bottomCenter: tr("Bottom Center", ctx: "Settings.Appearance")
+            case .bottomRight: tr("Bottom Right", ctx: "Settings.Appearance")
+            case .custom: tr("Custom", ctx: "Settings.Appearance")
             }
         }
     }
@@ -186,11 +186,11 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
 
             var title: String {
                 switch self {
-                case .start: "Start"
-                case .center: "Center"
-                case .end: "End"
-                case .percent: "Percent"
-                case .point: "Points"
+                case .start: tr("Start", ctx: "Settings.Appearance")
+                case .center: tr("Center", ctx: "Settings.Appearance")
+                case .end: tr("End", ctx: "Settings.Appearance")
+                case .percent: tr("Percent", ctx: "Settings.Appearance")
+                case .point: tr("Points", ctx: "Settings.Appearance")
                 }
             }
         }
@@ -274,7 +274,7 @@ struct BackgroundMediaConfiguration: Codable, Equatable {
             var id: String { rawValue }
 
             case linear, radial
-            var title: String { self == .linear ? "Linear" : "Radial" }
+            var title: String { self == .linear ? tr("Linear", ctx: "Settings.Appearance") : tr("Radial", ctx: "Settings.Appearance") }
         }
 
         struct Stop: Codable, Equatable, Identifiable {

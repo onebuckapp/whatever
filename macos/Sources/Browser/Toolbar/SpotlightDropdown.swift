@@ -100,7 +100,7 @@ final class SpotlightDropdown: NSView {
     ///   resized the panel mid-query and left a stale height behind — the panel came
     ///   back 133pt tall for twelve results, with only three rows showing and no way
     ///   to reach the rest.
-    func setResults(_ entries: [HistoryFuzzyEntry], selectedID: HistoryFuzzyEntry.ID?, scrollToSelection: Bool, onHover: @escaping (HistoryFuzzyEntry) -> Void, onChoose: @escaping (HistoryFuzzyEntry) -> Void) {
+    func setResults(_ entries: [HistoryFuzzyEntry], selectedID: HistoryFuzzyEntry.ID?, scrollToSelection: Bool, visitLabels: [String: String] = [:], onHover: @escaping (HistoryFuzzyEntry) -> Void, onChoose: @escaping (HistoryFuzzyEntry) -> Void) {
         guard !entries.isEmpty else {
             clearResults()
             return
@@ -115,6 +115,7 @@ final class SpotlightDropdown: NSView {
             hosted.rootView = SpotlightResultsList(
                 entries: entries,
                 selectedID: selectedID,
+                visitLabels: visitLabels,
                 onChoose: onChoose,
                 onHover: onHover,
                 scrollToSelection: scrollToSelection
@@ -125,6 +126,7 @@ final class SpotlightDropdown: NSView {
         let list = SpotlightResultsList(
             entries: entries,
             selectedID: selectedID,
+            visitLabels: visitLabels,
             onChoose: onChoose,
             onHover: onHover,
             scrollToSelection: scrollToSelection
@@ -242,6 +244,11 @@ final class SpotlightDropdown: NSView {
 struct SpotlightResultsList: View {
     let entries: [HistoryFuzzyEntry]
     let selectedID: HistoryFuzzyEntry.ID?
+    /// Finished "N visits" labels by entry id, resolved controller-side:
+    /// rows cannot batch on their own without one IPC call per row. `var`
+    /// rather than `let`: a defaulted `let` is excluded from the
+    /// memberwise initializer, so explicit call sites would not compile.
+    var visitLabels: [String: String] = [:]
     let onChoose: (HistoryFuzzyEntry) -> Void
     /// Hovering a row selects it: the mouse and the arrow keys share one active
     /// row rather than each painting their own.
@@ -268,6 +275,7 @@ struct SpotlightResultsList: View {
                         SpotlightResultRow(
                             entry: entry,
                             isSelected: entry.id == selectedID,
+                            visitLabel: visitLabels[entry.id],
                             onChoose: onChoose,
                             onHover: onHover
                         )
@@ -308,6 +316,9 @@ struct SpotlightResultsList: View {
 private struct SpotlightResultRow: View {
     let entry: HistoryFuzzyEntry
     let isSelected: Bool
+    /// Finished "N visits" label from the controller's batch call, or nil
+    /// while it lands: the row falls back to English rather than hiding.
+    let visitLabel: String?
     let onChoose: (HistoryFuzzyEntry) -> Void
     let onHover: (HistoryFuzzyEntry) -> Void
 
@@ -350,7 +361,7 @@ private struct SpotlightResultRow: View {
             }
             Spacer(minLength: 8)
             if entry.visitCount > 1 {
-                Text("\(entry.visitCount) visits")
+                Text(visitLabel ?? "\(entry.visitCount) visits")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }

@@ -28,7 +28,13 @@ import UniformTypeIdentifiers
 /// radii — rather than inventing a file-manager theme.
 struct FileBrowserView: View {
     @ObservedObject var store: FileBrowserStore
+    // Observed for `revision`: the footer counts re-resolve below without
+    // reopening the card.
+    @ObservedObject private var localization = Localization.shared
     @State private var selection: String?
+    /// Finished footer line, resolved core-side: plural form selection
+    /// cannot happen in a synchronous row.
+    @State private var itemCountLabel = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,6 +56,9 @@ struct FileBrowserView: View {
         .task {
             store.load()
         }
+        .task(id: "\(store.total)-\(store.skipped)-\(localization.revision)") {
+            await resolveItemCount()
+        }
     }
 
     // MARK: - Header
@@ -63,8 +72,8 @@ struct FileBrowserView: View {
             }
             .buttonStyle(.borderless)
             .disabled(!store.canGoUp)
-            .help("Go to parent folder")
-            .accessibilityLabel("Parent folder")
+            .help(tr("Go to parent folder", ctx: "Files"))
+            .accessibilityLabel(tr("Parent folder", ctx: "Files"))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 2) {
@@ -92,10 +101,10 @@ struct FileBrowserView: View {
                     .controlSize(.small)
             }
 
-            Toggle("Hidden", isOn: $store.showHidden)
+            Toggle(tr("Hidden", ctx: "Files"), isOn: $store.showHidden)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
-                .help("Show hidden files")
+                .help(tr("Show hidden files", ctx: "Files"))
 
             Button {
                 store.refresh()
@@ -103,8 +112,8 @@ struct FileBrowserView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.borderless)
-            .help("Refresh")
-            .accessibilityLabel("Refresh")
+            .help(tr("Refresh", ctx: "Files"))
+            .accessibilityLabel(tr("Refresh", ctx: "Files"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -125,7 +134,7 @@ struct FileBrowserView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
-                Button("Retry") {
+                Button(tr("Retry", ctx: "Files")) {
                     store.refresh()
                 }
                 .buttonStyle(.bordered)
@@ -138,7 +147,7 @@ struct FileBrowserView: View {
                 Image(systemName: "folder")
                     .font(.system(size: 22))
                     .foregroundStyle(.tertiary)
-                Text("Empty folder")
+                Text(tr("Empty folder", ctx: "Files"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -159,12 +168,12 @@ struct FileBrowserView: View {
                         }
                     }
                     .contextMenu {
-                        Button("Reveal in Finder") {
+                        Button(tr("Reveal in Finder", ctx: "Files")) {
                             NSWorkspace.shared.activateFileViewerSelecting(
                                 [URL(fileURLWithPath: entry.path)]
                             )
                         }
-                        Button("Copy Path") {
+                        Button(tr("Copy Path", ctx: "Files")) {
                             let pasteboard = NSPasteboard.general
                             pasteboard.clearContents()
                             pasteboard.setString(entry.path, forType: .string)
@@ -188,26 +197,35 @@ struct FileBrowserView: View {
 
     private var footer: some View {
         HStack(spacing: 4) {
-            Text(itemCount)
+            Text(itemCountLabel)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Spacer()
             if store.hasMore {
-                Text("showing first \(store.entries.count) of \(store.total)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                Text(tr("showing first {shown} of {total}", ctx: "Files", args: [
+                    "shown": "\(store.entries.count)",
+                    "total": "\(store.total)",
+                ]))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
     }
 
-    private var itemCount: String {
-        var text = store.total == 1 ? "1 item" : "\(store.total) items"
-        if store.skipped > 0 {
-            text += store.skipped == 1 ? ", 1 unavailable" : ", \(store.skipped) unavailable"
+    /// One batch call resolves the "N items" line and the "N unavailable"
+    /// tail (when any) in the row's own words for every count.
+    private func resolveItemCount() async {
+        let total = store.total
+        let skipped = store.skipped
+        var items = [LocaleItem("one item", plural: "{n} items", n: total)]
+        if skipped > 0 {
+            items.append(LocaleItem("one unavailable", plural: "{n} unavailable", n: skipped))
         }
-        return text
+        let texts = await Localization.batch(items)
+        guard texts.count == items.count else { return }
+        itemCountLabel = skipped > 0 ? "\(texts[0]), \(texts[1])" : texts[0]
     }
 }
 

@@ -492,13 +492,13 @@ enum FeedReaderError: Error, LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .privateContext:
-            "Feeds cannot be saved from a private tab."
+            tr("Feeds cannot be saved from a private tab.", ctx: "Feeds")
         case .feedsDisabled:
-            "Feeds are turned off in Settings."
+            tr("Feeds are turned off in Settings.", ctx: "Feeds")
         case .invalidFeedURL:
-            "That is not a supported feed address."
+            tr("That is not a supported feed address.", ctx: "Feeds")
         case .subscriptionMissing:
-            "The subscription was not found after saving it."
+            tr("The subscription was not found after saving it.", ctx: "Feeds")
         }
     }
 }

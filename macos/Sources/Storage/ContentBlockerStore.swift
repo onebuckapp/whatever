@@ -74,7 +74,7 @@ final class ContentBlockerStore: ObservableObject {
             return
         }
         guard let snapshot = Self.bundledSnapshotText() else {
-            lastError = "The bundled filter snapshot is missing."
+            lastError = tr("The bundled filter snapshot is missing.", ctx: "Errors")
             lists = []
             return
         }

@@ -37,11 +37,11 @@ final class NavigationController: NSObject {
 
 extension NavigationController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        webView.window?.title = "Loading…"
+        webView.window?.title = tr("Loading…", ctx: "Window")
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.window?.title = webView.title ?? "New Tab"
+        webView.window?.title = webView.title ?? tr("New Tab", ctx: "Window")
         // A page that finishes loading behind an open card installs fresh mouse
         // tracking areas, which would hand the pointer and hover straight back to
         // it. Take them off again.
@@ -103,7 +103,7 @@ extension NavigationController: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        webView.window?.title = "Failed to Load"
+        webView.window?.title = tr("Failed to Load", ctx: "Window")
     }
 
     /// A server redirect replaced its source without committing it. The
@@ -126,7 +126,7 @@ extension NavigationController: WKNavigationDelegate {
         if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
             return
         }
-        webView.window?.title = "Failed to Load"
+        webView.window?.title = tr("Failed to Load", ctx: "Window")
     }
 
     /// The page's WebContent process died under it.
@@ -140,7 +140,7 @@ extension NavigationController: WKNavigationDelegate {
     /// is what knows the address that was on screen.
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         guard owner != nil else { return }
-        webView.window?.title = "Reloading…"
+        webView.window?.title = tr("Reloading…", ctx: "Window")
         owner?.reloadAfterContentProcessTermination()
     }
 

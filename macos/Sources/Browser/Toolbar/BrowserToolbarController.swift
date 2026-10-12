@@ -54,7 +54,7 @@ final class BrowserToolbarController: NSObject {
     /// marker so a private window is distinguishable from a regular one.
     /// A label has no padding of its own, so it sits in a pill with insets.
     private static func makeIncognitoBadge() -> NSView {
-        let label = NSTextField(labelWithString: "Incognito")
+        let label = NSTextField(labelWithString: tr("Incognito", ctx: "Toolbar"))
         label.font = .systemFont(ofSize: 11, weight: .medium)
         label.textColor = .secondaryLabelColor
         label.alignment = .center
@@ -62,7 +62,7 @@ final class BrowserToolbarController: NSObject {
         pill.wantsLayer = true
         pill.layer?.backgroundColor = NSColor.quaternaryLabelColor.cgColor
         pill.layer?.cornerRadius = 8
-        pill.toolTip = "This window is incognito: its tabs are not saved to history."
+        pill.toolTip = tr("This window is incognito: its tabs are not saved to history.", ctx: "Toolbar")
         pill.addSubview(label)
         label.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -148,6 +148,12 @@ final class BrowserToolbarController: NSObject {
         BookmarkStore.shared.$nodes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncBookmarkButton() }
+            .store(in: &chromeCancellables)
+        // Tooltips and VoiceOver names re-apply in the new language: AppKit
+        // controls do not rebuild on the revision tick.
+        NotificationCenter.default.publisher(for: .localizationDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyToolbarLanguage() }
             .store(in: &chromeCancellables)
         // Wired here rather than in the spotlight's own init because it needs `self`.
         spotlight.onEditingChanged = { [weak self] isEditing in
@@ -272,6 +278,25 @@ final class BrowserToolbarController: NSObject {
         syncControls()
     }
 
+    /// Re-applies every tooltip and VoiceOver name after a language switch:
+    /// AppKit controls do not rebuild on the revision tick. Stateful buttons
+    /// re-apply through `syncControls`; the stateless ones re-apply here.
+    private func applyToolbarLanguage() {
+        backButton.toolTip = tr("Back", ctx: "Toolbar")
+        backButton.image?.accessibilityDescription = tr("Back", ctx: "Toolbar")
+        forwardButton.toolTip = tr("Forward", ctx: "Toolbar")
+        forwardButton.image?.accessibilityDescription = tr("Forward", ctx: "Toolbar")
+        passwordButton.toolTip = tr("Password Manager", ctx: "Toolbar")
+        passwordButton.image?.accessibilityDescription = tr("Password Manager", ctx: "Toolbar")
+        bookmarksButton.toolTip = tr("Bookmarks", ctx: "Toolbar")
+        bookmarksButton.image?.accessibilityDescription = tr("Bookmarks", ctx: "Toolbar")
+        downloadsButton.toolTip = tr("Downloads", ctx: "Toolbar")
+        downloadsButton.image?.accessibilityDescription = tr("Downloads", ctx: "Toolbar")
+        settingsButton.toolTip = tr("Settings", ctx: "Toolbar")
+        settingsButton.image?.accessibilityDescription = tr("Settings", ctx: "Toolbar")
+        syncControls()
+    }
+
     private func syncControls() {
         guard let state = tab?.tabController else {
             backButton.isEnabled = false
@@ -297,14 +322,14 @@ final class BrowserToolbarController: NSObject {
         if state.isLoading {
             reloadButton.image = NSImage(
                 systemSymbolName: "xmark",
-                accessibilityDescription: "Stop"
+                accessibilityDescription: tr("Stop", ctx: "Toolbar")
             )?.withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
         } else {
             let image = BrowserToolbarButton.bundledGlyphImage(named: "TablerReload", inkRatio: 0.75)
-            image?.accessibilityDescription = "Reload"
+            image?.accessibilityDescription = tr("Reload", ctx: "Toolbar")
             reloadButton.image = image
         }
-        reloadButton.toolTip = state.isLoading ? "Stop" : "Reload"
+        reloadButton.toolTip = state.isLoading ? tr("Stop", ctx: "Toolbar") : tr("Reload", ctx: "Toolbar")
 
         // The leading lock follows the live page (falling back to the tab's
         // own address like the field text), so it answers for what is shown.
@@ -338,9 +363,24 @@ final class BrowserToolbarController: NSObject {
     private func syncFeedButton() {        let isEnabled = SettingsStore.shared.settings.feeds.isEnabled
         let candidates = isEnabled ? tab?.tabController.feedCandidates ?? [] : []
         feedButton.isHidden = candidates.isEmpty
-        feedButton.toolTip = candidates.count == 1
-            ? "Available feed"
-            : "\(candidates.count) available feeds"
+        if candidates.count == 1 {
+            feedButton.toolTip = tr("Available feed", ctx: "Toolbar")
+            return
+        }
+        // The plural resolves core-side; the singular reads immediately so
+        // the tooltip never waits on a round trip.
+        feedButton.toolTip = tr("Available feeds", ctx: "Toolbar")
+        guard candidates.count > 1 else { return }
+        let count = candidates.count
+        Task { [weak self] in
+            let texts = await Localization.batch([
+                LocaleItem("one available feed", plural: "{n} available feeds", n: count),
+            ])
+            guard let self, tab?.tabController.feedCandidates.count == count else { return }
+            if let text = texts.first {
+                self.feedButton.toolTip = text
+            }
+        }
     }
 
     /// Shows the shield matching the current site's blocker state: checked
@@ -371,12 +411,12 @@ final class BrowserToolbarController: NSObject {
             inkRatio: 0.85
         )
         image?.accessibilityDescription = isBlocking
-            ? "Content blocker active on this site"
-            : "Content blocker paused on this site"
+            ? tr("Content blocker active on this site", ctx: "Toolbar")
+            : tr("Content blocker paused on this site", ctx: "Toolbar")
         adblockButton.image = image
         adblockButton.toolTip = isBlocking
-            ? "Content Blocker — active on this site"
-            : "Content Blocker — paused on this site"
+            ? tr("Content Blocker — active on this site", ctx: "Toolbar")
+            : tr("Content Blocker — paused on this site", ctx: "Toolbar")
     }
 
     /// The star: filled while the current page is bookmarked, hollow when
@@ -385,7 +425,7 @@ final class BrowserToolbarController: NSObject {
     private func syncBookmarkButton() {
         let url = tab?.displayURL
         let saved = url.map { !$0.isAddresslessPage && BookmarkStore.shared.isBookmarked($0) } ?? false
-        let help = saved ? "Edit Bookmark" : "Add Bookmark"
+        let help = saved ? tr("Edit Bookmark", ctx: "Toolbar") : tr("Add Bookmark", ctx: "Toolbar")
         bookmarkButton.isEnabled = url.map { !$0.isAddresslessPage } ?? false
         let image = BrowserToolbarButton.bundledGlyphImage(
             named: saved ? "TablerStarFilled" : "TablerStar",
@@ -468,24 +508,24 @@ final class BrowserToolbarController: NSObject {
             backButton,
             asset: "TablerChevronLeft",
             inkRatio: 0.725,
-            help: "Back",
+            help: tr("Back", ctx: "Toolbar"),
             action: #selector(goBack)
         )
         configureBundled(
             forwardButton,
             asset: "TablerChevronRight",
             inkRatio: 0.725,
-            help: "Forward",
+            help: tr("Forward", ctx: "Toolbar"),
             action: #selector(goForward)
         )
         configureBundled(
             reloadButton,
             asset: "TablerReload",
             inkRatio: 0.75,
-            help: "Reload",
+            help: tr("Reload", ctx: "Toolbar"),
             action: #selector(toggleReload)
         )
-        configure(bookmarkButton, symbol: "star", help: "Add Bookmark", action: #selector(toggleBookmark))
+        configure(bookmarkButton, symbol: "star", help: tr("Add Bookmark", ctx: "Toolbar"), action: #selector(toggleBookmark))
         syncBookmarkButton()
         configureFeedButton()
 
@@ -496,21 +536,21 @@ final class BrowserToolbarController: NSObject {
             bookmarksButton,
             asset: "TablerBookmark",
             inkRatio: 0.833,
-            help: "Bookmarks",
+            help: tr("Bookmarks", ctx: "Toolbar"),
             action: #selector(openBookmarks)
         )
         configureBundled(
             downloadsButton,
             asset: "TablerDownloads",
             inkRatio: 0.75,
-            help: "Downloads",
+            help: tr("Downloads", ctx: "Toolbar"),
             action: #selector(openDownloads)
         )
         configureBundled(
             settingsButton,
             asset: "TablerSettings",
             inkRatio: 0.833,
-            help: "Settings",
+            help: tr("Settings", ctx: "Toolbar"),
             action: #selector(openSettings)
         )
     }
@@ -539,13 +579,12 @@ final class BrowserToolbarController: NSObject {
     /// Shows the capture button exactly while the selected tab's page asked
     /// for or holds a capture. A pending request names itself; a live grant
     /// does.
-    private func syncMediaCaptureButton() {
-        let state = tab?.tabController.captureState ?? MediaCaptureState()
+    private func syncMediaCaptureButton() {        let state = tab?.tabController.captureState ?? MediaCaptureState()
         webrtcButton.isHidden = !state.hasActivity
         if !state.requests.isEmpty {
-            webrtcButton.toolTip = "Camera or microphone requested — open capture controls"
+            webrtcButton.toolTip = tr("Camera or microphone requested — open capture controls", ctx: "Toolbar")
         } else {
-            webrtcButton.toolTip = "Camera or microphone in use — open capture controls"
+            webrtcButton.toolTip = tr("Camera or microphone in use — open capture controls", ctx: "Toolbar")
         }
     }
 
@@ -562,9 +601,9 @@ final class BrowserToolbarController: NSObject {
             named: "TablerAsterisk",
             inkRatio: 0.833
         )
-        image?.accessibilityDescription = "Password Manager"
+        image?.accessibilityDescription = tr("Password Manager", ctx: "Toolbar")
         passwordButton.image = image
-        passwordButton.toolTip = "Password Manager"
+        passwordButton.toolTip = tr("Password Manager", ctx: "Toolbar")
         passwordButton.target = self
         passwordButton.action = #selector(togglePasswords)
     }
@@ -583,9 +622,9 @@ final class BrowserToolbarController: NSObject {
     /// grant lights it; `syncMediaCaptureButton` owns this from here on.
     private func configureWebRTCButton() {
         let image = BrowserToolbarButton.bundledGlyphImage(named: "AccessPoint", inkRatio: 0.69)
-        image?.accessibilityDescription = "Capture controls"
+        image?.accessibilityDescription = tr("Capture controls", ctx: "Toolbar")
         webrtcButton.image = image
-        webrtcButton.toolTip = "Capture controls"
+        webrtcButton.toolTip = tr("Capture controls", ctx: "Toolbar")
         webrtcButton.target = self
         webrtcButton.action = #selector(openMediaCapture)
         webrtcButton.isHidden = true
@@ -596,9 +635,9 @@ final class BrowserToolbarController: NSObject {
         // toolbar’s label color, and is boxed by ink like the other bundled
         // glyphs rather than at its 18pt box.
         let image = BrowserToolbarButton.bundledGlyphImage(named: "RSS", inkRatio: 0.75)
-        image?.accessibilityDescription = "Available feeds"
+        image?.accessibilityDescription = tr("Available feeds", ctx: "Toolbar")
         feedButton.image = image
-        feedButton.toolTip = "Available feeds"
+        feedButton.toolTip = tr("Available feeds", ctx: "Toolbar")
         feedButton.target = self
         feedButton.action = #selector(openFeed)
         // Shown only for a page that advertises feeds; `syncFeedButton` owns

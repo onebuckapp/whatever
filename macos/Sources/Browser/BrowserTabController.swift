@@ -37,7 +37,7 @@ final class BrowserTabController: ObservableObject {
     private(set) var webView: WKWebView?
     let privacyMode: BrowserPrivacyMode
 
-    @Published private(set) var title: String = "New Tab"
+    @Published private(set) var title: String = tr("New Tab", ctx: "Tabs")
     @Published private(set) var url: URL?
     @Published private(set) var isLoading = false
     @Published private(set) var canGoBack = false
@@ -334,6 +334,6 @@ final class BrowserTabController: ObservableObject {
     }
 
     private func publishTitle() {
-        title = webView?.title ?? placeholderTitle ?? "New Tab"
+        title = webView?.title ?? placeholderTitle ?? tr("New Tab", ctx: "Tabs")
     }
 }

@@ -112,7 +112,7 @@ actor SessionStore {
             return first
         }
 
-        lastError = didSave ? nil : (lastError ?? "session save timed out")
+        lastError = didSave ? nil : (lastError ?? tr("session save timed out", ctx: "Errors"))
     }
 
     /// Forgets the stored snapshot, so the next launch opens a fresh session.

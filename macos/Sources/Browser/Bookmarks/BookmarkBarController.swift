@@ -165,7 +165,9 @@ final class BookmarkBarController {
     }
 
     /// Deletes a link at once; a non-empty folder asks first, because one
-    /// context-menu click should not silently take a whole subtree.
+    /// context-menu click should not silently take a whole subtree. The
+    /// counts resolve core-side: plural form selection cannot happen while
+    /// building a synchronous alert.
     private func requestDelete(_ id: String?) {
         guard let id, let node = store.node(id) else { return }
         let doomed = BookmarkTree.descendantIDs(of: id, in: store.nodes)
@@ -173,21 +175,29 @@ final class BookmarkBarController {
             store.delete(id)
             return
         }
-        let alert = NSAlert()
-        alert.messageText = "Delete \u{201C}\(node.displayTitle)\u{201D}?"
-        alert.informativeText = doomed.count == 1
-            ? "The folder and the item inside it will be removed."
-            : "The folder and the \(doomed.count) items inside it will be removed."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        if let window = view.window {
-            alert.beginSheetModal(for: window) { [weak self] response in
-                guard response == .alertFirstButtonReturn else { return }
+        let name = node.displayTitle
+        let count = doomed.count
+        Task { @MainActor [weak self] in
+            let texts = await Localization.batch([
+                LocaleItem("one item", plural: "{n} items", n: count),
+            ])
+            let items = texts.first ?? "\(count) items"
+            let alert = NSAlert()
+            alert.messageText = tr("Delete “{name}”?", ctx: "Bookmarks", args: ["name": name])
+            alert.informativeText = count == 1
+                ? tr("The folder and the item inside it will be removed.", ctx: "Bookmarks")
+                : tr("The folder and {items} inside it will be removed.", ctx: "Bookmarks", args: ["items": items])
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: tr("Delete", ctx: "Bookmarks"))
+            alert.addButton(withTitle: tr("Cancel", ctx: "Bookmarks"))
+            if let window = self?.view.window {
+                alert.beginSheetModal(for: window) { [weak self] response in
+                    guard response == .alertFirstButtonReturn else { return }
+                    self?.store.delete(id)
+                }
+            } else {
                 self?.store.delete(id)
             }
-        } else {
-            store.delete(id)
         }
     }
 

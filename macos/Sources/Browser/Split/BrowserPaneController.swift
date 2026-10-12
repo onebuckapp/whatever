@@ -291,6 +291,9 @@ final class BrowserPaneController: NSViewController {
             browserView.onGenerateQRCode = { [weak self] url in
                 self?.presentMenuQRCode(link: url)
             }
+            browserView.onFullScreenCapture = { [weak self] in
+                self?.presentFullScreenCapture()
+            }
             browserView.onOpenLinkInNewTab = { [weak self] url in
                 self?.openLinkInNewTab(url)
             }
@@ -616,6 +619,13 @@ final class BrowserPaneController: NSViewController {
         presentQRCode(text: tab.webView?.url?.absoluteString ?? "")
     }
 
+    /// Captures the hosted page through the print pipeline and panels for a
+    /// PNG destination. Same page the QR item reads, so the capture matches
+    /// what is on screen.
+    private func presentFullScreenCapture() {
+        PageCapture.captureAndSave(webView: tab.webView, window: view.window)
+    }
+
     private func updateBorder(activeID: UUID?, showsIndicator: Bool) {
         let isActive = showsIndicator && activeID == tab.id
         pageContainer?.layer?.borderColor = isActive
@@ -669,7 +679,7 @@ extension BrowserPaneController: WKUIDelegate {
     private func hostLabel(of webView: WKWebView) -> String {
         if let host = webView.url?.host, !host.isEmpty { return host }
         if let title = webView.title, !title.isEmpty { return title }
-        return "This page"
+        return tr("This page", ctx: "Dialogs")
     }
 
     // MARK: - JavaScript dialogs and file input
@@ -687,7 +697,7 @@ extension BrowserPaneController: WKUIDelegate {
         let alert = NSAlert()
         alert.messageText = hostLabel(of: webView)
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: tr("OK", ctx: "Dialogs"))
         sheet(alert, on: webView) { _ in completionHandler() }
     }
 
@@ -700,8 +710,8 @@ extension BrowserPaneController: WKUIDelegate {
         let alert = NSAlert()
         alert.messageText = hostLabel(of: webView)
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: tr("OK", ctx: "Dialogs"))
+        alert.addButton(withTitle: tr("Cancel", ctx: "Dialogs"))
         sheet(alert, on: webView) { response in
             completionHandler(response == .alertFirstButtonReturn)
         }
@@ -720,8 +730,8 @@ extension BrowserPaneController: WKUIDelegate {
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
         field.stringValue = defaultText ?? ""
         alert.accessoryView = field
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: tr("OK", ctx: "Dialogs"))
+        alert.addButton(withTitle: tr("Cancel", ctx: "Dialogs"))
         sheet(alert, on: webView) { response in
             // A cancelled prompt is a nil answer, which is what the page reads as
             // its `prompt()` returning null. Submitting an empty string would be a
@@ -745,7 +755,7 @@ extension BrowserPaneController: WKUIDelegate {
         panel.canCreateDirectories = false
         // `WKOpenPanelParameters` carries only those two flags on macOS — no title
         // and no accept label — so the panel keeps its own.
-        panel.prompt = "Open"
+        panel.prompt = tr("Open", ctx: "Dialogs")
 
         guard let window = webView.window else {
             completionHandler(nil)

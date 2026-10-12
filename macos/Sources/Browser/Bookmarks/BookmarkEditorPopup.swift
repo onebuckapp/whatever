@@ -109,6 +109,9 @@ private struct BookmarkEditorCard: View {
     let onSave: (String, String, String?) -> Void
     let onDelete: (() -> Void)?
 
+    // Observed for `revision`: every label below re-resolves without
+    // reopening the editor.
+    @ObservedObject private var localization = Localization.shared
     @State private var title: String
     @State private var url: String
     @State private var parentID: String?
@@ -139,9 +142,9 @@ private struct BookmarkEditorCard: View {
 
     private var headerTitle: String {
         if isFolder {
-            return onDelete == nil ? "New Folder" : "Edit Folder"
+            return onDelete == nil ? tr("New Folder", ctx: "Bookmarks") : tr("Edit Folder", ctx: "Bookmarks")
         }
-        return onDelete == nil ? "New Bookmark" : "Edit Bookmark"
+        return onDelete == nil ? tr("New Bookmark", ctx: "Bookmarks") : tr("Edit Bookmark", ctx: "Bookmarks")
     }
 
     private var canSave: Bool {
@@ -159,19 +162,19 @@ private struct BookmarkEditorCard: View {
                     .font(.system(size: 13, weight: .semibold))
             }
             Divider()
-            TextField("Title", text: $title)
+            TextField(tr("Title", ctx: "Bookmarks"), text: $title)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 12))
                 .controlSize(.large)
                 .focused($titleFocused)
             if !isFolder {
-                TextField("Address", text: $url)
+                TextField(tr("Address", ctx: "Bookmarks"), text: $url)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 12))
                     .controlSize(.large)
             }
-            Picker("Folder", selection: $parentID) {
-                Text("Bookmarks Bar").tag(String?.none)
+            Picker(tr("Folder", ctx: "Bookmarks"), selection: $parentID) {
+                Text(tr("Bookmarks Bar", ctx: "Bookmarks")).tag(String?.none)
                 ForEach(folders) { choice in
                     Text(folderLabel(choice)).tag(Optional(choice.node.id))
                 }
@@ -182,16 +185,16 @@ private struct BookmarkEditorCard: View {
             Divider()
             HStack {
                 if let onDelete {
-                    Button("Delete", role: .destructive) {
+                    Button(tr("Delete", ctx: "Bookmarks"), role: .destructive) {
                         confirmingDelete = true
                     }
                     .controlSize(.small)
                 }
                 Spacer()
-                Button("Cancel", action: onCancel)
+                Button(tr("Cancel", ctx: "Bookmarks"), action: onCancel)
                     .controlSize(.small)
                     .keyboardShortcut(.cancelAction)
-                Button("Save") {
+                Button(tr("Save", ctx: "Bookmarks")) {
                     onSave(title, url, parentID)
                 }
                 .controlSize(.small)
@@ -213,22 +216,22 @@ private struct BookmarkEditorCard: View {
             }
         }
         .alert(
-            "Delete \u{201C}\(alertTitle)\u{201D}?",
+            tr("Delete \u{201C}{item}\u{201D}?", ctx: "Bookmarks", args: ["item": alertTitle]),
             isPresented: $confirmingDelete
         ) {
-            Button("Delete", role: .destructive) {
+            Button(tr("Delete", ctx: "Bookmarks"), role: .destructive) {
                 onDelete?()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(tr("Cancel", ctx: "Bookmarks"), role: .cancel) {}
         } message: {
-            Text("Are you sure? This cannot be reverted.")
+            Text(tr("Are you sure? This cannot be reverted.", ctx: "Bookmarks"))
         }
     }
 
     private var alertTitle: String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
-        return isFolder ? "this folder" : "this bookmark"
+        return isFolder ? tr("this folder", ctx: "Bookmarks") : tr("this bookmark", ctx: "Bookmarks")
     }
 
     private func folderLabel(_ choice: BookmarkTree.FolderChoice) -> String {

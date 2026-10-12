@@ -7,3 +7,5 @@ Build/
 nimcache/
 clue.lock
 press/
+# Compiled gettext catalogs: generated from locale/*.po by `make core`.
+*.mo

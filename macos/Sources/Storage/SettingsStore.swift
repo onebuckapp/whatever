@@ -98,9 +98,13 @@ struct AppSettings: Codable, Equatable {
         /// First ⌘Q shows "Press ⌘Q again to quit" instead of quitting at
         /// once. Off restores the stock one-press quit.
         var warnBeforeQuitting = true
+        /// Interface language: a BCP-47 tag (`ro`), or `"system"` to follow
+        /// the system locale. New in the localization pass, like
+        /// `warnBeforeQuitting` before it.
+        var language = "system"
 
         enum CodingKeys: String, CodingKey {
-            case restoreSession, recordsHistory, historyCollapseWindow, warnBeforeQuitting
+            case restoreSession, recordsHistory, historyCollapseWindow, warnBeforeQuitting, language
         }
 
         init() {}
@@ -116,6 +120,7 @@ struct AppSettings: Codable, Equatable {
             historyCollapseWindow = try container.decodeIfPresent(Double.self, forKey: .historyCollapseWindow)
                 ?? 10
             warnBeforeQuitting = try container.decodeIfPresent(Bool.self, forKey: .warnBeforeQuitting) ?? true
+            language = try container.decodeIfPresent(String.self, forKey: .language) ?? "system"
         }
     }
 
@@ -232,11 +237,11 @@ struct AppSettings: Codable, Equatable {
 
         var label: String {
             switch self {
-            case .off: "Off"
-            case .after5Minutes: "After 5 minutes"
-            case .after15Minutes: "After 15 minutes"
-            case .after30Minutes: "After 30 minutes"
-            case .after1Hour: "After 1 hour"
+            case .off: tr("Off", ctx: "Settings.Web")
+            case .after5Minutes: tr("After 5 minutes", ctx: "Settings.Web")
+            case .after15Minutes: tr("After 15 minutes", ctx: "Settings.Web")
+            case .after30Minutes: tr("After 30 minutes", ctx: "Settings.Web")
+            case .after1Hour: tr("After 1 hour", ctx: "Settings.Web")
             }
         }
     }
@@ -491,9 +496,9 @@ struct AppSettings: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .ask: "Ask"
-            case .allow: "Allow"
-            case .block: "Block"
+            case .ask: tr("Ask", ctx: "MediaCapture")
+            case .allow: tr("Allow", ctx: "MediaCapture")
+            case .block: tr("Block", ctx: "MediaCapture")
             }
         }
     }
@@ -512,8 +517,8 @@ struct AppSettings: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .microphone: "Microphone"
-            case .camera: "Camera"
+            case .microphone: tr("Microphone", ctx: "MediaCapture")
+            case .camera: tr("Camera", ctx: "MediaCapture")
             }
         }
     }
@@ -587,8 +592,8 @@ struct AppSettings: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .rightToLeft: "Right to left"
-            case .leftToRight: "Left to right"
+            case .rightToLeft: tr("Right to left", ctx: "Settings.Feeds")
+            case .leftToRight: tr("Left to right", ctx: "Settings.Feeds")
             }
         }
     }
@@ -608,9 +613,9 @@ struct AppSettings: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .automatic: "Automatic"
-            case .publisherOnly: "Publisher images only"
-            case .off: "Off"
+            case .automatic: tr("Automatic", ctx: "Settings.Feeds")
+            case .publisherOnly: tr("Publisher images only", ctx: "Settings.Feeds")
+            case .off: tr("Off", ctx: "Settings.Feeds")
             }
         }
     }
@@ -871,7 +876,7 @@ final class SettingsStore: ObservableObject {
             group.cancelAll()
             return first
         }
-        lastError = result ? nil : "Settings could not be saved."
+        lastError = result ? nil : tr("Settings could not be saved.", ctx: "Errors")
     }
 
     /// How long a single write may take before it is abandoned. Long enough for

@@ -156,7 +156,7 @@ final class BookmarkStore: ObservableObject {
         let node = BookmarkNode(
             id: UUID().uuidString,
             kind: .folder,
-            title: trimmed.isEmpty ? "New Folder" : trimmed,
+            title: trimmed.isEmpty ? tr("New Folder", ctx: "Bookmarks") : trimmed,
             parentID: validParent(parentID),
             order: BookmarkTree.nextOrder(in: validParent(parentID), nodes: nodes),
             createdAt: Int64(Date().timeIntervalSince1970)

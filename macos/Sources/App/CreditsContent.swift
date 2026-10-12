@@ -44,83 +44,98 @@ enum CreditsContent {
         let entries: [Entry]
     }
 
-    static let madeBy = Section(
-        title: "Made by",
-        entries: [
-            Entry(
-                name: "George Lemon",
-                license: "GPLv3",
-                detail: "Design and development · © 2026",
-                url: nil
-            ),
-        ]
-    )
+    /// Section data as computed properties (not stored lets) so a language
+    /// switch re-resolves every title and detail: names, licenses, and URLs
+    /// stay literal, prose goes through `tr()`.
+    static var madeBy: Section {
+        Section(
+            title: tr("Made by", ctx: "Credits"),
+            entries: [
+                Entry(
+                    name: "George Lemon",
+                    license: "GPLv3",
+                    detail: tr("Design and development · © 2026", ctx: "Credits"),
+                    url: nil
+                ),
+            ]
+        )
+    }
 
-    static let writtenIn = Section(
-        title: "Written in",
-        entries: [
-            Entry(
-                name: "Swift",
-                license: nil,
-                detail: "App and interface language",
-                url: URL(string: "https://swift.org")
-            ),
-            Entry(
-                name: "Nim",
-                license: nil,
-                detail: "A statically typed compiled systems programming language",
-                url: URL(string: "https://nim-lang.org")
-            ),
-        ]
-    )
+    static var writtenIn: Section {
+        Section(
+            title: tr("Written in", ctx: "Credits"),
+            entries: [
+                Entry(
+                    name: "Swift",
+                    license: nil,
+                    detail: tr("App and interface language", ctx: "Credits"),
+                    url: URL(string: "https://swift.org")
+                ),
+                Entry(
+                    name: "Nim",
+                    license: nil,
+                    detail: tr("A statically typed compiled systems programming language", ctx: "Credits"),
+                    url: URL(string: "https://nim-lang.org")
+                ),
+            ]
+        )
+    }
 
-    static let builtWith = Section(
-        title: "Built with",
-        entries: [
-            Entry(
-                name: "OpenPeeps",
-                license: nil,
-                detail: "Tooling and infrastructure",
-                url: URL(string: "https://github.com/openpeeps")
-            ),
-            Entry(
-                name: "OneBuck.app",
-                license: nil,
-                detail: "Home of Whatever",
-                url: URL(string: "https://onebuck.app")
-            ),
-        ]
-    )
+    static var builtWith: Section {
+        Section(
+            title: tr("Built with", ctx: "Credits"),
+            entries: [
+                Entry(
+                    name: "OpenPeeps",
+                    license: nil,
+                    detail: tr("Tooling and infrastructure", ctx: "Credits"),
+                    url: URL(string: "https://github.com/openpeeps")
+                ),
+                Entry(
+                    name: "OneBuck.app",
+                    license: nil,
+                    detail: tr("Home of Whatever", ctx: "Credits"),
+                    url: URL(string: "https://onebuck.app")
+                ),
+            ]
+        )
+    }
 
-    static let interface = Section(
-        title: "Interface",
-        entries: [
-            Entry(
-                name: "Tabler Icons",
-                license: "MIT-licensed",
-                detail: "Built and maintained by Paweł Kuna",
-                url: URL(string: "https://tabler.io")
-            ),
-            Entry(
-                name: "Mijick Popups",
-                license: "Apache-2.0 license",
-                detail: "Author Tomasz Kurylik",
-                url: URL(string: "https://github.com/Mijick/Popups")
-            ),
-        ]
-    )
+    static var interface: Section {
+        Section(
+            title: tr("Interface", ctx: "Credits"),
+            entries: [
+                Entry(
+                    name: "Tabler Icons",
+                    license: "MIT-licensed",
+                    detail: tr("Built and maintained by Paweł Kuna", ctx: "Credits"),
+                    url: URL(string: "https://tabler.io")
+                ),
+                Entry(
+                    name: "Mijick Popups",
+                    license: "Apache-2.0 license",
+                    detail: tr("Author Tomasz Kurylik", ctx: "Credits"),
+                    url: URL(string: "https://github.com/Mijick/Popups")
+                ),
+            ]
+        )
+    }
 
-    static let core = Section(
-        title: "Storage core",
-        entries: [
-            Entry(name: "openparser", license: "MIT-licensed", detail: "Collection of tiny parsers and dumpers", url: URL(string: "https://github.com/openpeeps/openparser")),
-            Entry(name: "boogie", license: "MIT-licensed", detail: "A suite of WAL-based embedded data stores", url: URL(string: "https://github.com/openpeeps/boogie")),
-            Entry(name: "nimcypher", license: "BSD-2-Clause", detail: "Pure-Nim cryptographic library", url: URL(string: "https://github.com/nimbase/nimcypher")),
-            Entry(name: "blackpaper", license: "MIT-licensed", detail: "Password strength estimator (Nim)", url: URL(string: "https://github.com/openpeeps/blackpaper")),
-        ]
-    )
+    static var core: Section {
+        Section(
+            title: tr("Storage core", ctx: "Credits"),
+            entries: [
+                Entry(name: "openparser", license: "MIT-licensed", detail: tr("Collection of tiny parsers and dumpers", ctx: "Credits"), url: URL(string: "https://github.com/openpeeps/openparser")),
+                Entry(name: "boogie", license: "MIT-licensed", detail: tr("A suite of WAL-based embedded data stores", ctx: "Credits"), url: URL(string: "https://github.com/openpeeps/boogie")),
+                Entry(name: "nimcypher", license: "BSD-2-Clause", detail: tr("Pure-Nim cryptographic library", ctx: "Credits"), url: URL(string: "https://github.com/nimbase/nimcypher")),
+                Entry(name: "blackpaper", license: "MIT-licensed", detail: tr("Password strength estimator (Nim)", ctx: "Credits"), url: URL(string: "https://github.com/openpeeps/blackpaper")),
+            ]
+        )
+    }
 
-    static let sections = [madeBy, writtenIn, builtWith, interface, core]
+    static var sections: [Section] {
+        [madeBy, writtenIn, builtWith, interface, core]
+    }
 
     /// Short version string for the header, from the bundle.
     static var appVersion: String {
@@ -179,6 +194,10 @@ final class CreditsBackgroundView: NSView {
 /// The Credits window's scrollable content: app header, then one group per
 /// section. Plain scrolling list over the background sibling.
 struct CreditsContentView: View {
+    // Observed for `revision`: the static data above re-resolves on every
+    // access, so a language switch re-renders the list in place.
+    @ObservedObject private var localization = Localization.shared
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 18) {

@@ -48,8 +48,8 @@ enum TabShape: String, Codable, Equatable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .attached: "Attached"
-        case .pills: "Pills"
+        case .attached: tr("Attached", ctx: "Settings.Appearance")
+        case .pills: tr("Pills", ctx: "Settings.Appearance")
         }
     }
 

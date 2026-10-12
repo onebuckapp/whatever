@@ -46,7 +46,7 @@ import ./api/feed_api
 import ./api/filter_api
 import ./api/find_api
 import ./api/downloads_api
-
+import ./api/locale_api
 export qr_api
 export settings_api
 export bookmark_api
@@ -57,6 +57,7 @@ export feed_api
 export filter_api
 export find_api
 export downloads_api
+export locale_api
 
 var threadRegistered {.threadvar.}: bool
 

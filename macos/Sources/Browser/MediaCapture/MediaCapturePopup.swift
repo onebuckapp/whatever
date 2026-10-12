@@ -160,7 +160,7 @@ struct MediaCaptureCard: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(snapshot.host)
                 .font(.system(size: 13, weight: .semibold))
-            Text(pending.isEmpty ? "Capture devices" : "Wants to use your devices")
+            Text(pending.isEmpty ? tr("Capture devices", ctx: "MediaCapture") : tr("Wants to use your devices", ctx: "MediaCapture"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }
@@ -179,11 +179,11 @@ struct MediaCaptureCard: View {
                     .foregroundStyle(statusColor(for: kind))
             }
             if systemBlocked(kind) {
-                Text("macOS is blocking this device — allow Whatever in System Settings, Privacy & Security.")
+                Text(tr("macOS is blocking this device — allow Whatever in System Settings, Privacy & Security.", ctx: "MediaCapture"))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
-            Picker("For \(kind.title)", selection: decisionBinding(for: kind)) {
+            Picker(tr("For {kind}", ctx: "MediaCapture", args: ["kind": kind.title]), selection: decisionBinding(for: kind)) {
                 ForEach(AppSettings.MediaCaptureDecision.allCases) { decision in
                     Text(decision.title).tag(decision)
                 }
@@ -195,9 +195,9 @@ struct MediaCaptureCard: View {
     }
 
     private func statusText(for kind: AppSettings.MediaCaptureKind) -> String {
-        if pending.contains(kind) { return "Waiting for your answer" }
-        if granted.contains(kind) { return "In use" }
-        return "Not requested"
+        if pending.contains(kind) { return tr("Waiting for your answer", ctx: "MediaCapture") }
+        if granted.contains(kind) { return tr("In use", ctx: "MediaCapture") }
+        return tr("Not requested", ctx: "MediaCapture")
     }
 
     private func statusColor(for kind: AppSettings.MediaCaptureKind) -> Color {
@@ -242,12 +242,12 @@ struct MediaCaptureCard: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             HStack {
-                Button("Close") {
+                Button(tr("Close", ctx: "MediaCapture")) {
                     onCancel?()
                 }
                 .controlSize(.small)
                 Spacer()
-                Button("Reload Page") {
+                Button(tr("Reload Page", ctx: "MediaCapture")) {
                     onReload?()
                 }
                 .controlSize(.small)
@@ -259,9 +259,9 @@ struct MediaCaptureCard: View {
 
     private var footnote: String {
         if snapshot.isPrivate {
-            return "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+            return tr("Private tab: choices apply once and are never remembered. Reloading the page ends any live capture.", ctx: "MediaCapture")
         }
-        return "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+        return tr("Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture.", ctx: "MediaCapture")
     }
 }
 

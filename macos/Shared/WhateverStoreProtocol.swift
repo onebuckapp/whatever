@@ -266,6 +266,27 @@ import Foundation
     /// tracker carrying another link inside itself. The app records first
     /// and asks after, so navigation never waits on the answer.
     func historyShouldRecord(_ url: String, reply: @escaping (Int32, NSError?) -> Void)
+
+    // MARK: Locale
+
+    /// Points the core at the directory holding `<lang>/LC_MESSAGES/`
+    /// catalogs and resets to English. The app passes its bundled locale
+    /// path; the core never assumes where translations live.
+    func localeInit(_ moDir: String, reply: @escaping (NSError?) -> Void)
+    /// Activates the catalog for a BCP-47 tag. A missing catalog falls
+    /// back to English without failing; `localeGet` reports what loaded.
+    func localeSet(_ tag: String, reply: @escaping (NSError?) -> Void)
+    /// The active language tag (`ro`, or `en` in English mode).
+    func localeGet(reply: @escaping (String?, NSError?) -> Void)
+    /// Shipped translation tags as a JSON array, sorted, including English.
+    func localeLanguages(reply: @escaping (Data?, NSError?) -> Void)
+    /// The active catalog for shell-side caching:
+    /// `{"lang", "strings": {key: text}}`. Singular entries only.
+    func localeTable(reply: @escaping (Data?, NSError?) -> Void)
+    /// Translates `{"items":[{msgid, msgctxt?, plural?, n?, args?}]}`,
+    /// replying `{"texts":[...]}` in order. One call per screen keeps
+    /// plural and formatted strings core-side without per-string IPC.
+    func localeBatch(_ document: Data, reply: @escaping (Data?, NSError?) -> Void)
 }
 
 /// Status ordinals shared with the core, mirroring `core/include/browsercore.h`.

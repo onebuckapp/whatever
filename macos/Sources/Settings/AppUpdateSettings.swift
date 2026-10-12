@@ -82,47 +82,57 @@ final class AppUpdateSettings: ObservableObject {
         #endif
     }
 
-    /// Title line for the update row under `status`.
+    /// Title line for the update row under `status`. Static per status,
+    /// so plain `tr()`; the switch re-evaluates on every read, which is
+    /// what re-words the row after a language switch.
     var title: String {
         switch status {
         case .idle:
-            "Software update"
+            tr("Software update", ctx: "Update")
         case .checking:
-            "Checking for updates"
+            tr("Checking for updates", ctx: "Update")
         case .upToDate:
-            "Whatever is up to date"
+            tr("Whatever is up to date", ctx: "Update")
         case .available:
-            "Update available"
+            tr("Update available", ctx: "Update")
         case .noCompatibleDownload:
-            "Update available"
+            tr("Update available", ctx: "Update")
         case .failed:
-            "Could not check for updates"
+            tr("Could not check for updates", ctx: "Update")
         case .downloading:
-            "Downloading update"
+            tr("Downloading update", ctx: "Update")
         case .downloaded:
-            "Update downloaded"
+            tr("Update downloaded", ctx: "Update")
         }
     }
 
-    /// Detail line under the title.
+    /// Detail line under the title. Interpolated values (versions, file
+    /// names) are opaque strings filled into translated templates — pure
+    /// substitution, so this stays synchronous like `title`.
     var subtitle: String {
         switch status {
         case .idle:
-            "Whatever \(currentVersion) is installed."
+            tr("Whatever {version} is installed.", ctx: "Update", args: ["version": currentVersion])
         case .checking:
-            "Asking GitHub for the latest release."
+            tr("Asking GitHub for the latest release.", ctx: "Update")
         case .upToDate:
-            "Whatever \(currentVersion) is the latest release."
+            tr("Whatever {version} is the latest release.", ctx: "Update", args: ["version": currentVersion])
         case .available(let version):
-            "Whatever \(version) is available — you have \(currentVersion)."
+            tr("Whatever {version} is available — you have {current}.", ctx: "Update", args: [
+                "version": version,
+                "current": currentVersion,
+            ])
         case .noCompatibleDownload(let version):
-            "Whatever \(version) is available, but it ships no disk image for this Mac."
+            tr("Whatever {version} is available, but it ships no disk image for this Mac.", ctx: "Update", args: ["version": version])
         case .failed(let message):
             message
         case .downloading(let version):
-            "Downloading Whatever \(version)."
+            tr("Downloading Whatever {version}.", ctx: "Update", args: ["version": version])
         case .downloaded(let version, let fileURL):
-            "Whatever \(version) is in \(fileURL.lastPathComponent) — open it to update."
+            tr("Whatever {version} is in {file} — open it to update.", ctx: "Update", args: [
+                "version": version,
+                "file": fileURL.lastPathComponent,
+            ])
         }
     }
 
@@ -153,7 +163,7 @@ final class AppUpdateSettings: ObservableObject {
             status = .available(version: latest)
         } catch {
             status = .failed(message: (error as? AppUpdateError)?.message
-                ?? "The check failed. Check your connection and try again.")
+                ?? tr("The check failed. Check your connection and try again.", ctx: "Update"))
         }
     }
 
@@ -172,7 +182,7 @@ final class AppUpdateSettings: ObservableObject {
             let destination = try moveToDownloads(temporaryURL, filename: asset.name)
             status = .downloaded(version: version, fileURL: destination)
         } catch {
-            status = .failed(message: "The download failed. Check your connection and try again.")
+            status = .failed(message: tr("The download failed. Check your connection and try again.", ctx: "Update"))
         }
     }
 
@@ -355,13 +365,13 @@ enum AppUpdateError: Error {
     var message: String {
         switch self {
         case .network:
-            "The check failed. Check your connection and try again."
+            tr("The check failed. Check your connection and try again.", ctx: "Update")
         case .rateLimited:
-            "GitHub is rate-limiting update checks. Try again in a little while."
+            tr("GitHub is rate-limiting update checks. Try again in a little while.", ctx: "Update")
         case .noReleases:
-            "GitHub reports no releases yet. Try again later."
+            tr("GitHub reports no releases yet. Try again later.", ctx: "Update")
         case .unparsable:
-            "GitHub answered unexpectedly. Try again later."
+            tr("GitHub answered unexpectedly. Try again later.", ctx: "Update")
         }
     }
 }

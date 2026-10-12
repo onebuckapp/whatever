@@ -1072,4 +1072,84 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
             reply(url.withCString { bc_history_should_record($0) }, nil)
         }
     }
+
+    // MARK: Locale
+
+    func localeInit(_ moDir: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = moDir.withCString { bc_locale_init($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func localeSet(_ tag: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = tag.withCString { bc_locale_set($0) }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func localeGet(reply: @escaping (String?, NSError?) -> Void) {
+        serve {
+            // Two-phase like every other document call: the core answers
+            // the NULL probe with `bufferTooSmall` plus the size, never
+            // with `ok`. (A hand-rolled probe here once expected `ok` and
+            // failed every language switch.)
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_locale_get(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.text, nil)
+        }
+    }
+
+    func localeLanguages(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_locale_languages(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func localeTable(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_locale_table(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func localeBatch(_ document: Data, reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try document.withUnsafeBytes { raw in
+                    guard let base = raw.bindMemory(to: CChar.self).baseAddress else {
+                        throw StoreErrors.make(from: StoreStatus.badInput.rawValue, message: "Empty translation batch.")
+                    }
+                    return try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_locale_batch(base, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
 }

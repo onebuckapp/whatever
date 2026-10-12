@@ -693,6 +693,7 @@ final class TabBarContainerView: NSView {
     /// scroll position, strip width, or container width changes.
     private let fadeMask = CAGradientLayer()
     private var boundsObserver: NSObjectProtocol?
+    private var localeObserver: NSObjectProtocol?
 
     /// The fade state, for tests: whether the left / right edge currently
     /// shows its fade.
@@ -759,6 +760,16 @@ final class TabBarContainerView: NSView {
         if let boundsObserver {
             NotificationCenter.default.removeObserver(boundsObserver)
         }
+        if let localeObserver {
+            NotificationCenter.default.removeObserver(localeObserver)
+        }
+    }
+
+    /// Re-applies the new-tab VoiceOver name and tooltip: AppKit views do
+    /// not rebuild on the revision tick.
+    private func applyLanguage() {
+        newTabButton.image?.accessibilityDescription = tr("New Tab", ctx: "Tabs")
+        newTabButton.toolTip = tr("New Tab", ctx: "Tabs")
     }
 
     private func setUpSubviews() {
@@ -788,12 +799,20 @@ final class TabBarContainerView: NSView {
 
         // Same glyph treatment as the top bar buttons: the default cut
         // renders ~16pt tall, and 13.5 lands ~18 with a medium weight.
-        newTabButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "New Tab")?
+        newTabButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: tr("New Tab", ctx: "Tabs"))?
             .withSymbolConfiguration(.init(pointSize: 13.5, weight: .medium))
-        newTabButton.toolTip = "New Tab"
+        newTabButton.toolTip = tr("New Tab", ctx: "Tabs")
         newTabButton.target = self
         newTabButton.action = #selector(newTabTapped)
         addSubview(newTabButton)
+        applyLanguage()
+        localeObserver = NotificationCenter.default.addObserver(
+            forName: .localizationDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyLanguage()
+        }
 
         // The mask lives on the scroll view, whose bounds never move: only
         // the clip view's bounds origin changes as the strip scrolls. The

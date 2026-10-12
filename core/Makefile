@@ -8,12 +8,16 @@ NIM_SOURCES := nim-core/browsercore.nim nim-core/api/abi.nim nim-core/api/qr_api
 	nim-core/api/history_api.nim nim-core/api/session_api.nim \
 	nim-core/api/feed_api.nim nim-core/api/filter_api.nim \
 	nim-core/api/find_api.nim nim-core/api/downloads_api.nim \
+	nim-core/api/locale_api.nim \
 	nim-core/storage/database.nim nim-core/storage/schema.nim
-.PHONY: all build test check-abi clean
+LOCALE_DIR := $(CURDIR)/../locale
+MSGFMT_SRC := nim-core/tools/msgfmt.nim
+MSGFMT := build/msgfmt
+.PHONY: all build locale test check-abi clean
 
 all: build
 
-build: $(LIB)
+build: $(LIB) locale
 
 # Nim needs no entry point for a static library; every exported proc is
 # pulled in on demand by the linker.
@@ -33,6 +37,20 @@ build: $(LIB)
 $(LIB): $(NIM_SOURCES) nim-core/browsercore.nimble
 	clue build $(NIM_SRC) --release --app:staticlib \
 		$(NIM_FLAGS) --out:$(LIB)
+
+# Compiled gettext catalogs for every `locale/<lang>.po`, using openparser
+# itself as the msgfmt so no external gettext install is needed. English
+# needs no catalog (the msgids are English), so zero `.po` files is a
+# normal state, not an error.
+locale: $(MSGFMT)
+	@if ls $(LOCALE_DIR)/*.po >/dev/null 2>&1; then \
+		./$(MSGFMT) $(LOCALE_DIR); \
+	else \
+		echo "locale: no .po files (English needs none)"; \
+	fi
+
+$(MSGFMT): $(MSGFMT_SRC) nim-core/browsercore.nimble
+	cd nim-core && clue build tools/msgfmt.nim --release --out:../build/msgfmt
 
 test:
 	cd nim-core && clue test $(NIM_FLAGS)

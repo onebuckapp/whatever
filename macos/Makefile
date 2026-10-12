@@ -9,6 +9,9 @@ XCODEGEN := $(shell command -v xcodegen || echo /usr/local/bin/xcodegen)
 CORE_DIR := $(CURDIR)/../core
 CORE_LIB := $(CORE_DIR)/build/libbrowsercore.a
 CORE_SOURCES := $(shell find $(CORE_DIR)/nim-core -name '*.nim' 2>/dev/null)
+# Compiled gettext catalogs, built by `make -C core` from locale/*.po.
+LOCALE_DIR := $(CURDIR)/../locale
+LOCALE_DEST := $(APP)/Contents/Resources/locale
 
 .PHONY: generate build release run run-release clean core test-core check-abi
 
@@ -29,6 +32,12 @@ $(CORE_LIB): $(CORE_SOURCES)
 
 build: generate $(CORE_LIB)
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -derivedDataPath "$(DERIVED_DATA)" build
+	@for mo in $(LOCALE_DIR)/*/LC_MESSAGES/whatever.mo; do \
+		[ -e "$$mo" ] || continue; \
+		lang=$$(basename $$(dirname $$(dirname "$$mo"))); \
+		mkdir -p "$(LOCALE_DEST)/$$lang/LC_MESSAGES"; \
+		cp "$$mo" "$(LOCALE_DEST)/$$lang/LC_MESSAGES/whatever.mo"; \
+	done
 
 # The optimised configuration, alongside Debug rather than instead of it: both
 # products live under the same derived data path and neither build dirties the

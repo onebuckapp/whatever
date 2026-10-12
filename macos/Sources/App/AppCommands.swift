@@ -22,17 +22,17 @@ import SwiftUI
 /// Hide, Quit) comes from the SwiftUI `App` lifecycle.
 struct TabCommands: Commands {
     var body: some Commands {
-        CommandMenu("Tab") {
+        CommandMenu(tr("Tab", ctx: "Menu.Tab")) {
             // New Tab, New Window and New Incognito Window live in File (see
             // `WhateverApp`), where people reach for them. They used to be
             // here, but a shortcut cannot be shown in two menus: SwiftUI gives
             // it to whichever comes first and strips the other, like ⌘W below.
-            Button("Search History") {
+            Button(tr("Search History", ctx: "Menu.Tab")) {
                 BrowserCoordinator.shared.keyController?.focusAddressBar()
             }
             .keyboardShortcut("l", modifiers: [.command, .shift])
 
-            Button("Focus Address Bar") {
+            Button(tr("Focus Address Bar", ctx: "Menu.Tab")) {
                 BrowserCoordinator.shared.keyController?.focusAddressBar()
             }
             .keyboardShortcut("l", modifiers: .command)
@@ -45,24 +45,24 @@ struct TabCommands: Commands {
             // really closes the tab. `BrowserWindow.performClose` is where ⌘W is
             // handled, and `AppDelegate` renames that File item to match.
 
-            Button("Reopen Closed Tab") {
+            Button(tr("Reopen Closed Tab", ctx: "Menu.Tab")) {
                 BrowserCoordinator.shared.reopenClosedTab()
             }
             .keyboardShortcut("t", modifiers: [.command, .shift])
 
-            Button("Move Tab to New Window") {
+            Button(tr("Move Tab to New Window", ctx: "Menu.Tab")) {
                 guard let tab = BrowserCoordinator.shared.keyController?.selectedTab else { return }
                 BrowserCoordinator.shared.newWindow(containing: tab)
             }
 
             Divider()
 
-            Button("Show Previous Tab") {
+            Button(tr("Show Previous Tab", ctx: "Menu.Tab")) {
                 BrowserCoordinator.shared.selectPreviousTab()
             }
             .keyboardShortcut("[", modifiers: [.command, .shift])
 
-            Button("Show Next Tab") {
+            Button(tr("Show Next Tab", ctx: "Menu.Tab")) {
                 BrowserCoordinator.shared.selectNextTab()
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
@@ -70,40 +70,40 @@ struct TabCommands: Commands {
             Divider()
 
             ForEach(1..<10) { number in
-                Button("Select Tab \(number)") {
+                Button(tr("Select Tab {n}", ctx: "Menu.Tab", args: ["n": "\(number)"])) {
                     BrowserCoordinator.shared.selectTab(at: number - 1)
                 }
                 .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
             }
         }
 
-        CommandMenu("Split") {
-            Button("Split with Next Tab") {
+        CommandMenu(tr("Split", ctx: "Menu.Split")) {
+            Button(tr("Split with Next Tab", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.splitWithNextTab()
             }
 
-            Button("Split with Previous Tab") {
+            Button(tr("Split with Previous Tab", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.splitWithPreviousTab()
             }
 
             Divider()
 
-            Button("Focus Next Pane") {
+            Button(tr("Focus Next Pane", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.focusNextPane()
             }
 
-            Button("Focus Previous Pane") {
+            Button(tr("Focus Previous Pane", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.focusPreviousPane()
             }
 
-            Button("Collapse Split") {
+            Button(tr("Collapse Split", ctx: "Menu.Split")) {
                 BrowserCoordinator.shared.keyController?.collapseSplit()
             }
             .disabled(BrowserCoordinator.shared.keyController?.isSplit != true)
 
             Divider()
 
-            Button("Close Pane") {
+            Button(tr("Close Pane", ctx: "Menu.Split")) {
                 guard let controller = BrowserCoordinator.shared.keyController,
                       let tab = controller.selectedTab
                 else { return }

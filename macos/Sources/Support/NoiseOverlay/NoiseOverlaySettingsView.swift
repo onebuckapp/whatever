@@ -108,7 +108,7 @@ struct NoiseOverlaySettingsCard: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Toggle("Grain", isOn: settings.enabledBinding)
+            Toggle(tr("Grain", ctx: "Settings.Appearance"), isOn: settings.enabledBinding)
                 .toggleStyle(.switch)
                 .controlSize(.small)
             Spacer()
@@ -117,7 +117,7 @@ struct NoiseOverlaySettingsCard: View {
             } label: {
                 Image(systemName: "dice")
             }
-            .help("Generate a different grain")
+            .help(tr("Generate a different grain", ctx: "Settings.Appearance"))
             .buttonStyle(.borderless)
         }
         .padding(.horizontal, 14)
@@ -127,7 +127,7 @@ struct NoiseOverlaySettingsCard: View {
     @ViewBuilder
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Color", selection: settings.colorModeBinding) {
+            Picker(tr("Color", ctx: "Settings.Appearance"), selection: settings.colorModeBinding) {
                 ForEach(GrainColorMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -136,10 +136,10 @@ struct NoiseOverlaySettingsCard: View {
             .labelsHidden()
             .disabled(!configuration.isEnabled)
 
-            slider("Opacity", value: settings.opacityBinding, range: 0...0.5)
-            slider("Intensity", value: settings.intensityBinding, range: 0...1)
-            slider("Contrast", value: settings.contrastBinding, range: 1...8)
-            slider("Grain Size", value: settings.grainScaleBinding, range: 1...4)
+            slider(tr("Opacity", ctx: "Settings.Appearance"), value: settings.opacityBinding, range: 0...0.5)
+            slider(tr("Intensity", ctx: "Settings.Appearance"), value: settings.intensityBinding, range: 0...1)
+            slider(tr("Contrast", ctx: "Settings.Appearance"), value: settings.contrastBinding, range: 1...8)
+            slider(tr("Grain Size", ctx: "Settings.Appearance"), value: settings.grainScaleBinding, range: 1...4)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -147,12 +147,12 @@ struct NoiseOverlaySettingsCard: View {
 
     private var footer: some View {
         HStack {
-            Button("Reset") {
+            Button(tr("Reset", ctx: "Settings.Appearance")) {
                 settings.reset()
             }
             .controlSize(.small)
             Spacer()
-            Button("Save") {
+            Button(tr("Save", ctx: "Settings.Appearance")) {
                 // Values apply live; persisting is already done on every
                 // change, so this only ends the editing session.
                 onSave?()

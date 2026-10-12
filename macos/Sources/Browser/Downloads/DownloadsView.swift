@@ -26,6 +26,12 @@ import SwiftUI
 /// forgets the history, never touches the disk.
 struct DownloadsView: View {
     @ObservedObject var store: DownloadsStore
+    // Observed for `revision`: the footer count re-resolves below without
+    // reopening the card.
+    @ObservedObject private var localization = Localization.shared
+    /// Finished footer line, resolved core-side: plural form selection
+    /// cannot happen in a synchronous row.
+    @State private var footerLabel = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,11 +53,14 @@ struct DownloadsView: View {
         .task {
             store.load()
         }
+        .task(id: "\(store.items.count)-\(localization.revision)") {
+            await resolveFooter()
+        }
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("Downloads")
+            Text(tr("Downloads", ctx: "Downloads"))
                 .font(.system(size: 13, weight: .semibold))
             if store.isLoading {
                 ProgressView()
@@ -65,7 +74,7 @@ struct DownloadsView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("Refresh")
+            .help(tr("Refresh", ctx: "Downloads"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -79,14 +88,14 @@ struct DownloadsView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("Retry") {
+                Button(tr("Retry", ctx: "Downloads")) {
                     store.refresh()
                 }
                 .controlSize(.small)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.items.isEmpty, !store.isLoading {
-            Text("No downloads yet.")
+            Text(tr("No downloads yet.", ctx: "Downloads"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -100,7 +109,7 @@ struct DownloadsView: View {
 
     private var footer: some View {
         HStack {
-            Text(footerText)
+            Text(footerLabel)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
@@ -109,12 +118,18 @@ struct DownloadsView: View {
         .padding(.vertical, 8)
     }
 
-    private var footerText: String {
-        switch store.items.count {
-        case 0: "Nothing downloaded"
-        case 1: "1 item"
-        default: "\(store.items.count) items"
+    /// One batch call resolves the footer line in its own words for every
+    /// count. Empty history reads as its own sentence.
+    private func resolveFooter() async {
+        let count = store.items.count
+        guard count > 0 else {
+            footerLabel = tr("Nothing downloaded", ctx: "Downloads")
+            return
         }
+        let texts = await Localization.batch([
+            LocaleItem("one downloaded item", plural: "{n} downloaded items", n: count),
+        ])
+        footerLabel = texts.first ?? "\(count) items"
     }
 }
 
@@ -149,15 +164,15 @@ private struct DownloadRow: View {
             openItem()
         }
         .contextMenu {
-            Button("Open") { openItem() }
+            Button(tr("Open", ctx: "Downloads")) { openItem() }
                 .disabled(item.isMissing)
-            Button("Reveal in Finder") { revealItem() }
+            Button(tr("Reveal in Finder", ctx: "Downloads")) { revealItem() }
                 .disabled(item.isMissing)
             if item.state == .failed {
-                Button("Retry") { store.retry(item) }
+                Button(tr("Retry", ctx: "Downloads")) { store.retry(item) }
             }
             Divider()
-            Button("Remove from List") {
+            Button(tr("Remove from List", ctx: "Downloads")) {
                 Task { await store.remove(item) }
             }
         }
@@ -167,13 +182,13 @@ private struct DownloadRow: View {
     /// there is nothing to open, whatever the download ended as.
     private var stateBadge: some View {
         let (text, color): (String, Color) = if item.isMissing {
-            ("Deleted", .red)
+            (tr("Deleted", ctx: "Downloads"), .red)
         } else {
             switch item.state {
-            case .inProgress: ("Downloading", .accentColor)
-            case .done: ("Done", .secondary)
-            case .failed: ("Failed", .red)
-            case .cancelled: ("Cancelled", .secondary)
+            case .inProgress: (tr("Downloading", ctx: "Downloads"), .accentColor)
+            case .done: (tr("Done", ctx: "Downloads"), .secondary)
+            case .failed: (tr("Failed", ctx: "Downloads"), .red)
+            case .cancelled: (tr("Cancelled", ctx: "Downloads"), .secondary)
             }
         }
         return Text(text)
@@ -220,7 +235,7 @@ private enum DownloadFormatters {
     /// transfer.
     static func size(_ item: DownloadItem) -> String {
         if item.bytesExpected > 0, item.state == .inProgress {
-            return "\(bytes.string(fromByteCount: item.bytesReceived)) of \(bytes.string(fromByteCount: item.bytesExpected))"
+            return tr("{received} of {expected}", ctx: "Downloads", args: ["received": bytes.string(fromByteCount: item.bytesReceived), "expected": bytes.string(fromByteCount: item.bytesExpected)])
         }
         if item.bytesExpected > 0 {
             return bytes.string(fromByteCount: item.bytesExpected)
@@ -228,7 +243,7 @@ private enum DownloadFormatters {
         if item.bytesReceived > 0 {
             return bytes.string(fromByteCount: item.bytesReceived)
         }
-        return "Unknown size"
+        return tr("Unknown size", ctx: "Downloads")
     }
 
     static func date(_ date: Date) -> String {

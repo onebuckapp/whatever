@@ -74,19 +74,19 @@ struct FeedArticleDetailView: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text("Only the summary is available for this article.")
+                    Text(tr("Only the summary is available for this article.", ctx: "Feeds"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
                 HStack {
-                    Button("Open article", action: onOpenInCurrentTab)
+                    Button(tr("Open article", ctx: "Feeds"), action: onOpenInCurrentTab)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
-                    Button("Open in new tab", action: onOpenInNewTab)
+                    Button(tr("Open in new tab", ctx: "Feeds"), action: onOpenInNewTab)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                     Spacer(minLength: 8)
-                    Button("Back to articles", action: onClose)
+                    Button(tr("Back to articles", ctx: "Feeds"), action: onClose)
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }

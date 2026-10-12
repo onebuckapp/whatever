@@ -23,6 +23,9 @@ import SwiftUI
 /// cards, then collapse to one column on narrow windows.
 struct FeedReaderView: View {
     @ObservedObject private var coordinator = FeedReaderCoordinator.shared
+    // Observed for `revision`: every label below re-resolves without
+    // reopening the reader.
+    @ObservedObject private var localization = Localization.shared
     @State private var selectedArticleID: Int64?
     @State private var detail: FeedArticleDetail?
     @State private var isLoadingDetail = false
@@ -64,11 +67,11 @@ struct FeedReaderView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Feeds")
+                Text(tr("Feeds", ctx: "Feeds"))
                     .font(.system(size: 15, weight: .semibold))
                 Spacer(minLength: 8)
                 if let selected = selectedSubscription {
-                    Toggle("Unread only", isOn: $onlyUnread)
+                    Toggle(tr("Unread only", ctx: "Feeds"), isOn: $onlyUnread)
                         .toggleStyle(.checkbox)
                         .controlSize(.small)
                         .onChange(of: onlyUnread) {
@@ -77,24 +80,24 @@ struct FeedReaderView: View {
                     Button {
                         Task { await store.refresh(selected) }
                     } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Label(tr("Refresh", ctx: "Feeds"), systemImage: "arrow.clockwise")
                     }
                     .controlSize(.small)
                     .disabled(store.isRefreshing)
                     Button(role: .destructive) {
                         Task { await store.unsubscribe(selected) }
                     } label: {
-                        Label("Unsubscribe", systemImage: "trash")
+                        Label(tr("Unsubscribe", ctx: "Feeds"), systemImage: "trash")
                     }
                     .controlSize(.small)
                 }
             }
             if store.subscriptions.isEmpty {
-                Text("No subscriptions yet.")
+                Text(tr("No subscriptions yet.", ctx: "Feeds"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             } else {
-                Picker("Feed", selection: Binding(
+                Picker(tr("Feed", ctx: "Feeds"), selection: Binding(
                     get: { store.selectedFeedURL ?? "" },
                     set: { value in
                         store.selectedFeedURL = value.isEmpty ? nil : value
@@ -102,7 +105,7 @@ struct FeedReaderView: View {
                     }
                 )) {
                     ForEach(store.subscriptions) { subscription in
-                        Text("\(subscription.displayName) (\(subscription.unreadCount))")
+                        Text(tr("{name} ({n})", ctx: "Feeds", args: ["name": subscription.displayName, "n": "\(subscription.unreadCount)"]))
                             .tag(subscription.feedURL)
                     }
                 }
@@ -125,7 +128,7 @@ struct FeedReaderView: View {
 
     private var pageCandidates: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(store.allowsPersistence ? "This page offers:" : "This page offers feeds, but private tabs cannot save them.")
+            Text(store.allowsPersistence ? tr("This page offers:", ctx: "Feeds") : tr("This page offers feeds, but private tabs cannot save them.", ctx: "Feeds"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
             ForEach(store.pageCandidates, id: \.url) { candidate in
@@ -136,13 +139,13 @@ struct FeedReaderView: View {
                         .truncationMode(.middle)
                     Spacer(minLength: 8)
                     if let existing = store.subscription(for: candidate) {
-                        Button("Open") {
+                        Button(tr("Open", ctx: "Feeds")) {
                             store.selectedFeedURL = existing.feedURL
                             Task { try? await store.loadArticles(feedURL: existing.feedURL) }
                         }
                         .controlSize(.small)
                     } else {
-                        Button("Subscribe") {
+                        Button(tr("Subscribe", ctx: "Feeds")) {
                             Task { await store.subscribeToPageCandidate(candidate) }
                         }
                         .controlSize(.small)
@@ -168,7 +171,7 @@ struct FeedReaderView: View {
                     Image(systemName: "newspaper")
                         .font(.system(size: 28))
                         .foregroundStyle(.tertiary)
-                    Text(store.subscriptions.isEmpty ? "Subscribe to a feed to start reading." : "No articles match this view.")
+                    Text(store.subscriptions.isEmpty ? tr("Subscribe to a feed to start reading.", ctx: "Feeds") : tr("No articles match this view.", ctx: "Feeds"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }

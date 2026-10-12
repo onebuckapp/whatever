@@ -107,7 +107,7 @@ struct VaultSite: Identifiable, Codable, Equatable, Sendable {
     var displayName: String {
         if !name.isEmpty { return name }
         if !host.isEmpty { return host }
-        return url.isEmpty ? "Untitled site" : url
+        return url.isEmpty ? tr("Untitled site", ctx: "Passwords") : url
     }
 
     var host: String {
@@ -154,6 +154,16 @@ struct PasswordStrength: Equatable, Sendable {
         case weak
         case medium
         case strong
+
+        /// Display word for the meter, in the active language. The core
+        /// reports the raw level; the wording is presentation.
+        var label: String {
+            switch self {
+            case .weak: tr("Weak", ctx: "Passwords")
+            case .medium: tr("Medium", ctx: "Passwords")
+            case .strong: tr("Strong", ctx: "Passwords")
+            }
+        }
     }
 
     let level: Level

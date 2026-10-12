@@ -540,6 +540,63 @@ int32_t bc_download_remove(const char *id);
 /* Forgets all download history. Files on disk are untouched. */
 int32_t bc_download_clear(void);
 
+/* ------------------------------------------------------------------- locale */
+
+/* Translation lives in the core so every shell shares one engine, one
+ * fallback chain, one plural evaluator, and one placeholder convention.
+ * Sources are gettext `.po` files under the repo-root `locale/` directory,
+ * compiled to `<lang>/LC_MESSAGES/whatever.mo` at build time.
+ *
+ * `msgid` is English and is used verbatim at call sites; an untranslated
+ * entry returns its msgid, so English needs no catalog and a missing
+ * catalog degrades to English rather than failing. `msgctxt`
+ * disambiguates repeats (`Screen.Area`). Interpolation is `{name}`,
+ * filled here, and plurals go through the catalog's `Plural-Forms` rule
+ * with `n` picking the form. */
+
+/* Points the module at the directory holding `<lang>/LC_MESSAGES/`
+ * catalogs and resets to English. Each shell passes its own bundle layout,
+ * so the core never assumes where translations live on any platform. */
+int32_t bc_locale_init(const char *mo_dir);
+
+/* Activates the catalog for a BCP-47 tag (`ro-RO` tries `ro_RO` then `ro`).
+ * A missing catalog falls back to English and still returns `BC_OK`;
+ * `bc_locale_get` reports what actually loaded, so the caller can tell. */
+int32_t bc_locale_set(const char *tag);
+
+/* The active language tag (`ro`, or `en` in English mode). Same NULL
+ * contract and two-phase protocol as every other document call. */
+int32_t bc_locale_get(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Shipped translation tags as a JSON array (`["en", "ro"]`), sorted,
+ * including English: `en.po` names every string, so the picker can offer
+ * it explicitly. Empty before `bc_locale_init`, `[]` when nothing is
+ * shipped. */
+int32_t bc_locale_languages(char *buffer, int32_t capacity,
+                            int32_t *needed);
+
+/* Translates one item: `{"msgid", "msgctxt"?, "plural"?, "n"?, "args"?}`
+ * and returns the finished string — translated, plural-picked for `n`,
+ * `{name}`-formatted. Missing entries fall back to their templates, so
+ * untranslated text reads as English, never as an error. A document that
+ * is not a JSON object, or has no `msgid`, is `BC_ERR_BAD_INPUT`. */
+int32_t bc_locale_translate(const char *document, char *buffer,
+                            int32_t capacity, int32_t *needed);
+
+/* Translates `{"items":[...]}` (same shape as `bc_locale_translate`) and
+ * returns `{"texts":[...]}` in order. One call per screen keeps plural and
+ * formatted strings server-side without per-string IPC. A document without
+ * an `items` array is `BC_ERR_BAD_INPUT`. */
+int32_t bc_locale_batch(const char *document, char *buffer, int32_t capacity,
+                        int32_t *needed);
+
+/* The active catalog for shell-side caching:
+ * `{"lang": tag, "strings": {key: text}}`, where `key` is the msgid or
+ * `msgctxt & "\x04" & msgid`. Singular entries only — plural entries
+ * resolve through `bc_locale_batch`, which is what picks forms. English
+ * mode yields an empty table: the msgids are the strings. */
+int32_t bc_locale_table(char *buffer, int32_t capacity, int32_t *needed);
+
 #ifdef __cplusplus
 }
 #endif
