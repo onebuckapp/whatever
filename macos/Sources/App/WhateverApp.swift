@@ -377,6 +377,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // screen already reads translated. Fail-open: a failure leaves
             // English, which is what untranslated builds read anyway.
             await Localization.shared.refresh()
+            // The bar call at launch ran before the table filled; re-apply
+            // now that it has, whatever the system language is.
+            MenuBarRetitler.retitleBar()
             // Follows the system locale for as long as the setting says
             // "system": a language change in System Settings re-resolves
             // without a relaunch.
@@ -387,6 +390,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ) { _ in
                 Task { @MainActor in
                     await Localization.shared.refresh()
+                    MenuBarRetitler.retitleBar()
                 }
             }
             // SwiftUI rebuilds our command menus itself on the revision tick,

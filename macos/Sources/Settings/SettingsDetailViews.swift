@@ -177,7 +177,13 @@ struct GeneralSettingsView: View {
         .onAppear { defaultBrowser.refresh() }
         .task { shippedLanguages = await Localization.shippedTags() }
         .onChange(of: store.settings.general.language) {
-            Task { await Localization.shared.refresh() }
+            Task {
+                await Localization.shared.refresh()
+                // The same Task that swaps the table re-applies the
+                // AppKit-owned bar titles: they do not follow the revision
+                // tick (or the change notification) on their own.
+                MenuBarRetitler.retitleBar()
+            }
         }
     }
 
