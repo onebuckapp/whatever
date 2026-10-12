@@ -67,16 +67,20 @@ jobs:
 
   locale:
     name: translation template check
-    # No toolchain needed: the checker is a stdlib-only python script, so it
-    # runs on the cheapest runner. xgettext does not parse Swift, so this is
-    # what keeps every tr() literal and en.po in agreement.
+    # The checker is a stdlib-only Nim tool, so it needs a Nim toolchain
+    # but no clue install and no dependencies. xgettext does not parse
+    # Swift, so this is what keeps every tr() literal and en.po in agreement.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: nimbase/setup-nim-action@main
+        with:
+          nim-version: '2.2.x'
+
       - name: Every translation literal exists in the template
         shell: bash
-        run: python3 locale/check-tr.py
+        run: nim r core/nim-core/tools/check_tr.nim
 
   swift:
     name: swift app tests
