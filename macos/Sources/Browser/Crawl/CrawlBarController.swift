@@ -97,6 +97,28 @@ final class CrawlBarController {
 
     private static let sideMargin: CGFloat = 6
     private static let bottomMargin: CGFloat = 6
+    /// Mirror of the bottom margin: at the top the strip floats below the
+    /// toolbar strip with the same breathing room.
+    private static let topMargin: CGFloat = 6
+    /// The anchor the strip hangs off when it shows above the page,
+    /// provided by the owner (below its toolbar strip). Nil until the owner
+    /// sets it; without one the strip falls back to the container's top.
+    var topAnchorProvider: (() -> NSLayoutYAxisAnchor?)?
+    /// The position the bar last pinned itself for. Rebuilt when the setting
+    /// moves it while parented; the owner's own layout pass re-pins the page
+    /// around the same anchors, so either order settles.
+    private var lastPinnedPosition: AppSettings.CrawlPosition?
+    /// Position override for tests, so layout tests never touch the shared
+    /// settings document (see `forceEnabledForTesting` above for the same
+    /// seam). The owner drives it from its own layout override.
+    var crawlPositionForTesting: AppSettings.CrawlPosition? {
+        didSet { refresh() }
+    }
+
+    /// The position in force: the test override when set, Settings otherwise.
+    private var effectivePosition: AppSettings.CrawlPosition {
+        crawlPositionForTesting ?? SettingsStore.shared.settings.feeds.crawlPosition
+    }
 
     init(container: NSView, onOpenArticle: ((URL) -> Void)? = nil) {
         self.container = container
@@ -152,6 +174,11 @@ final class CrawlBarController {
         barHeight = min(max(feeds.crawlBarHeight, 18), 64)
         let enabled = forceEnabledForTesting ?? feeds.crawlEnabled
         let shouldShow = enabled && !store.headlines.isEmpty
+        // The setting moved the strip while it is parented: rebuild its
+        // edge pins so it hangs off the right edge.
+        if tickerView != nil, lastPinnedPosition != effectivePosition {
+            rebuildBarConstraints(feeds: feeds)
+        }
         if shouldShow {
             if tickerView == nil {
                 install(feeds: feeds)
@@ -281,13 +308,49 @@ final class CrawlBarController {
         guard let container else { return }
         container.addSubview(ticker)
         heightConstraint = ticker.heightAnchor.constraint(equalToConstant: barHeight)
-        barConstraints = [
+        barConstraints = edgeConstraints(for: ticker, in: container)
+        NSLayoutConstraint.activate(barConstraints)
+        lastPinnedPosition = effectivePosition
+        tickerView = ticker
+    }
+
+    /// Rebuilds the strip's edge pins after a position change, keeping the
+    /// height pin and the ticker itself. The owner reads the same setting
+    /// for its own page pins, so whichever refresh runs first, the anchors
+    /// converge without a second pass.
+    private func rebuildBarConstraints(feeds: AppSettings.FeedSettings) {
+        guard let tickerView, let container else { return }
+        NSLayoutConstraint.deactivate(barConstraints)
+        barConstraints = edgeConstraints(for: tickerView, in: container)
+        NSLayoutConstraint.activate(barConstraints)
+        lastPinnedPosition = effectivePosition
+    }
+
+    /// Edge pins for the strip: floating 6pt off the bottom edge, or 6pt
+    /// below the toolbar strip at the top. Sides and height ride along so a
+    /// rebuild replaces the whole set at once.
+    private func edgeConstraints(
+        for ticker: CrawlTickerNSView,
+        in container: NSView
+    ) -> [NSLayoutConstraint] {
+        guard let heightConstraint else { return [] }
+        let edge: NSLayoutConstraint
+        if effectivePosition == .top {
+            edge = ticker.topAnchor.constraint(
+                equalTo: topAnchorProvider?() ?? container.topAnchor,
+                constant: Self.topMargin
+            )
+        } else {
+            edge = ticker.bottomAnchor.constraint(
+                equalTo: container.bottomAnchor,
+                constant: -Self.bottomMargin
+            )
+        }
+        return [
             ticker.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: Self.sideMargin),
             ticker.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -Self.sideMargin),
-            ticker.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -Self.bottomMargin),
-            heightConstraint!,
+            edge,
+            heightConstraint,
         ]
-        NSLayoutConstraint.activate(barConstraints)
-        tickerView = ticker
     }
 }

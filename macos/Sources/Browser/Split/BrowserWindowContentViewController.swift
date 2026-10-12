@@ -24,6 +24,22 @@ import Combine
 final class BrowserWindowContentViewController: NSViewController {
     static let tabBarHeight: CGFloat = 36
 
+    /// Breathing room the top crawl bar keeps below itself, mirroring its own
+    /// top margin. The strip the bar hangs off — the tab bar when the tabs
+    /// sit on top, the page when they sit below — starts this far under it.
+    static let crawlGap: CGFloat = 6
+
+    /// The same gap tightened by 2pt where the tab strip sits directly under
+    /// the top crawl bar: the strip carries its own top breathing room, so
+    /// the full 6pt reads as too much air between the two bars.
+    static let crawlTabsGap: CGFloat = 4
+
+    /// How far the strip below the page floats off the window bottom while
+    /// pilled: the pill band's 4pt top inset, so pill tops land where
+    /// attached tops sit and the page keeps its 6pt card margin. Attached
+    /// cells meet the page flush and stay pinned.
+    static let pillsLift: CGFloat = 4
+
     private var onNewTab: (() -> Void)?
     private var dropPreview: NSView?
     private var toolbarView: NSView?
@@ -87,6 +103,48 @@ final class BrowserWindowContentViewController: NSViewController {
     /// The bottom-edge constraint of each set above, tracked separately so the
     /// crawl bar can re-pin it without matching heuristics.
     private var childBottomConstraints: [ObjectIdentifier: NSLayoutConstraint] = [:]
+    /// The top-edge constraint of each set above, tracked the same way so a
+    /// tab strip moving below the page re-pins it.
+    private var childTopConstraints: [ObjectIdentifier: NSLayoutConstraint] = [:]
+    /// Anchor below the toolbar strip (the bookmarks bar's bottom, or the
+    /// toolbar's when there is no bookmark bar), captured at install: the
+    /// page top and the tab bar hang off it in every layout.
+    private var belowToolbarAnchor: NSLayoutYAxisAnchor?
+    /// The tab bar's top pin (strip above the page) or bottom pin (below
+    /// it), rebuilt by `relayoutChrome` whenever a layout input moves. The
+    /// inactive side stays nil so a stale pin can never compete.
+    private var tabBarTopConstraint: NSLayoutConstraint?
+    private var tabBarBottomConstraint: NSLayoutConstraint?
+    /// The progress bar rides the tab bar's page-facing edge: below the bar
+    /// on top, above it at the bottom.
+    private var progressBarPinConstraint: NSLayoutConstraint?
+    /// Chrome-layout subscription: tab and crawl positions re-pin live.
+    private var chromeCancellable: AnyCancellable?
+    /// Layout inputs override for tests, so layout tests never touch the
+    /// shared settings document (see `forceEnabledForTesting` on the crawl
+    /// controller for the same seam). Setting it re-pins at once; clearing
+    /// it hands the crawl controller back to Settings too.
+    struct ChromeLayout: Equatable {
+        var tabsAtBottom = false
+        var crawlAtTop = false
+        var tabShape: TabShape = .attached
+    }
+
+    var chromeLayoutForTesting: ChromeLayout? {
+        didSet { relayoutChrome() }
+    }
+
+    /// The layout inputs in force: the test seam when set, Settings
+    /// otherwise.
+    private var chromeLayout: ChromeLayout {
+        if let chromeLayoutForTesting { return chromeLayoutForTesting }
+        let settings = SettingsStore.shared.settings
+        return ChromeLayout(
+            tabsAtBottom: settings.appearance.tabPosition == .bottom,
+            crawlAtTop: settings.feeds.crawlPosition == .top,
+            tabShape: settings.appearance.tabShape
+        )
+    }
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -101,8 +159,8 @@ final class BrowserWindowContentViewController: NSViewController {
         onNewTab = action
     }
 
-    /// Installs the toolbar strip across the top of the window and moves the tab
-    /// bar directly beneath it.
+    /// Installs the toolbar strip across the top of the window and hangs the
+    /// tab bar off the bookmarks bar beneath it.
     ///
     /// The tab bar used to hang off `view.safeAreaLayoutGuide.topAnchor`, whose 52pt
     /// inset came from the native `NSToolbar`. With that gone the safe area is
@@ -111,6 +169,10 @@ final class BrowserWindowContentViewController: NSViewController {
     ///
     /// Added below everything else so the background media, the tab bar and the
     /// progress bar all keep drawing over it where they overlap.
+    ///
+    /// The tab bar's own top pin is not installed here: `relayoutChrome` owns
+    /// it (the strip may sit below the page instead), so this only captures
+    /// the anchor it hangs off and re-runs the layout.
     func installToolbar(_ toolbar: NSView) {
         guard isViewLoaded, toolbarView == nil else { return }
         toolbar.translatesAutoresizingMaskIntoConstraints = false
@@ -119,6 +181,7 @@ final class BrowserWindowContentViewController: NSViewController {
         // toolbar; the bookmarks bar collapses to zero height when hidden,
         // so the chain holds whether or not it is showing.
         if let bookmarkBarView = bookmarkBarController?.view {
+            belowToolbarAnchor = bookmarkBarView.bottomAnchor
             NSLayoutConstraint.activate([
                 toolbar.topAnchor.constraint(equalTo: view.topAnchor),
                 toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -126,19 +189,18 @@ final class BrowserWindowContentViewController: NSViewController {
                 toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
 
                 bookmarkBarView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
-                tabBar.topAnchor.constraint(equalTo: bookmarkBarView.bottomAnchor),
             ])
         } else {
+            belowToolbarAnchor = toolbar.bottomAnchor
             NSLayoutConstraint.activate([
                 toolbar.topAnchor.constraint(equalTo: view.topAnchor),
                 toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 toolbar.heightAnchor.constraint(equalToConstant: BrowserToolbarView.height),
-
-                tabBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             ])
         }
         toolbarView = toolbar
+        relayoutChrome()
     }
 
     /// Opens the grain settings card, or closes it when already open.
@@ -699,16 +761,29 @@ final class BrowserWindowContentViewController: NSViewController {
     /// height, because the bar is inset by the window's safe area now that the
     /// window is full-size.
     ///
-    /// Shrinks from the bottom while the headline crawl is visible, so drop
-    /// zones never claim the strip the ticker occupies.
+    /// Shrinks from the bottom while the headline crawl shows below the
+    /// tabs, and from the top while the tab strip sits below the page (or
+    /// the crawl shows above it), so drop zones never claim a strip the
+    /// ticker or the tabs occupy.
     var pageAreaRect: NSRect {
-        let top = tabBar.frame.maxY
-        let bottom = crawlBarController?.occupiedHeight ?? 0
+        let crawlVisible = isCrawlVisible
+        let top: CGFloat
+        let bottomInset: CGFloat
+        if tabsAtBottom {
+            top = crawlVisible && crawlAtTop
+                ? (crawlBarController?.barView?.frame.maxY ?? 0) + Self.crawlGap
+                : ((bookmarkBarController?.view.frame.maxY) ?? toolbarView?.frame.maxY ?? 0)
+            bottomInset = tabBar.frame.height + bottomStripLift
+                + (crawlVisible && !crawlAtTop ? (crawlBarController?.occupiedHeight ?? 0) : 0)
+        } else {
+            top = tabBar.frame.maxY
+            bottomInset = crawlVisible && !crawlAtTop ? (crawlBarController?.occupiedHeight ?? 0) : 0
+        }
         return NSRect(
             x: 0,
             y: top,
             width: view.bounds.width,
-            height: max(0, view.bounds.height - top - bottom)
+            height: max(0, view.bounds.height - top - bottomInset)
         )
     }
 
@@ -737,20 +812,24 @@ final class BrowserWindowContentViewController: NSViewController {
         view.addSubview(progressBar)
 
         NSLayoutConstraint.activate([
-            // The top edge comes from `installToolbar`, which pins this to the
-            // bottom of the toolbar strip. It used to come from the view's safe
-            // area, whose inset the native toolbar supplied.
+            // The top edge comes from `relayoutChrome`, which pins this to
+            // the bottom of the toolbar strip — or to the window bottom when
+            // the strip sits below the page. It used to come from the view's
+            // safe area, whose inset the native toolbar supplied.
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),
 
-            progressBar.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
             progressBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             progressBar.heightAnchor.constraint(equalToConstant: Self.progressHeight),
             progressBar.widthAnchor.constraint(
                 lessThanOrEqualTo: view.widthAnchor
             ),
         ])
+        // Owned by `relayoutChrome` like the tab bar's own pins: the bar
+        // rides the tab bar's page-facing edge, which swaps sides with it.
+        progressBarPinConstraint = progressBar.topAnchor.constraint(equalTo: tabBar.bottomAnchor)
+        progressBarPinConstraint?.isActive = true
 
         // The bookmarks strip: always parented, between the toolbar and the
         // tab bar (see `installToolbar`). Hidden and zero-height until the
@@ -798,6 +877,15 @@ final class BrowserWindowContentViewController: NSViewController {
             }
         background.configuration = SettingsStore.shared.settings.appearance.background
         installCrawlBar()
+        // Chrome layout follows the tab shape and positions live: the strips
+        // swap edges without a relaunch. Fires at once with the current
+        // values, which lays out the default chain before the toolbar
+        // install re-pins it onto the bookmark bar.
+        chromeCancellable = SettingsStore.shared.$settings
+            .map { ($0.appearance.tabPosition, $0.feeds.crawlPosition, $0.appearance.tabShape) }
+            .removeDuplicates { $0 == $1 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.relayoutChrome() }
     }
 
     /// Where a parked child's view is moved to, horizontally.
@@ -857,11 +945,10 @@ final class BrowserWindowContentViewController: NSViewController {
             forgetConstraints(for: controller)
             let bottom = pageBottomConstraint(for: controller.view)
             childBottomConstraints[key] = bottom
+            let top = pageTopConstraint(for: controller.view)
+            childTopConstraints[key] = top
             childConstraints[key] = [
-                // Anchored to the tab bar rather than to the view's top plus the
-                // bar's height, because the bar no longer sits at the top of the
-                // view now that the window is full-size.
-                controller.view.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
+                top,
                 controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 bottom,
@@ -915,6 +1002,9 @@ final class BrowserWindowContentViewController: NSViewController {
             // underneath would lose where the user was reading.
             self?.onOpenFeedArticle?(url, true)
         }
+        // The strip hangs off the toolbar strip when it shows above the
+        // page; read live so a late bookmark bar still moves it.
+        controller.topAnchorProvider = { [weak self] in self?.belowToolbarAnchor }
         controller.onVisibilityChanged = { [weak self] in
             self?.crawlVisibilityChanged()
         }
@@ -925,15 +1015,159 @@ final class BrowserWindowContentViewController: NSViewController {
     /// Re-pins the page area and restores sibling order after the crawl bar
     /// enters, leaves, or is first installed.
     private func crawlVisibilityChanged() {
-        updateCrawlBottomPins()
+        relayoutChrome()
         crawlBarController?.bringToFront()
         noiseOverlay?.moveToFront()
     }
 
-    /// The page area's bottom edge: the crawl bar's top while it is visible,
+    /// Whether the tab strip sits below the page.
+    private var tabsAtBottom: Bool {
+        chromeLayout.tabsAtBottom
+    }
+
+    /// Whether the crawl bar sits above the page instead of below the tabs.
+    private var crawlAtTop: Bool {
+        chromeLayout.crawlAtTop
+    }
+
+    /// How far the strip below the page floats off its bottom pin: the pill
+    /// lift while pilled, pinned flush otherwise. Read off the layout in
+    /// force, so the test seam drives it like every other input.
+    private var bottomStripLift: CGFloat {
+        let layout = chromeLayout
+        return layout.tabsAtBottom && layout.tabShape == .pills ? Self.pillsLift : 0
+    }
+
+    /// Whether the crawl bar is parented in the window: the same test
+    /// `pageBottomConstraint` uses, so pins and insets agree on it.
+    private var isCrawlVisible: Bool {
+        if let bar = crawlBarController?.barView, bar.superview === view {
+            return true
+        }
+        return false
+    }
+
+    /// Re-pins the tab bar, the progress bar, and every child's page pins
+    /// after a layout input moves: tab position, crawl position, tab shape,
+    /// or crawl visibility. Single funnel so the chain converges together;
+    /// pins reference anchors rather than frames, so a pass that runs before
+    /// the crawl bar re-pins itself still settles on the next layout.
+    private func relayoutChrome() {
+        let tabsBottom = tabsAtBottom
+        let crawlVisible = isCrawlVisible
+        let crawlTop = crawlVisible && crawlAtTop
+        let crawlBottom = crawlVisible && !crawlAtTop
+        // A test seam drives the crawl controller's own pins too, so one
+        // override moves the whole chain. Production never sets it: the
+        // controller reads Settings itself. Assigned only on change, so
+        // steady-state ticks never re-push the ticker.
+        let wantedCrawlPosition: AppSettings.CrawlPosition? = chromeLayoutForTesting.map {
+            $0.crawlAtTop ? .top : .bottom
+        }
+        if crawlBarController?.crawlPositionForTesting != wantedCrawlPosition {
+            crawlBarController?.crawlPositionForTesting = wantedCrawlPosition
+        }
+        retire(tabBarTopConstraint)
+        tabBarTopConstraint = nil
+        retire(tabBarBottomConstraint)
+        tabBarBottomConstraint = nil
+        if tabsBottom {
+            // Pills float off the bottom pin by their band inset; attached
+            // cells stay pinned flush. Same sign convention as the page
+            // card's own bottom inset: negative lifts off the edge.
+            let lift = bottomStripLift
+            if crawlBottom, let bar = crawlBarController?.barView {
+                tabBarBottomConstraint = tabBar.bottomAnchor.constraint(
+                    equalTo: bar.topAnchor, constant: -lift)
+            } else {
+                tabBarBottomConstraint = tabBar.bottomAnchor.constraint(
+                    equalTo: view.bottomAnchor, constant: -lift)
+            }
+            tabBarBottomConstraint?.isActive = true
+        } else {
+            if crawlTop, let bar = crawlBarController?.barView {
+                tabBarTopConstraint = tabBar.topAnchor.constraint(
+                    equalTo: bar.bottomAnchor, constant: Self.crawlTabsGap)
+            } else {
+                tabBarTopConstraint = tabBar.topAnchor.constraint(equalTo: belowToolbarAnchor ?? view.topAnchor)
+            }
+            tabBarTopConstraint?.isActive = true
+        }
+        retire(progressBarPinConstraint)
+        if tabsBottom {
+            progressBarPinConstraint = progressBar.bottomAnchor.constraint(equalTo: tabBar.topAnchor)
+        } else {
+            progressBarPinConstraint = progressBar.topAnchor.constraint(equalTo: tabBar.bottomAnchor)
+        }
+        progressBarPinConstraint?.isActive = true
+        updatePageTopPins()
+        updateCrawlBottomPins()
+    }
+
+    /// Retires a chrome pin: deactivates it and drops it from the view, so
+    /// repeated relayouts neither compete nor accumulate. A pin that was
+    /// never installed is owed nothing and skipped.
+    private func retire(_ constraint: NSLayoutConstraint?) {
+        guard let constraint else { return }
+        constraint.isActive = false
+        if view.constraints.contains(constraint) {
+            view.removeConstraint(constraint)
+        }
+    }
+
+    /// The page area's top edge: below the tab bar while it sits on top;
+    /// below the toolbar strip — or the top crawl bar — while the tabs sit
+    /// below the page.
+    ///
+    /// Anchored to the tab bar rather than to the view's top plus the bar's
+    /// height, because the bar no longer sits at the top of the view now
+    /// that the window is full-size.
+    private func pageTopConstraint(for childView: NSView) -> NSLayoutConstraint {
+        if !tabsAtBottom {
+            return childView.topAnchor.constraint(equalTo: tabBar.bottomAnchor)
+        }
+        if crawlAtTop, let bar = crawlBarController?.barView, bar.superview === view {
+            return childView.topAnchor.constraint(
+                equalTo: bar.bottomAnchor, constant: Self.crawlGap)
+        }
+        return childView.topAnchor.constraint(equalTo: belowToolbarAnchor ?? view.topAnchor)
+    }
+
+    /// Re-pins every child's top edge after the tab strip moves or the top
+    /// crawl bar enters or leaves. Same mechanics as
+    /// `updateCrawlBottomPins` (see it for why activation never consults
+    /// `isActive`): only the tracked top constraint of each set is replaced.
+    private func updatePageTopPins() {
+        for child in children {
+            let key = ObjectIdentifier(child)
+            guard var constraints = childConstraints[key],
+                  let old = childTopConstraints[key],
+                  let index = constraints.firstIndex(of: old)
+            else { continue }
+            let replacement = pageTopConstraint(for: child.view)
+            let parked = child.view.translatesAutoresizingMaskIntoConstraints
+            old.isActive = false
+            if view.constraints.contains(old) {
+                view.removeConstraint(old)
+            }
+            if !parked {
+                replacement.isActive = true
+            }
+            constraints[index] = replacement
+            childConstraints[key] = constraints
+            childTopConstraints[key] = replacement
+        }
+    }
+
+    /// The page area's bottom edge: the tab bar's top while the strip sits
+    /// below the page (the crawl bar, if showing below, hangs off the tabs,
+    /// not the page), the crawl bar's top while it shows below the tabs,
     /// the window bottom otherwise.
     private func pageBottomConstraint(for childView: NSView) -> NSLayoutConstraint {
-        if let bar = crawlBarController?.barView, bar.superview === view {
+        if tabsAtBottom {
+            return childView.bottomAnchor.constraint(equalTo: tabBar.topAnchor)
+        }
+        if !crawlAtTop, let bar = crawlBarController?.barView, bar.superview === view {
             return childView.bottomAnchor.constraint(equalTo: bar.topAnchor)
         }
         return childView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -1019,6 +1253,7 @@ final class BrowserWindowContentViewController: NSViewController {
         guard let constraints = childConstraints.removeValue(forKey: ObjectIdentifier(controller))
         else { return }
         childBottomConstraints.removeValue(forKey: ObjectIdentifier(controller))
+        childTopConstraints.removeValue(forKey: ObjectIdentifier(controller))
         NSLayoutConstraint.deactivate(constraints)
         // `NSLayoutConstraint.remove()` is not exposed to Swift, and dropping
         // our reference is not enough: a deactivated constraint stays installed on

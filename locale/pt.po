@@ -1999,6 +1999,16 @@ msgctxt "Settings.Appearance"
 msgid "Tab Corners"
 msgstr "Cantos do separador"
 
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Posição do separador"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Os separadores ficam acima da página ou abaixo."
+
 msgctxt "Settings.Appearance"
 msgid "Tab Shape"
 msgstr "Forma do separador"
@@ -2274,6 +2284,21 @@ msgstr "Opacidade do fundo"
 msgctxt "Settings.Feeds"
 msgid "Bar height"
 msgstr "Altura da barra"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Posição da barra"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Inferior"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Superior"
 
 msgctxt "Settings.Feeds"
 msgid "Cached content"

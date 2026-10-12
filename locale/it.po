@@ -1999,6 +1999,16 @@ msgctxt "Settings.Appearance"
 msgid "Tab Corners"
 msgstr "Angoli scheda"
 
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Posizione scheda"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Le schede sono sopra la pagina o sotto."
+
 msgctxt "Settings.Appearance"
 msgid "Tab Shape"
 msgstr "Forma scheda"
@@ -2274,6 +2284,21 @@ msgstr "Opacità sfondo"
 msgctxt "Settings.Feeds"
 msgid "Bar height"
 msgstr "Altezza barra"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Posizione barra"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "In basso"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "In alto"
 
 msgctxt "Settings.Feeds"
 msgid "Cached content"

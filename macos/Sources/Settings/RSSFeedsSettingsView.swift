@@ -145,6 +145,13 @@ struct RSSFeedsSettingsView: View {
                     step: 1,
                     format: { String(format: "%.0f pt", $0) }
                 )
+                SettingsPickerRow(
+                    title: tr("Bar position", ctx: "Settings.Feeds"),
+                    options: AppSettings.CrawlPosition.allCases,
+                    selection: settings.binding(\.feeds.crawlPosition),
+                    isSegmented: true,
+                    label: { $0.title }
+                )
                 SettingsSliderRow(
                     title: tr("Background opacity", ctx: "Settings.Feeds"),
                     value: settings.binding(\.feeds.crawlBackgroundOpacity),

@@ -25,6 +25,32 @@ import SwiftUI
 @main
 struct WhateverApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    init() {
+        // Under XCTest this app is the test host, and without this it would
+        // read the developer's real store: a persisted non-default setting
+        // (tabs at the bottom, say) then reddens every test that assumes the
+        // defaults. The store XPC service inherits the environment when
+        // launchd spawns it for the first connection, so pointing the root
+        // at a fresh scratch directory here keeps the suite deterministic
+        // however it is invoked. The Nim tests use the same variable.
+        if Self.isRunningTests,
+           ProcessInfo.processInfo.environment["WHATEVER_STORE_ROOT"] == nil {
+            let scratch = FileManager.default.temporaryDirectory
+                .appendingPathComponent(
+                    "whatever-store-tests-\(UUID().uuidString)", isDirectory: true)
+            setenv("WHATEVER_STORE_ROOT", scratch.path, 1)
+        }
+    }
+
+    /// Whether this process hosts the unit tests. Gates everything that
+    /// must not touch the developer's real data or depend on it: the launch
+    /// settings load below would otherwise land at an arbitrary point
+    /// mid-suite (it is async against the store service) and flip the
+    /// shared appearance under the tests running after it.
+    static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
     // Observed so a language switch rebuilds the command menus below: menu
     // item titles are `tr()` snapshots, and the revision tick re-renders
     // them live, with no relaunch. The top-level bar titles do not follow
@@ -368,7 +394,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // the address bar's first query already sees bookmarks. Runs with
             // the other launch loads rather than on any keystroke path.
             async let bookmarks = BookmarkStore.shared.prewarm()
-            await SettingsStore.shared.load()
+            // Never under XCTest: the suite must see the compiled-in
+            // defaults for the whole run. This load races the suite — async
+            // against the store service — so without the gate the
+            // developer's persisted appearance lands mid-suite and the tests
+            // running after it see non-default positions and shape.
+            if !WhateverApp.isRunningTests {
+                await SettingsStore.shared.load()
+            }
             _ = try? await version
             _ = await bookmarks
 

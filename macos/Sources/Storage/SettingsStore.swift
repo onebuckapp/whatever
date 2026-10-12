@@ -143,6 +143,10 @@ struct AppSettings: Codable, Equatable {
         /// floating pills. Pills take the full stadium radius and ignore
         /// `tabCornerRadius`.
         var tabShape = TabShape.attached
+        /// Where the tab strip sits: above the page, or below it with the
+        /// crawl bar underneath. Attached cells mirror so the square edge
+        /// keeps facing the page.
+        var tabPosition = TabPosition.top
         var crawlCornerRadius = 8.0
         /// Bottom corners only: the page meets the tab bar squarely at the top.
         var pageCornerRadius = 10.0
@@ -159,7 +163,7 @@ struct AppSettings: Codable, Equatable {
 
         enum CodingKeys: String, CodingKey {
             case noise, background, tabTheme, activeTabTheme
-            case tabCornerRadius, tabShape, crawlCornerRadius, pageCornerRadius
+            case tabCornerRadius, tabShape, tabPosition, crawlCornerRadius, pageCornerRadius
             case linkHoverOpacity
         }
 
@@ -183,6 +187,7 @@ struct AppSettings: Codable, Equatable {
                 ?? TabThemeConfiguration()
             tabCornerRadius = try container.decodeIfPresent(Double.self, forKey: .tabCornerRadius) ?? 8.0
             tabShape = try container.decodeIfPresent(TabShape.self, forKey: .tabShape) ?? .attached
+            tabPosition = try container.decodeIfPresent(TabPosition.self, forKey: .tabPosition) ?? .top
             crawlCornerRadius = try container.decodeIfPresent(Double.self, forKey: .crawlCornerRadius) ?? 8.0
             pageCornerRadius = try container.decodeIfPresent(Double.self, forKey: .pageCornerRadius) ?? 10.0
             linkHoverOpacity = try container.decodeIfPresent(Double.self, forKey: .linkHoverOpacity) ?? 0.75
@@ -555,6 +560,9 @@ struct AppSettings: Codable, Equatable {
         /// browser windows. Hidden when there is nothing to show, and the
         /// animation stops with it, so a disabled crawl costs nothing.
         var crawlEnabled = false
+        /// Where the crawl bar sits when it shows: below the tab strip at
+        /// the window's bottom edge, or above the page before the tabs.
+        var crawlPosition = CrawlPosition.bottom
         /// Crawl speed in points per second.
         var crawlSpeed: Double = 60
         /// Crawl scroll direction.
@@ -571,6 +579,44 @@ struct AppSettings: Codable, Equatable {
         /// Normalized on read (see `CrawlContent`), so older or hand-edited
         /// documents can never wedge the strip on an empty separator.
         var crawlSeparator: String = "|"
+
+        enum CodingKeys: String, CodingKey {
+            case isEnabled, autoRefreshEnabled, refreshIntervalMinutes
+            case maximumArticlesPerFeed, thumbnailPolicy, downloadFavicons
+            case markArticlesReadOnOpen, strictParsing
+            case crawlEnabled, crawlPosition, crawlSpeed, crawlDirection
+            case crawlFontSize, crawlBarHeight, crawlBackgroundOpacity
+            case crawlSeparator
+        }
+
+        init() {}
+
+        /// Tolerant like the appearance group: `crawlPosition` postdates
+        /// every existing document, and a whole-group fallback would
+        /// silently reset the reader's tunables for those users on first
+        /// launch.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+            autoRefreshEnabled = try container.decodeIfPresent(Bool.self, forKey: .autoRefreshEnabled) ?? true
+            refreshIntervalMinutes = try container.decodeIfPresent(Double.self, forKey: .refreshIntervalMinutes) ?? 30.0
+            maximumArticlesPerFeed = try container.decodeIfPresent(Int.self, forKey: .maximumArticlesPerFeed) ?? 200
+            thumbnailPolicy = try container.decodeIfPresent(FeedThumbnailPolicy.self, forKey: .thumbnailPolicy)
+                ?? .automatic
+            downloadFavicons = try container.decodeIfPresent(Bool.self, forKey: .downloadFavicons) ?? true
+            markArticlesReadOnOpen = try container.decodeIfPresent(Bool.self, forKey: .markArticlesReadOnOpen) ?? true
+            strictParsing = try container.decodeIfPresent(Bool.self, forKey: .strictParsing) ?? false
+            crawlEnabled = try container.decodeIfPresent(Bool.self, forKey: .crawlEnabled) ?? false
+            crawlPosition = try container.decodeIfPresent(CrawlPosition.self, forKey: .crawlPosition) ?? .bottom
+            crawlSpeed = try container.decodeIfPresent(Double.self, forKey: .crawlSpeed) ?? 60
+            crawlDirection = try container.decodeIfPresent(CrawlDirection.self, forKey: .crawlDirection)
+                ?? .rightToLeft
+            crawlFontSize = try container.decodeIfPresent(Double.self, forKey: .crawlFontSize) ?? 12
+            crawlBarHeight = try container.decodeIfPresent(Double.self, forKey: .crawlBarHeight) ?? 28
+            crawlBackgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .crawlBackgroundOpacity)
+                ?? 0.85
+            crawlSeparator = try container.decodeIfPresent(String.self, forKey: .crawlSeparator) ?? "|"
+        }
     }
 
     /// Bookmarks bar tunables.
@@ -594,6 +640,23 @@ struct AppSettings: Codable, Equatable {
             switch self {
             case .rightToLeft: tr("Right to left", ctx: "Settings.Feeds")
             case .leftToRight: tr("Left to right", ctx: "Settings.Feeds")
+            }
+        }
+    }
+
+    /// Where the headline crawl bar sits when it shows: below the tab
+    /// strip at the window's bottom edge, or above the page before the tabs.
+    enum CrawlPosition: String, Codable, Equatable, CaseIterable, Identifiable {
+        case bottom
+        case top
+
+        /// For `SettingsPickerRow`, which wants each option to be a stable item.
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .bottom: tr("Bottom", ctx: "Settings.Feeds")
+            case .top: tr("Top", ctx: "Settings.Feeds")
             }
         }
     }

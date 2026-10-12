@@ -53,6 +53,18 @@ struct TabThemeSettingsGroups: View {
             )
         }
         SettingsGroup(
+            title: tr("Tab Position", ctx: "Settings.Appearance"),
+            footnote: tr("Tabs sit above the page, or below it.", ctx: "Settings.Appearance")
+        ) {
+            SettingsPickerRow(
+                title: tr("Position", ctx: "Settings.Appearance"),
+                options: TabPosition.allCases,
+                selection: store.binding(\.appearance.tabPosition),
+                isSegmented: true,
+                label: { $0.title }
+            )
+        }
+        SettingsGroup(
             title: tr("Tab Corners", ctx: "Settings.Appearance"),
             footnote: tr("Roundness of every attached tab cell. Follows live as it changes.", ctx: "Settings.Appearance")
         ) {

@@ -2063,6 +2063,16 @@ msgctxt "Settings.Appearance"
 msgid "Tab Corners"
 msgstr "Colțurile filelor"
 
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Poziția filelor"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Filele sunt deasupra paginii sau dedesubt."
+
 msgctxt "Settings.Appearance"
 msgid "Tab Shape"
 msgstr "Forma filelor"
@@ -2338,6 +2348,21 @@ msgstr "Opacitatea fundalului"
 msgctxt "Settings.Feeds"
 msgid "Bar height"
 msgstr "Înălțimea barei"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Poziția barei"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Jos"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Sus"
 
 msgctxt "Settings.Feeds"
 msgid "Cached content"

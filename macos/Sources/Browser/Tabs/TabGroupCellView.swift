@@ -314,7 +314,7 @@ final class TabGroupCellView: NSView {
         // every other cell the shared one. `removeDuplicates` keeps slider
         // drags in Settings from rebuilding media layers per tick.
         SettingsStore.shared.$settings
-            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius, $0.appearance.tabShape) }
+            .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius, $0.appearance.tabShape, $0.appearance.tabPosition) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -351,11 +351,15 @@ final class TabGroupCellView: NSView {
     private var cornerRadius: CGFloat = 8
     /// Cell shape from Settings, shared with lone cells.
     private var tabShape = TabShape.attached
+    /// Whether the strip sits below the page, shared with lone cells: the
+    /// attached mask mirrors so the square edge keeps facing it.
+    private var tabsAtBottom = false
 
     private func applyCornerRadius() {
         cornerRadius = CGFloat(
             SettingsStore.shared.settings.appearance.tabCornerRadius)
         tabShape = SettingsStore.shared.settings.appearance.tabShape
+        tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
         // Layout too, like the lone cell: fills take their corners there,
         // and the shape moves the cell's own frame in the strip.
         needsLayout = true
@@ -545,6 +549,8 @@ final class TabGroupCellView: NSView {
         let path: NSBezierPath
         if tabShape.roundsBottomCorners {
             path = NSBezierPath(roundedRect: rect, xRadius: outlineRadius, yRadius: outlineRadius)
+        } else if tabsAtBottom {
+            path = SpotlightField.sidesPath(in: rect, bottomRadius: outlineRadius)
         } else {
             path = SpotlightField.topSidesPath(in: rect, topRadius: outlineRadius)
         }
@@ -558,9 +564,9 @@ final class TabGroupCellView: NSView {
         let radius = resolvedCornerRadius()
         layer?.cornerRadius = radius
         backgroundView.layer?.cornerRadius = radius
-        // Pills round every corner; attached cells keep the bottom square
-        // so the group reads as joined to the page.
-        let rounding = tabShape.layerRounding
+        // Pills round every corner; attached cells keep the page-facing edge
+        // square so the group reads as joined to it.
+        let rounding = tabShape.cellCorners(tabsAtBottom: tabsAtBottom)
         layer?.maskedCorners = rounding
         backgroundView.layer?.maskedCorners = rounding
         backgroundView.frame = bounds

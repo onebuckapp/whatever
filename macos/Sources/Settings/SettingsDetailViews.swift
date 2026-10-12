@@ -301,7 +301,7 @@ struct AppearanceSettingsView: View {
                 }
                 if matches(
                     "Inactive Tabs Current Tab",
-                    "tab tabs theme inactive current foreground text color colour corner corners rounded"
+                    "tab tabs theme inactive current foreground text color colour corner corners rounded position top bottom strip"
                 ) {
                     TabThemeSettingsGroups()
                 }
@@ -378,7 +378,7 @@ struct AppearanceSettingsView: View {
         matches("Grain", "grain texture film noise pattern")
             || matches("Look", "look color colour opacity intensity contrast size")
             || matches("Window Background", "background wallpaper backdrop image video fill")
-            || matches("Inactive Tabs Current Tab", "tab tabs theme inactive current foreground text color colour")
+            || matches("Inactive Tabs Current Tab", "tab tabs theme inactive current foreground text color colour corner corners rounded position top bottom strip")
             || matches("Address Bar", "address bar field width pill corner corners height rounded")
             || matches("Reset Appearance", "reset restore defaults factory built-in appearance")
     }

@@ -97,4 +97,49 @@ enum TabShape: String, Codable, Equatable, CaseIterable, Identifiable {
             return min(max(setting, 0), height / 2)
         }
     }
+
+    /// Corner mask for the cell's fill layers when the strip sits below the
+    /// page. Pills name all four corners either way; attached cells mirror:
+    /// the square edge faces the page, so at the bottom the top goes square
+    /// and the bottom rounds.
+    func cellCorners(tabsAtBottom: Bool) -> CACornerMask {
+        if roundsBottomCorners {
+            return [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        }
+        return tabsAtBottom
+            ? [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            : [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+    }
+
+    /// Corner mask for the page container when the strip sits below the
+    /// page. Pills round everything either way; attached pages meet the tab
+    /// bar squarely on whichever side faces it.
+    func pageCorners(tabsAtBottom: Bool) -> CACornerMask {
+        if roundsBottomCorners {
+            return [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        }
+        return tabsAtBottom
+            ? [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+            : [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+    }
+}
+
+/// Where the tab strip sits: above the page like a desktop browser, or
+/// below it with the crawl bar underneath.
+///
+/// Pills look the same either way; attached cells mirror through
+/// `cellCorners(tabsAtBottom:)` so the square edge keeps facing the page.
+enum TabPosition: String, Codable, Equatable, CaseIterable, Identifiable {
+    case top
+    case bottom
+
+    /// For `SettingsPickerRow`, which wants each option to be a stable item.
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .top: tr("Top", ctx: "Settings.Appearance")
+        case .bottom: tr("Bottom", ctx: "Settings.Appearance")
+        }
+    }
 }

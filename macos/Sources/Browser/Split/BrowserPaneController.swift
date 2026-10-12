@@ -153,7 +153,8 @@ final class BrowserPaneController: NSViewController {
         // Held rather than anonymous: the find bar deactivates this while it
         // is open and reactivates it on close, so the page holder yields its
         // bottom edge to the bar instead of overlapping it.
-        let pageBottom = pageContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6)
+        let pageBottom = pageContainer.bottomAnchor.constraint(
+            equalTo: view.bottomAnchor, constant: -Self.currentPageBottomInset)
         pageBottom.isActive = true
         pageBottomConstraint = pageBottom
 
@@ -165,16 +166,16 @@ final class BrowserPaneController: NSViewController {
         updateBorder(activeID: activeModel.activeTabID, showsIndicator: activeModel.showsIndicator)
         applySplitPosition()
         installClickToFocus()
-        applyPageCornerRadius()
+        applyPageAppearance()
         // Page roundness from Settings: the radius, and whether the top
         // corners join it (pills) or meet the tab bar squarely (attached).
         // No half-height cap: the page is orders of magnitude larger than
         // any sane radius.
         radiusCancellable = SettingsStore.shared.$settings
-            .map { ($0.appearance.pageCornerRadius, $0.appearance.tabShape) }
+            .map { ($0.appearance.pageCornerRadius, $0.appearance.tabShape, $0.appearance.tabPosition) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.applyPageCornerRadius() }
+            .sink { [weak self] _ in self?.applyPageAppearance() }
         // Capture requests belong to a page, not to the tab in the
         // abstract: a navigation strands their handlers, so the leftovers
         // are answered denied here while the tab controller drops the
@@ -193,30 +194,53 @@ final class BrowserPaneController: NSViewController {
         lastCaptureHost = tab.tabController.url?.host?.lowercased()
     }
 
-    private func applyPageCornerRadius() {
+    /// The page card's inset from the pane's bottom edge. Below the page the
+    /// card meets attached cells flush and floats 7pt off a pill strip,
+    /// while above the page it floats 6pt off the window and crawl edges.
+    static func pageBottomInset(tabPosition: TabPosition, tabShape: TabShape) -> CGFloat {
+        if tabPosition == .bottom {
+            return tabShape == .attached ? 0 : 7
+        }
+        return 6
+    }
+
+    /// `pageBottomInset` for the stored settings.
+    private static var currentPageBottomInset: CGFloat {
+        let appearance = SettingsStore.shared.settings.appearance
+        return pageBottomInset(tabPosition: appearance.tabPosition, tabShape: appearance.tabShape)
+    }
+
+    /// Applies the page card's roundness and the bottom inset that keeps it
+    /// attached to the strip below.
+    private func applyPageAppearance() {
         pageContainer?.layer?.cornerRadius = CGFloat(max(
             SettingsStore.shared.settings.appearance.pageCornerRadius, 0))
         pageContainer?.layer?.maskedCorners = pageMaskedCorners()
+        pageBottomConstraint?.constant = -Self.currentPageBottomInset
     }
 
     /// Which page corners round: the split owns the inner sides (flush and
-    /// square where panes meet), the tab shape owns the top (square while
-    /// attached to the tab bar, rounded with the rest while pilled). Read
-    /// live from Settings, so both this and `applySplitPosition` converge
-    /// whichever runs last.
+    /// square where panes meet), the tab shape owns the page edge facing the
+    /// tab bar (square while attached to it, rounded with the rest while
+    /// pilled). Below the page the mirror holds: the bottom edge faces the
+    /// bar. Read live from Settings, so both this and `applySplitPosition`
+    /// converge whichever runs last.
     private func pageMaskedCorners() -> CACornerMask {
         let pills = SettingsStore.shared.settings.appearance.tabShape.roundsBottomCorners
+        let tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
         switch splitPosition {
         case .single:
-            return SettingsStore.shared.settings.appearance.tabShape.pageRounding
+            return SettingsStore.shared.settings.appearance.tabShape.pageCorners(tabsAtBottom: tabsAtBottom)
         case .leading:
-            return pills
-                ? [.layerMinXMinYCorner, .layerMinXMaxYCorner]
-                : [.layerMinXMinYCorner]
+            if pills {
+                return [.layerMinXMinYCorner, .layerMinXMaxYCorner]
+            }
+            return tabsAtBottom ? [.layerMinXMaxYCorner] : [.layerMinXMinYCorner]
         case .trailing:
-            return pills
-                ? [.layerMaxXMinYCorner, .layerMaxXMaxYCorner]
-                : [.layerMaxXMinYCorner]
+            if pills {
+                return [.layerMaxXMinYCorner, .layerMaxXMaxYCorner]
+            }
+            return tabsAtBottom ? [.layerMaxXMaxYCorner] : [.layerMaxXMinYCorner]
         }
     }
 

@@ -109,6 +109,9 @@ final class TabBarView: NSView {
     /// change marks the container (whose new-tab button centers on the cell
     /// band) instead of leaving it a pass behind.
     private var lastLaidOutShape: TabShape?
+    /// Whether the strip sat below the page on the last pass, alongside the
+    /// shape above: the mirrored band moves the cells like a shape change.
+    private var lastLaidOutTabsAtBottom = false
 
     override var isFlipped: Bool { true }
 
@@ -284,10 +287,14 @@ final class TabBarView: NSView {
     /// pills float with the same breathing room top and bottom, leaving a
     /// gap between the pills and the webview. Static so the insets are
     /// testable without laying out views.
-    static func cellVerticalMetrics(barHeight: CGFloat, shape: TabShape) -> (y: CGFloat, height: CGFloat) {
+    ///
+    /// Below the page the attached band mirrors: flush to the bar's top
+    /// edge, with the breathing room underneath. Pills are symmetric, so
+    /// they read the same either way.
+    static func cellVerticalMetrics(barHeight: CGFloat, shape: TabShape, tabsAtBottom: Bool = false) -> (y: CGFloat, height: CGFloat) {
         switch shape {
         case .attached:
-            return (4, max(0, barHeight - 4))
+            return tabsAtBottom ? (0, max(0, barHeight - 4)) : (4, max(0, barHeight - 4))
         case .pills:
             return (4, max(0, barHeight - 8))
         }
@@ -317,16 +324,19 @@ final class TabBarView: NSView {
     override func layout() {
         super.layout()
         let shape = SettingsStore.shared.settings.appearance.tabShape
-        if shape != lastLaidOutShape {
-            // The cell band moved (attached flush <-> pills floating), and the
-            // container centers the new-tab button on that band. Cells mark
-            // the strip on a shape change but nobody marks the container, so
-            // without this the button rides a layout pass behind the cells.
-            // Settles immediately: the next pass reads the same shape.
+        let tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
+        if shape != lastLaidOutShape || tabsAtBottom != lastLaidOutTabsAtBottom {
+            // The cell band moved (attached flush <-> pills floating, or top
+            // edge <-> bottom edge), and the container centers the new-tab
+            // button on that band. Cells mark the strip on a shape change but
+            // nobody marks the container, so without this the button rides a
+            // layout pass behind the cells. Settles immediately: the next
+            // pass reads the same shape.
             lastLaidOutShape = shape
+            lastLaidOutTabsAtBottom = tabsAtBottom
             superview?.needsLayout = true
         }
-        let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape)
+        let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape, tabsAtBottom: tabsAtBottom)
         let tabs = visualTabs()
         let frames = Self.cellFrames(
             widths: tabs.map { visualWidth(for: $0) },
@@ -482,7 +492,11 @@ final class TabBarView: NSView {
     private func layoutInsertionMarker() {
         guard let index = insertionIndex else { return }
         let shape = SettingsStore.shared.settings.appearance.tabShape
-        let metrics = Self.cellVerticalMetrics(barHeight: bounds.height, shape: shape)
+        let metrics = Self.cellVerticalMetrics(
+            barHeight: bounds.height,
+            shape: shape,
+            tabsAtBottom: SettingsStore.shared.settings.appearance.tabPosition == .bottom
+        )
         let x: CGFloat
         if index >= tabs.count {
             if let last = visualTabs().last, let view = viewForVisualTab(last) {
@@ -722,9 +736,10 @@ final class TabBarContainerView: NSView {
     /// `cellVerticalMetrics` reports it; the container is bottom-origin, so
     /// the band's bottom edge sits at `barHeight - (y + height)` from the
     /// bottom. No per-shape nudge: the button sits on the band midpoint in
-    /// both shapes.
-    static func newTabButtonY(barHeight: CGFloat, shape: TabShape) -> CGFloat {
-        let metrics = TabBarView.cellVerticalMetrics(barHeight: barHeight, shape: shape)
+    /// both shapes. Below the page the mirrored metrics flow through the
+    /// same formula, so no separate mirror term.
+    static func newTabButtonY(barHeight: CGFloat, shape: TabShape, tabsAtBottom: Bool = false) -> CGFloat {
+        let metrics = TabBarView.cellVerticalMetrics(barHeight: barHeight, shape: shape, tabsAtBottom: tabsAtBottom)
         let bandBottom = barHeight - (metrics.y + metrics.height)
         let nudge: CGFloat = shape == .attached ? 0 : 0
         return bandBottom + (metrics.height - BrowserToolbarButton.outerHeight) / 2 + nudge
@@ -1008,7 +1023,8 @@ final class TabBarContainerView: NSView {
             // coordinates; see `newTabButtonY` for the flip from the strip's.
             y: Self.newTabButtonY(
                 barHeight: bounds.height,
-                shape: SettingsStore.shared.settings.appearance.tabShape
+                shape: SettingsStore.shared.settings.appearance.tabShape,
+                tabsAtBottom: SettingsStore.shared.settings.appearance.tabPosition == .bottom
             ),
             width: BrowserToolbarButton.outerWidth,
             height: BrowserToolbarButton.outerHeight

@@ -1999,6 +1999,16 @@ msgctxt "Settings.Appearance"
 msgid "Tab Corners"
 msgstr "Esquinas de las pestañas"
 
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Posición de las pestañas"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Las pestañas están encima de la página o debajo."
+
 msgctxt "Settings.Appearance"
 msgid "Tab Shape"
 msgstr "Forma de las pestañas"
@@ -2274,6 +2284,21 @@ msgstr "Opacidad del fondo"
 msgctxt "Settings.Feeds"
 msgid "Bar height"
 msgstr "Altura de la barra"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Posición de la barra"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Abajo"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Arriba"
 
 msgctxt "Settings.Feeds"
 msgid "Cached content"
