@@ -295,7 +295,7 @@ proc shippedDir(): string =
     removeDir(result)
   let locale = parentDir(parentDir(parentDir(
     parentDir(currentSourcePath)))) / "locale"
-  for lang in ["de", "en", "es", "fr", "it", "ro", "ru"]:
+  for lang in ["de", "en", "es", "fr", "it", "pt", "ro", "ru"]:
     createDir(result / lang / "LC_MESSAGES")
     var cat = openPoCatalog(locale / (lang & ".po"))
     let compiled = compilePo(cat)
@@ -312,7 +312,7 @@ suite "locale shipped catalogs":
     var text = newString(needed)
     check bcLocaleLanguages(addr text[0], needed, nil) == Ok
     text.setLen(needed - 1)
-    check parseJson(text) == %*["de", "en", "es", "fr", "it", "ro", "ru"]
+    check parseJson(text) == %*["de", "en", "es", "fr", "it", "pt", "ro", "ru"]
 
   test "French treats 0 and 1 as singular":
     discard bcLocaleSet("fr".cstring)
@@ -337,6 +337,12 @@ suite "locale shipped catalogs":
     check trDoc("one visit", "", "{n} visits", 1) == "ein Besuch"
     check trDoc("one visit", "", "{n} visits", 0) == "{n} Besuche"
     check trDoc("one visit", "", "{n} visits", 2) == "{n} Besuche"
+
+  test "Portuguese uses the standard two-form rule":
+    discard bcLocaleSet("pt".cstring)
+    check trDoc("one visit", "", "{n} visits", 1) == "uma visita"
+    check trDoc("one visit", "", "{n} visits", 0) == "{n} visitas"
+    check trDoc("one visit", "", "{n} visits", 2) == "{n} visitas"
 
   test "Russian picks all three forms":
     discard bcLocaleSet("ru".cstring)
@@ -364,6 +370,8 @@ suite "locale shipped catalogs":
     check trDoc("New Tab", "Context.Tab") == "Neuer Tab"
     discard bcLocaleSet("ru".cstring)
     check trDoc("New Tab", "Context.Tab") == "Новая вкладка"
+    discard bcLocaleSet("pt".cstring)
+    check trDoc("New Tab", "Context.Tab") == "Novo separador"
 
 suite "locale bad input":
   setup:
