@@ -34,6 +34,9 @@ final class SpotlightDropdown: NSView {
     /// The field's radius and border, shared rather than restated, so the panel and
     /// the bar cannot drift apart.
     private static let borderWidth: CGFloat = 1
+    /// User-CSS background override, pushed by the toolbar controller. Nil
+    /// keeps the structured fill.
+    static var cssBackgroundColor: NSColor?
 
     /// Where the fuzzy results go. Replaced wholesale per query, so it is a plain
     /// hosted view rather than something held onto.
@@ -215,7 +218,7 @@ final class SpotlightDropdown: NSView {
             topRadius: 0,
             bottomRadius: radius - line / 2
         )
-        NSColor.controlBackgroundColor.setFill()
+        (Self.cssBackgroundColor ?? NSColor.controlBackgroundColor).setFill()
         fill.fill()
         NSColor.separatorColor.setStroke()
         let sides = SpotlightField.sidesPath(in: rect, bottomRadius: radius - line / 2)

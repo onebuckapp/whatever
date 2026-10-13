@@ -97,6 +97,18 @@ final class BackgroundMediaView: NSView {
         }
     }
 
+    /// Resolved user-CSS overrides, pushed by the window controller. Only
+    /// the solid fill consults it: images and video keep their media, and
+    /// gradients keep their stops — CSS repaints flat colors, not those.
+    private var cssBackgroundColor: NSColor?
+
+    /// Applies pushed CSS overrides and repaints. Nothing cached to
+    /// invalidate: `draw` reads this every pass.
+    func applyThemeCSS(_ props: [String: String]) {
+        cssBackgroundColor = ThemeStyleValue.color(props, "background-color")
+        needsDisplay = true
+    }
+
     /// Suspends video without changing what is configured, for when the window
     /// is not worth spending power on.
     var isPlaybackSuspended = false {
@@ -465,7 +477,7 @@ final class BackgroundMediaView: NSView {
             return
         case .solid:
             context.saveGState()
-            configuration.solid.color.nsColor.setFill()
+            (cssBackgroundColor ?? configuration.solid.color.nsColor).setFill()
             bounds.fill(using: .sourceOver)
             context.restoreGState()
         case .gradient:

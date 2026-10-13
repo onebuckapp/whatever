@@ -60,6 +60,9 @@ final class SpotlightController {
 
     /// Told to navigate when a row is chosen, so this knows nothing about tabs.
     var onNavigate: ((URL) -> Void)?
+    /// Fires when the dropdown opens or closes, so the toolbar can re-resolve
+    /// the `:open` style state.
+    var onOpenStateChange: (() -> Void)?
 
     private static let debounce: Duration = .milliseconds(150)
     /// A dropdown showing everything is not autocomplete, it is a history dump.
@@ -445,6 +448,7 @@ final class SpotlightController {
         container.addSubview(dropdown, positioned: .above, relativeTo: nil)
         fieldView.isOpen = true
         installOutsideClickMonitor()
+        onOpenStateChange?()
     }
 
     private func close() {
@@ -463,7 +467,7 @@ final class SpotlightController {
     /// Takes the panel down without ending the session: history came back
     /// empty but the ghost still offers the typed action, so the highlight
     /// state resets while the hint stands.
-    private func hidePanel() {
+    func hidePanel() {
         results = []
         selectedIndex = nil
         fieldView?.isOpen = false
@@ -473,6 +477,13 @@ final class SpotlightController {
         dropdown?.isHidden = true
         dropdown?.clearResults()
         removeOutsideClickMonitor()
+        onOpenStateChange?()
+    }
+
+    /// Repaints the dropdown panel without touching its contents: theme-CSS
+    /// overrides land on paint, not on results.
+    func refreshThemeDisplay() {
+        dropdown?.needsDisplay = true
     }
 
     // MARK: - Clicking away

@@ -323,6 +323,49 @@ final class StoreClient {
         }
     }
 
+    // MARK: Themes
+
+    /// Checks theme CSS against the policy, returning the diagnostics
+    /// document. Safe on every keystroke behind a generation guard: bad input
+    /// still answers with diagnostics rather than throwing (only an oversized
+    /// input throws).
+    func themeCheck(_ css: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.themeCheck(css, reply: done)
+        }
+    }
+
+    /// Runs the theme cascade over a node-tree JSON document, returning the
+    /// computed `{key: {property: value}}` styles.
+    func themeResolve(css: String, nodes: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.themeResolve(css, nodes, reply: done)
+        }
+    }
+
+    /// Prints a `{selector: {property: value}}` document as canonical managed
+    /// CSS text.
+    func themeSerialize(styles: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.themeSerialize(styles, reply: done)
+        }
+    }
+
+    /// The supported theme surface as JSON. Infallible; cached by callers.
+    func themeSpec() async throws -> Data {
+        try await document { proxy, done in
+            proxy.themeSpec(reply: done)
+        }
+    }
+
+    /// Supported, valid theme declarations in source order: what Apply maps
+    /// back onto the Appearance controls.
+    func themeDeclarations(_ css: String) async throws -> Data {
+        try await document { proxy, done in
+            proxy.themeDeclarations(css, reply: done)
+        }
+    }
+
     func deleteHistoryEntry(id: String) async throws {
         try await perform { proxy, done in
             proxy.historyDelete(id, reply: done)

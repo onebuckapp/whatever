@@ -49,6 +49,26 @@ final class CrawlTickerNSView: NSView {
     /// Horizontal inset of the scrolling content, matching the old row's
     /// `.padding(.horizontal, 12)`.
     static let horizontalInset: CGFloat = 12
+    /// Resolved user-CSS overrides, pushed by the bar controller. The
+    /// resolved opacity already equals the structured one when no user rule
+    /// sets it (the managed block projects the same setting), so it is
+    /// always the value used; color and radius fall back when unset.
+    private var cssBackgroundColor: NSColor?
+    private var cssBorderColor: NSColor?
+    private var cssCornerRadius: CGFloat?
+    private var cssOpacity: Double?
+
+    /// Applies pushed CSS overrides and repaints. No media cache to
+    /// invalidate: the pill draws from these every pass.
+    func applyThemeCSS(_ props: [String: String]) {
+        cssBackgroundColor = ThemeStyleValue.color(props, "background-color")
+        cssBorderColor = ThemeStyleValue.color(props, "border-color")
+        cssCornerRadius = ThemeStyleValue.length(props, "border-radius")
+        cssOpacity = ThemeStyleValue.opacity(props, "opacity")
+        updateBackground()
+        needsLayout = true
+        needsDisplay = true
+    }
     /// Backing scale of the strip bitmap. Follows the window: Retina gets a
     /// 2x bitmap, a 1x display gets a native 1x one. A fixed 2x everywhere
     /// would force the compositor to downsample on 1x screens, which reads
@@ -511,9 +531,12 @@ final class CrawlTickerNSView: NSView {
         backgroundLayer.frame = snapped(bounds)
         // Roundness from Settings, capped at half the bar height. Read here
         // rather than subscribed: every settings tick already funnels through
-        // `update(with:)`, and layout runs before each paint anyway.
+        // `update(with:)`, and layout runs before each paint anyway. CSS
+        // overrides the slider while set.
+        let configured = cssCornerRadius
+            ?? CGFloat(SettingsStore.shared.settings.appearance.crawlCornerRadius)
         backgroundLayer.cornerRadius = min(
-            max(CGFloat(SettingsStore.shared.settings.appearance.crawlCornerRadius), 0),
+            max(configured, 0),
             bounds.height > 0 ? bounds.height / 2 : .greatestFiniteMagnitude
         )
         updateBackground()
@@ -595,9 +618,11 @@ final class CrawlTickerNSView: NSView {
 
     private func updateBackground() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            backgroundLayer.backgroundColor = NSColor.controlBackgroundColor
-                .withAlphaComponent(inputs.backgroundOpacity).cgColor
-            backgroundLayer.borderColor = NSColor.separatorColor.cgColor
+            backgroundLayer.backgroundColor = (cssBackgroundColor
+                ?? NSColor.controlBackgroundColor)
+                .withAlphaComponent(cssOpacity ?? inputs.backgroundOpacity).cgColor
+            backgroundLayer.borderColor = (cssBorderColor
+                ?? NSColor.separatorColor).cgColor
         }
     }
 

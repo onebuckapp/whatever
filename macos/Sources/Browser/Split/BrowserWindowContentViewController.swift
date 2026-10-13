@@ -120,6 +120,9 @@ final class BrowserWindowContentViewController: NSViewController {
     private var progressBarPinConstraint: NSLayoutConstraint?
     /// Chrome-layout subscription: tab and crawl positions re-pin live.
     private var chromeCancellable: AnyCancellable?
+    /// Theme-CSS subscription: the window background repaints live.
+    private var themeCancellables = Set<AnyCancellable>()
+    private var backgroundThemeGeneration = 0
     /// Layout inputs override for tests, so layout tests never touch the
     /// shared settings document (see `forceEnabledForTesting` on the crawl
     /// controller for the same seam). Setting it re-pins at once; clearing
@@ -876,6 +879,11 @@ final class BrowserWindowContentViewController: NSViewController {
                 background?.configuration = settings.appearance.background
             }
         background.configuration = SettingsStore.shared.settings.appearance.background
+        ThemeEngine.shared.$fullCSS
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshBackgroundThemeStyles() }
+            .store(in: &themeCancellables)
         installCrawlBar()
         // Chrome layout follows the tab shape and positions live: the strips
         // swap edges without a relaunch. Fires at once with the current
@@ -1010,6 +1018,24 @@ final class BrowserWindowContentViewController: NSViewController {
         }
         crawlBarController = controller
         crawlVisibilityChanged()
+    }
+
+    /// Re-resolves user-CSS over the window background node and repaints.
+    /// The background carries no states; the stylesheet subscription is the
+    /// only trigger.
+    private func refreshBackgroundThemeStyles() {
+        guard backgroundMedia != nil else { return }
+        backgroundThemeGeneration += 1
+        let current = backgroundThemeGeneration
+        let tree = [ThemeNode(
+            key: "window", element: "window",
+            children: [ThemeNode(
+                key: "background", element: "background", id: "background")])]
+        Task { [weak self] in
+            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            guard let self, current == self.backgroundThemeGeneration else { return }
+            self.backgroundMedia?.applyThemeCSS(styles["background"] ?? [:])
+        }
     }
 
     /// Re-pins the page area and restores sibling order after the crawl bar

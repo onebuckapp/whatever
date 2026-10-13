@@ -1491,6 +1491,10 @@ msgid "A film-grain texture over the whole window. Every change applies as you m
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live."
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "A video file on disk."
 msgstr ""
 
@@ -1528,6 +1532,18 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Angle"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Apply"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {count} declarations update controls."
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {updated} update controls, {cssOnly} stay CSS-only overrides."
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -1643,6 +1659,10 @@ msgid "Choose…"
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "Clean — Apply stores it and updates matching controls."
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "Clear"
 msgstr ""
 
@@ -1668,6 +1688,10 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Custom"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Custom CSS"
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -1767,6 +1791,10 @@ msgid "Lets the background show behind the page."
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "Loading…"
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "Linear"
 msgstr ""
 
@@ -1776,6 +1804,10 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Look"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Managed — regenerated from the controls above"
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -1808,6 +1840,10 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "None"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Nothing yet — still generating."
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -1895,6 +1931,10 @@ msgid "Restores every setting on this page — grain, background, tab theme, and
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "Revert"
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "Roundness of every attached tab cell. Follows live as it changes."
 msgstr ""
 
@@ -1955,6 +1995,10 @@ msgid "Starts on its own when the window opens."
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "Stored — everything applies as a CSS override, no controls changed."
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "Stops are applied in order along the gradient."
 msgstr ""
 
@@ -1972,6 +2016,10 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Stretches between the buttons instead of a centred field."
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Supported selectors & properties"
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -2017,6 +2065,10 @@ msgid "The system is not asking for reduced motion."
 msgstr ""
 
 msgctxt "Settings.Appearance"
+msgid "The theme service did not answer — try again."
+msgstr ""
+
+msgctxt "Settings.Appearance"
 msgid "Tint"
 msgstr ""
 
@@ -2034,6 +2086,10 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Top Right"
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "Too large — keep stylesheets under 200 KB."
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -2069,6 +2125,18 @@ msgid "{percent}% along"
 msgstr ""
 
 #. Settings > Content Blocker pane.
+msgctxt "Settings.Appearance"
+msgid "{errors} errors and {warnings} warnings — errors block Apply."
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "{errors} errors — they block Apply."
+msgstr ""
+
+msgctxt "Settings.Appearance"
+msgid "{warnings} warnings — Apply still works, flagged rules are skipped."
+msgstr ""
+
 msgctxt "Settings.Blocker"
 msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
 msgstr ""

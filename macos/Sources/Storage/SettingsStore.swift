@@ -152,6 +152,11 @@ struct AppSettings: Codable, Equatable {
         var pageCornerRadius = 10.0
         /// How solid the floating link bubble paints, 0 to 1.
         var linkHoverOpacity = 0.75
+        /// Hand-written theme CSS: the user block of the Custom CSS editor.
+        /// Only this is stored — the managed block is regenerated from the
+        /// fields above on every display, so it can never drift from them.
+        /// Empty means no user rules; the structured theme stands alone.
+        var customCSS = ""
 
         /// Slider bounds. Tab and crawl tops sit below half their bar
         /// heights, so the maximum stays shy of a full pill.
@@ -164,7 +169,7 @@ struct AppSettings: Codable, Equatable {
         enum CodingKeys: String, CodingKey {
             case noise, background, tabTheme, activeTabTheme
             case tabCornerRadius, tabShape, tabPosition, crawlCornerRadius, pageCornerRadius
-            case linkHoverOpacity
+            case linkHoverOpacity, customCSS
         }
 
         init() {}
@@ -191,6 +196,7 @@ struct AppSettings: Codable, Equatable {
             crawlCornerRadius = try container.decodeIfPresent(Double.self, forKey: .crawlCornerRadius) ?? 8.0
             pageCornerRadius = try container.decodeIfPresent(Double.self, forKey: .pageCornerRadius) ?? 10.0
             linkHoverOpacity = try container.decodeIfPresent(Double.self, forKey: .linkHoverOpacity) ?? 0.75
+            customCSS = try container.decodeIfPresent(String.self, forKey: .customCSS) ?? ""
         }
 
         /// Codable mirror of `NoiseOverlayConfiguration`. `NSColor` is not

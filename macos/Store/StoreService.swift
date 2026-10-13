@@ -489,6 +489,134 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
         }
     }
 
+    // MARK: Themes
+
+    /// Checks theme CSS against the policy. Pure computation in the core;
+    /// only an oversized input errors (rejected as bad input).
+    func themeCheck(
+        _ css: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try css.withCString { pointer in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_theme_check(pointer, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    /// Runs the theme cascade over a node tree. Pure computation; unparseable
+    /// CSS or node JSON is rejected as bad input.
+    func themeResolve(
+        _ css: String,
+        _ nodes: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try css.withCString { cssPointer in
+                    try nodes.withCString { nodesPointer in
+                        try CoreBuffer.read({ buffer, capacity, needed in
+                            bc_theme_resolve(cssPointer, nodesPointer, buffer, capacity, needed)
+                        }, rejecting: [.badInput])
+                    }
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    /// Prints structured styles as canonical managed CSS. Pure computation.
+    func themeSerialize(
+        _ styles: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try styles.withCString { pointer in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_theme_serialize(pointer, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    /// The supported theme surface as JSON. Infallible pure computation.
+    func themeSpec(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try CoreBuffer.read({ buffer, capacity, needed in
+                    bc_theme_spec(buffer, capacity, needed)
+                }, rejecting: [])
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    /// Supported, valid theme declarations in source order. Pure computation;
+    /// unparseable CSS is rejected as bad input.
+    func themeDeclarations(
+        _ css: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    ) {
+        serve {
+            let payload: CorePayload?
+            do {
+                payload = try css.withCString { pointer in
+                    try CoreBuffer.read({ buffer, capacity, needed in
+                        bc_theme_declarations(pointer, buffer, capacity, needed)
+                    }, rejecting: [.badInput])
+                }
+            } catch {
+                reply(nil, error as NSError)
+                return
+            }
+            guard let payload else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
     func historyDelete(_ id: String, reply: @escaping (NSError?) -> Void) {
         serve {
             let status = id.withCString { bc_history_delete($0) }

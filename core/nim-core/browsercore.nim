@@ -47,6 +47,7 @@ import ./api/filter_api
 import ./api/find_api
 import ./api/downloads_api
 import ./api/locale_api
+import ./api/theme_api
 export qr_api
 export settings_api
 export bookmark_api
@@ -58,6 +59,7 @@ export filter_api
 export find_api
 export downloads_api
 export locale_api
+export theme_api
 
 var threadRegistered {.threadvar.}: bool
 

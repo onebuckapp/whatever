@@ -134,6 +134,7 @@ final class TabGroupCellView: NSView {
         selected = isSelected
         updateAppearance()
         needsLayout = true
+        onThemeStateChange?()
     }
 
     func setDragging(_ isDragging: Bool) {
@@ -243,11 +244,13 @@ final class TabGroupCellView: NSView {
     override func mouseEntered(with event: NSEvent) {
         hover = true
         updateAppearance()
+        onThemeStateChange?()
     }
 
     override func mouseExited(with event: NSEvent) {
         hover = false
         updateAppearance()
+        onThemeStateChange?()
     }
 
     /// Sets the hover state directly. Same scroll-under-cursor case as the
@@ -256,6 +259,7 @@ final class TabGroupCellView: NSView {
         guard hover != hovered else { return }
         hover = hovered
         updateAppearance()
+        onThemeStateChange?()
     }
 
     /// Whether the cell currently paints hovered. For tests.
@@ -354,6 +358,50 @@ final class TabGroupCellView: NSView {
     /// Whether the strip sits below the page, shared with lone cells: the
     /// attached mask mirrors so the square edge keeps facing it.
     private var tabsAtBottom = false
+    /// Resolved user-CSS overrides, pushed by the strip like the lone cell's.
+    var themeProps: [String: String] = [:]
+    /// Stable style key (`"tab:<leading-uuid>"`), set by the strip.
+    var themeKey = ""
+    /// Fires when selected/hover changes so the strip re-resolves states.
+    var onThemeStateChange: (() -> Void)?
+    /// Corner radius from CSS, overriding the slider while set.
+    private var cssCornerRadius: CGFloat?
+    /// Whether the media stack currently shows a CSS gradient.
+    private var cssGradientInstalled = false
+    /// The title font before any CSS size overrode it, for restoring.
+    private var defaultTitleFont: NSFont?
+
+    /// Style states for the node tree: selected reads as `:active`. The
+    /// strip adds the `group` class to the node itself.
+    var themeStates: [String] {
+        var states: [String] = []
+        if selected { states.append("active") }
+        if hover { states.append("hover") }
+        return states
+    }
+
+    /// Applies pushed CSS overrides through the normal theme path. A
+    /// media-affecting value appearing, disappearing, or changing
+    /// invalidates the structured media cache, which otherwise would keep
+    /// showing the replaced stack (or keep a removed override painted).
+    func applyThemeCSS(_ props: [String: String]) {
+        if Self.mediaSignature(themeProps) != Self.mediaSignature(props) {
+            appliedThemeKey = nil
+        }
+        themeProps = props
+        cssCornerRadius = ThemeStyleValue.length(props, "border-radius")
+        applyTheme()
+        needsLayout = true
+        superview?.needsLayout = true
+        needsDisplay = true
+    }
+
+    /// The overlay values that change what the media section built: only
+    /// these force a structured rebuild. Radius, text color, and font size
+    /// repaint without one.
+    private static func mediaSignature(_ props: [String: String]) -> [String] {
+        ["background-color", "background-image", "opacity"].map { props[$0] ?? "" }
+    }
 
     private func applyCornerRadius() {
         cornerRadius = CGFloat(
@@ -368,7 +416,7 @@ final class TabGroupCellView: NSView {
     }
 
     private func resolvedCornerRadius() -> CGFloat {
-        tabShape.cornerRadius(setting: cornerRadius, height: bounds.height)
+        tabShape.cornerRadius(setting: cssCornerRadius ?? cornerRadius, height: bounds.height)
     }
 
     private func updateAppearance() {
@@ -402,23 +450,26 @@ final class TabGroupCellView: NSView {
         let settings = SettingsStore.shared.settings.appearance
         let config = selected ? settings.activeTabTheme : settings.tabTheme
         if let applied = appliedThemeKey, applied == (config, selected) {
-            return
-        }
-        mediaLayer?.removeFromSuperlayer()
-        mediaLayer = nil
-        mediaImageSize = nil
-        tintLayer?.removeFromSuperlayer()
-        tintLayer = nil
-        if let videoPath {
-            TabVideoPool.shared.release(path: videoPath)
-            self.videoPath = nil
-        }
-        backgroundView.isHidden = false
-        backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-        backgroundView.layer?.contents = nil
-        appliedThemeKey = (config, selected)
+            // Structured stack is current; the CSS overlay below still runs.
+        } else {
+            mediaLayer?.removeFromSuperlayer()
+            mediaLayer = nil
+            mediaImageSize = nil
+            tintLayer?.removeFromSuperlayer()
+            tintLayer = nil
+            if let videoPath {
+                TabVideoPool.shared.release(path: videoPath)
+                self.videoPath = nil
+            }
+            backgroundView.isHidden = false
+            backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
+            backgroundView.layer?.contents = nil
+            appliedThemeKey = (config, selected)
+            // The structured stack replaced whatever was there, including a
+            // CSS gradient: the overlay below reinstalls it.
+            cssGradientInstalled = false
 
-        switch config.background.kind {
+            switch config.background.kind {
         case .none:
             break
         case .solid:
@@ -453,6 +504,7 @@ final class TabGroupCellView: NSView {
             layer.videoGravity = .resizeAspectFill
             installMediaLayer(layer)
         }
+        }
 
         // Tint sits above the media — image, video, or anything else drawn —
         // and below the state washes, which `updateAppearance` composites over
@@ -480,6 +532,51 @@ final class TabGroupCellView: NSView {
             closeButton.contentTintColor = .secondaryLabelColor
             leadingFavicon.contentTintColor = .secondaryLabelColor
             trailingFavicon.contentTintColor = .secondaryLabelColor
+        }
+        applyThemeCSSOverlay(config: config)
+    }
+
+    /// Overlays the pushed user-CSS after the structured theme, mirroring
+    /// the lone cell: background color behind media, explicit gradients in
+    /// place of it, multiplied opacity, tinted text, sized titles.
+    private func applyThemeCSSOverlay(config: TabThemeConfiguration) {
+        if themeProps.isEmpty { return }
+        if let color = ThemeStyleValue.color(themeProps, "background-color") {
+            backgroundView.layer?.backgroundColor = color.cgColor
+        }
+        if let gradient = ThemeStyleValue.gradient(themeProps) {
+            if !cssGradientInstalled {
+                mediaLayer?.removeFromSuperlayer()
+                mediaLayer = nil
+                mediaImageSize = nil
+                if let videoPath {
+                    TabVideoPool.shared.release(path: videoPath)
+                    self.videoPath = nil
+                }
+                installMediaLayer(ThemeStyleValue.makeGradientLayer(gradient))
+                cssGradientInstalled = true
+            }
+        } else {
+            cssGradientInstalled = false
+        }
+        if let cssOpacity = ThemeStyleValue.opacity(themeProps, "opacity") {
+            backgroundView.layer?.opacity =
+                Float(config.background.effects.opacity) * Float(cssOpacity)
+        }
+        if let foreground = ThemeStyleValue.color(themeProps, "color") {
+            leadingTitle.textColor = foreground
+            trailingTitle.textColor = foreground
+            closeButton.contentTintColor = foreground
+            leadingFavicon.contentTintColor = foreground
+            trailingFavicon.contentTintColor = foreground
+        }
+        if let size = ThemeStyleValue.fontSize(themeProps) {
+            if defaultTitleFont == nil { defaultTitleFont = leadingTitle.font }
+            leadingTitle.font = NSFont.systemFont(ofSize: size)
+            trailingTitle.font = NSFont.systemFont(ofSize: size)
+        } else if let restored = defaultTitleFont {
+            leadingTitle.font = restored
+            trailingTitle.font = restored
         }
     }
 

@@ -158,7 +158,13 @@ final class BrowserToolbarController: NSObject {
         // Wired here rather than in the spotlight's own init because it needs `self`.
         spotlight.onEditingChanged = { [weak self] isEditing in
             self?.isEditingAddress = isEditing
+            self?.refreshAddressThemeStyles()
         }
+        ThemeEngine.shared.$fullCSS
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshAddressThemeStyles() }
+            .store(in: &chromeCancellables)
     }
 
     /// The spotlight's own input, so `syncControls` can reach it without going
@@ -171,6 +177,9 @@ final class BrowserToolbarController: NSObject {
         // would: the dropdown completes the address, it does not bypass it.
         spotlightController.onNavigate = { [weak self] url in
             self?.onAddressSubmitted?(url)
+        }
+        spotlightController.onOpenStateChange = { [weak self] in
+            self?.refreshAddressThemeStyles()
         }
         // The lock opens the site-information card for the selected tab.
         spotlight.onLockTapped = { [weak self] in
@@ -734,6 +743,39 @@ final class BrowserToolbarController: NSObject {
         addressContainerHeight.constant = height
         spotlightHeight.constant = height
         spotlight.needsDisplay = true
+    }
+
+    /// Re-resolves user-CSS over the toolbar's node tree (`toolbar >
+    /// addressbar(:focus/:open) > dropdown`) and pushes the winners onto the
+    /// shared field statics both views read at draw time. The generation
+    /// guard drops stale resolutions.
+    private var themeGeneration = 0
+
+    private func refreshAddressThemeStyles() {
+        themeGeneration += 1
+        let current = themeGeneration
+        var states: [String] = []
+        if isEditingAddress { states.append("focus") }
+        if spotlightController.isOpen { states.append("open") }
+        let address = ThemeNode(
+            key: "addressbar", element: "addressbar", id: "addressbar",
+            states: states,
+            children: [ThemeNode(key: "dropdown", element: "dropdown", id: "dropdown")]
+        )
+        let toolbar = ThemeNode(
+            key: "toolbar", element: "toolbar", id: "toolbar", children: [address])
+        let tree = [ThemeNode(key: "window", element: "window", children: [toolbar])]
+        Task { [weak self] in
+            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            guard let self, current == self.themeGeneration else { return }
+            let field = styles["addressbar"] ?? [:]
+            SpotlightField.cssBackgroundColor = ThemeStyleValue.color(field, "background-color")
+            SpotlightField.cssCornerRadius = ThemeStyleValue.length(field, "border-radius")
+            let drop = styles["dropdown"] ?? [:]
+            SpotlightDropdown.cssBackgroundColor = ThemeStyleValue.color(drop, "background-color")
+            self.spotlight.needsDisplay = true
+            self.spotlightController.refreshThemeDisplay()
+        }
     }
 
     private static let addressFieldHeight: CGFloat = 32

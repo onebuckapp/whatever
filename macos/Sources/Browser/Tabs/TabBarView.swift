@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import AppKit
+import Combine
 
 protocol TabBarViewDelegate: AnyObject {
     func tabBar(_ tabBar: TabBarView, didSelect tab: BrowserTab)
@@ -96,6 +97,12 @@ final class TabBarView: NSView {
     private var groupCell: TabGroupCellView?
     private var itemViews: [UUID: TabBarItemView] = [:]
     private let insertionMarker = TabInsertionMarkerView()
+    /// Theme-CSS resolution state. Re-resolves run on tab set, selection,
+    /// hover, and full-stylesheet changes; the generation guard drops stale
+    /// answers the way the spotlight's does.
+    private var themeGeneration = 0
+    private var themeSubscribed = false
+    private var themeCancellables = Set<AnyCancellable>()
 
     /// Tabs in display order. The window keeps `tabs` sorted with
     /// pinned tabs leading, so this is the same as `tabs` and the drop
@@ -228,6 +235,7 @@ final class TabBarView: NSView {
         needsLayout = true
         superview?.needsLayout = true
         tabsDidChange?()
+        refreshTabThemeStyles()
     }
 
     /// The sticky pair with its tabs, only when it sits adjacent in pane
@@ -383,6 +391,56 @@ final class TabBarView: NSView {
                 cell.setHovered(hovered)
             } else if let group = view as? TabGroupCellView {
                 group.setHovered(hovered)
+            }
+        }
+        refreshTabThemeStyles()
+    }
+
+    /// Re-resolves user-CSS over the strip's node tree and pushes each
+    /// visible cell its winners. Hidden grouped members keep no styles: they
+    /// are out of the hierarchy and out of the tree.
+    func refreshTabThemeStyles() {
+        if !themeSubscribed {
+            themeSubscribed = true
+            ThemeEngine.shared.$fullCSS
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.refreshTabThemeStyles() }
+                .store(in: &themeCancellables)
+            // The shape is not in the stylesheet: a shape flip must still
+            // re-resolve so `.tab.pill` / `.tab.attached` follow the flip.
+            SettingsStore.shared.$settings
+                .map(\.appearance.tabShape)
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.refreshTabThemeStyles() }
+                .store(in: &themeCancellables)
+        }
+        themeGeneration += 1
+        let current = themeGeneration
+        let shapeClass = SettingsStore.shared.settings.appearance.tabShape == .pills
+            ? "pill" : "attached"
+        var tabNodes: [ThemeNode] = []
+        for (id, item) in itemViews where item.superview != nil {
+            tabNodes.append(ThemeNode(
+                key: item.themeKey.isEmpty ? "tab:\(id.uuidString)" : item.themeKey,
+                element: "tab", classes: ["tab", shapeClass], states: item.themeStates))
+        }
+        if let group = groupCell, group.superview != nil {
+            tabNodes.append(ThemeNode(
+                key: group.themeKey, element: "tab",
+                classes: ["tab", "group", shapeClass], states: group.themeStates))
+        }
+        let tabs = ThemeNode(key: "tabs", element: "tabs", id: "tabs", children: tabNodes)
+        let tree = [ThemeNode(key: "window", element: "window", children: [tabs])]
+        Task { [weak self] in
+            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            guard let self, current == self.themeGeneration else { return }
+            for (_, item) in self.itemViews {
+                item.applyThemeCSS(styles[item.themeKey] ?? [:])
+            }
+            if let group = self.groupCell {
+                group.applyThemeCSS(styles[group.themeKey] ?? [:])
             }
         }
     }
@@ -566,11 +624,19 @@ final class TabBarView: NSView {
             guard let self else { return }
             self.dragEndedGroup(atScreenPoint: screenPoint)
         }
+        cell.themeKey = "tab:\(leading.id.uuidString)"
+        cell.onThemeStateChange = { [weak self] in
+            self?.refreshTabThemeStyles()
+        }
         return cell
     }
 
     private func makeItem(for tab: BrowserTab) -> TabBarItemView {
         let item = TabBarItemView(tab: tab)
+        item.themeKey = "tab:\(tab.id.uuidString)"
+        item.onThemeStateChange = { [weak self] in
+            self?.refreshTabThemeStyles()
+        }
         item.onPress = { [weak self] in
             guard let self else { return }
             self.delegate?.tabBar(self, didSelect: tab)

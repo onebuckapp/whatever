@@ -79,6 +79,54 @@ final class TabBarItemView: NSView {
     /// Whether the strip sits below the page: attached cells mirror so the
     /// square edge keeps facing it.
     private var tabsAtBottom = false
+    /// Resolved user-CSS overrides for this cell, pushed by the strip and
+    /// applied after the structured theme in `applyTheme`. The cell never
+    /// resolves itself.
+    var themeProps: [String: String] = [:]
+    /// Stable style key (`"tab:<uuid>"`), set by the strip.
+    var themeKey = ""
+    /// Fires when selected/hover changes so the strip re-resolves states.
+    /// Never fired by `applyThemeCSS` itself.
+    var onThemeStateChange: (() -> Void)?
+    /// Corner radius from CSS, overriding the slider while set.
+    private var cssCornerRadius: CGFloat?
+    /// The title font before any CSS size overrode it, for restoring.
+    private var defaultTitleFont: NSFont?
+    /// Whether the media stack currently shows a CSS gradient. Tracks who
+    /// owns the media layer across structured rebuilds (see `applyTheme`).
+    private var cssGradientInstalled = false
+
+    /// Style states for the node tree: selected reads as `:active`.
+    var themeStates: [String] {
+        var states: [String] = []
+        if selected { states.append("active") }
+        if hover { states.append("hover") }
+        return states
+    }
+
+    /// Applies pushed CSS overrides: stores them, then repaints through the
+    /// normal theme path so structured and CSS converge in one place. A
+    /// media-affecting value appearing, disappearing, or changing
+    /// invalidates the structured media cache, which otherwise would keep
+    /// showing the replaced stack (or keep a removed override painted).
+    func applyThemeCSS(_ props: [String: String]) {
+        if Self.mediaSignature(themeProps) != Self.mediaSignature(props) {
+            appliedThemeKey = nil
+        }
+        themeProps = props
+        cssCornerRadius = ThemeStyleValue.length(props, "border-radius")
+        applyTheme()
+        needsLayout = true
+        superview?.needsLayout = true
+        needsDisplay = true
+    }
+
+    /// The overlay values that change what the media section built: only
+    /// these force a structured rebuild. Radius, text color, and font size
+    /// repaint without one.
+    private static func mediaSignature(_ props: [String: String]) -> [String] {
+        ["background-color", "background-image", "opacity"].map { props[$0] ?? "" }
+    }
 
     /// Reads the roundness setting onto the cell. Layers take it in `layout`,
     /// which also runs before the first paint; the outline reads it in `draw`.
@@ -97,9 +145,10 @@ final class TabBarItemView: NSView {
         needsDisplay = true
     }
 
-    /// Roundness drawn and clipped at this size.
+    /// Roundness drawn and clipped at this size. CSS overrides the slider
+    /// while set, through the same shape rule.
     private func resolvedCornerRadius() -> CGFloat {
-        tabShape.cornerRadius(setting: cornerRadius, height: bounds.height)
+        tabShape.cornerRadius(setting: cssCornerRadius ?? cornerRadius, height: bounds.height)
     }
 
     init(tab: BrowserTab) {
@@ -139,6 +188,7 @@ final class TabBarItemView: NSView {
         selected = isSelected
         updateAppearance()
         needsLayout = true
+        onThemeStateChange?()
     }
 
     func setDragging(_ isDragging: Bool) {
@@ -261,11 +311,13 @@ final class TabBarItemView: NSView {
     override func mouseEntered(with event: NSEvent) {
         hover = true
         updateAppearance()
+        onThemeStateChange?()
     }
 
     override func mouseExited(with event: NSEvent) {
         hover = false
         updateAppearance()
+        onThemeStateChange?()
     }
 
     /// Sets the hover state directly. The strip calls this after scrolling:
@@ -276,6 +328,7 @@ final class TabBarItemView: NSView {
         guard hover != hovered else { return }
         hover = hovered
         updateAppearance()
+        onThemeStateChange?()
     }
 
     /// Whether the cell currently paints hovered. For tests.
@@ -550,27 +603,32 @@ final class TabBarItemView: NSView {
 
     /// Paints the cell's configured theme. The state washes above (dragging,
     /// selected, hover) are untouched: they composite over the theme, so a
-    /// selected video tab still reads as selected.
+    /// selected video tab still reads as selected. The structured media stack
+    /// rebuilds only on configuration change; the CSS overlay below runs on
+    /// every pass so pushed styles never wait for one.
     private func applyTheme() {
         let settings = SettingsStore.shared.settings.appearance
         let config = selected ? settings.activeTabTheme : settings.tabTheme
         if let applied = appliedThemeKey, applied == (config, selected) {
-            return
-        }
-        mediaLayer?.removeFromSuperlayer()
-        mediaLayer = nil
-        mediaImageSize = nil
-        tintLayer?.removeFromSuperlayer()
-        tintLayer = nil
-        if let videoPath {
-            TabVideoPool.shared.release(path: videoPath)
-            self.videoPath = nil
-        }
-        backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
-        backgroundView.layer?.contents = nil
-        appliedThemeKey = (config, selected)
+            // Structured stack is current; the CSS overlay below still runs.
+        } else {
+            mediaLayer?.removeFromSuperlayer()
+            mediaLayer = nil
+            mediaImageSize = nil
+            tintLayer?.removeFromSuperlayer()
+            tintLayer = nil
+            if let videoPath {
+                TabVideoPool.shared.release(path: videoPath)
+                self.videoPath = nil
+            }
+            backgroundView.layer?.backgroundColor = NSColor.clear.cgColor
+            backgroundView.layer?.contents = nil
+            appliedThemeKey = (config, selected)
+            // The structured stack replaced whatever was there, including a
+            // CSS gradient: the overlay below reinstalls it.
+            cssGradientInstalled = false
 
-        switch config.background.kind {
+            switch config.background.kind {
         case .none:
             break
         case .solid:
@@ -608,6 +666,7 @@ final class TabBarItemView: NSView {
             layer.videoGravity = .resizeAspectFill
             installMediaLayer(layer)
         }
+        }
 
         // Tint sits above the media — image, video, or anything else drawn —
         // and below the state washes, which `updateAppearance` composites over
@@ -633,6 +692,51 @@ final class TabBarItemView: NSView {
             closeButton.contentTintColor = .secondaryLabelColor
             audioButton.contentTintColor = .secondaryLabelColor
             faviconView.contentTintColor = .secondaryLabelColor
+        }
+        applyThemeCSSOverlay(config: config)
+    }
+
+    /// Overlays the pushed user-CSS after the structured theme. Background
+    /// color paints the host layer — behind any media, the CSS way — while
+    /// an explicit `background-image` gradient replaces the media stack.
+    /// Opacity multiplies the structured one: both fade the same layer.
+    /// The state washes in `updateAppearance` still composite over all of
+    /// this.
+    private func applyThemeCSSOverlay(config: TabThemeConfiguration) {
+        if themeProps.isEmpty { return }
+        if let color = ThemeStyleValue.color(themeProps, "background-color") {
+            backgroundView.layer?.backgroundColor = color.cgColor
+        }
+        if let gradient = ThemeStyleValue.gradient(themeProps) {
+            if !cssGradientInstalled {
+                mediaLayer?.removeFromSuperlayer()
+                mediaLayer = nil
+                mediaImageSize = nil
+                if let videoPath {
+                    TabVideoPool.shared.release(path: videoPath)
+                    self.videoPath = nil
+                }
+                installMediaLayer(ThemeStyleValue.makeGradientLayer(gradient))
+                cssGradientInstalled = true
+            }
+        } else {
+            cssGradientInstalled = false
+        }
+        if let cssOpacity = ThemeStyleValue.opacity(themeProps, "opacity") {
+            backgroundView.layer?.opacity =
+                Float(config.background.effects.opacity) * Float(cssOpacity)
+        }
+        if let foreground = ThemeStyleValue.color(themeProps, "color") {
+            titleLabel.textColor = foreground
+            closeButton.contentTintColor = foreground
+            audioButton.contentTintColor = foreground
+            faviconView.contentTintColor = foreground
+        }
+        if let size = ThemeStyleValue.fontSize(themeProps) {
+            if defaultTitleFont == nil { defaultTitleFont = titleLabel.font }
+            titleLabel.font = NSFont.systemFont(ofSize: size)
+        } else if let restored = defaultTitleFont {
+            titleLabel.font = restored
         }
     }
 

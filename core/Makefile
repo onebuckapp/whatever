@@ -7,8 +7,8 @@ NIM_SOURCES := nim-core/browsercore.nim nim-core/api/abi.nim nim-core/api/qr_api
 	nim-core/api/password_api.nim nim-core/api/password_common.nim \
 	nim-core/api/history_api.nim nim-core/api/session_api.nim \
 	nim-core/api/feed_api.nim nim-core/api/filter_api.nim \
-	nim-core/api/find_api.nim nim-core/api/downloads_api.nim \
-	nim-core/api/locale_api.nim \
+ 	nim-core/api/find_api.nim nim-core/api/downloads_api.nim \
+ 	nim-core/api/locale_api.nim nim-core/api/theme_api.nim \
 	nim-core/storage/database.nim nim-core/storage/schema.nim
 LOCALE_DIR := $(CURDIR)/../locale
 MSGFMT_SRC := nim-core/tools/msgfmt.nim

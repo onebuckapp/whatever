@@ -138,6 +138,11 @@ final class CrawlBarController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
+        ThemeEngine.shared.$fullCSS
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshCrawlThemeStyles() }
+            .store(in: &cancellables)
         // Returning to the foreground restarts the loop from the leading
         // edge, which also recovers the loop if it ever missed its start.
         // (The SwiftUI wrapper this replaced watched scene phase for the
@@ -287,6 +292,26 @@ final class CrawlBarController {
         tickerView.update(with: makeInputs(feeds: feeds))
     }
 
+    /// Re-resolves user-CSS over the bar's single node and pushes the
+    /// winners. The bar carries no states, so settings and stylesheet ticks
+    /// are the only triggers.
+    private var themeGeneration = 0
+
+    private func refreshCrawlThemeStyles() {
+        guard tickerView != nil else { return }
+        themeGeneration += 1
+        let current = themeGeneration
+        let tree = [ThemeNode(
+            key: "window", element: "window",
+            children: [ThemeNode(
+                key: "crawlbar", element: "crawlbar", id: "crawlbar")])]
+        Task { [weak self] in
+            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            guard let self, current == self.themeGeneration else { return }
+            self.tickerView?.applyThemeCSS(styles["crawlbar"] ?? [:])
+        }
+    }
+
     /// A ticker tap always reads the item: it leaves the unread-only bar at
     /// once, persists behind the navigation, and the opener takes it from
     /// there. An unknown URL (stale loop, rebuilt list) still navigates.
@@ -312,6 +337,7 @@ final class CrawlBarController {
         NSLayoutConstraint.activate(barConstraints)
         lastPinnedPosition = effectivePosition
         tickerView = ticker
+        refreshCrawlThemeStyles()
     }
 
     /// Rebuilds the strip's edge pins after a position change, keeping the

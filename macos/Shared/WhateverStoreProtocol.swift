@@ -92,6 +92,18 @@ import Foundation
     func historyDeleteBefore(_ cutoff: Int64, reply: @escaping (Int32, NSError?) -> Void)
     func historyClear(reply: @escaping (NSError?) -> Void)
 
+    // MARK: Themes
+
+    func themeCheck(_ css: String, reply: @escaping (Data?, NSError?) -> Void)
+    func themeResolve(
+        _ css: String,
+        _ nodes: String,
+        reply: @escaping (Data?, NSError?) -> Void
+    )
+    func themeSerialize(_ styles: String, reply: @escaping (Data?, NSError?) -> Void)
+    func themeSpec(reply: @escaping (Data?, NSError?) -> Void)
+    func themeDeclarations(_ css: String, reply: @escaping (Data?, NSError?) -> Void)
+
     // MARK: Sessions
 
     func sessionLoad(reply: @escaping (Data?, NSError?) -> Void)

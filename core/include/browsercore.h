@@ -273,6 +273,56 @@ int32_t bc_history_fuzzy_search(const char *query, int32_t limit, char *buffer,
 int32_t bc_spotlight_hint(const char *query, char *buffer,
                           int32_t capacity, int32_t *needed);
 
+/* -------------------------------------------------------------------- theme */
+
+/* User CSS themes for the application chrome (GTK-style: element names,
+ * `#ids`, `.classes`, `:states`). All four are pure computation over their
+ * inputs — no store involved — and fail open: an invalid declaration is
+ * skipped, never fatal. Inputs over 256 KiB are BC_ERR_BAD_INPUT. */
+
+/* Checks `css` against the theme policy and reports
+ * `{"diagnostics": [{"selector", "property", "message", "severity"
+ * ("error" or "warning"), "line", "col"}], "rules": n, "declarations": m}`.
+ * `line`/`col` are only set for whole-stylesheet syntax errors (the AST
+ * carries no positions); declaration findings locate by selector+property
+ * for the editor to underline. Never fails for bad input: even broken syntax
+ * comes back BC_OK with one error diagnostic, because the editor calls this
+ * on every keystroke. NULL or empty input checks clean. */
+int32_t bc_theme_check(const char *css, char *buffer,
+                       int32_t capacity, int32_t *needed);
+
+/* Runs the cascade of `css` over the node tree in `nodes_json`
+ * (`{"nodes": [{key, element, id, classes, states, children}]}`) and returns
+ * `{"styles": {key: {property: canonical-value}}}`. Winners follow the GTK
+ * rule: `!important` first, then specificity (id > class/state > element),
+ * then source order. Unsupported constructs are skipped silently — call
+ * `bc_theme_check` for the reasons. Unparseable CSS or node JSON is
+ * BC_ERR_BAD_INPUT. */
+int32_t bc_theme_resolve(const char *css, const char *nodes_json, char *buffer,
+                         int32_t capacity, int32_t *needed);
+
+/* Prints `{selector: {property: raw-value}}` as canonical CSS: the managed
+ * block the Appearance controls regenerate. Values canonicalize (any CSS
+ * color to `#rrggbb[aa]`, lengths to `Npx`, opacity to 0..1), so a
+ * serialize→parse round-trip is stable by construction; unsupported or
+ * invalid entries are dropped. Selectors and properties sort for stable
+ * diffs. Non-object or unparseable JSON is BC_ERR_BAD_INPUT. */
+int32_t bc_theme_serialize(const char *styles_json, char *buffer,
+                           int32_t capacity, int32_t *needed);
+
+/* The supported surface as JSON (elements, ids, classes, pseudo-classes,
+ * properties): one source of truth for the editor help and client-side
+ * instant feedback. Infallible. */
+int32_t bc_theme_spec(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Supported, valid declarations in source order as
+ * `{"declarations": [{selector, property, value, important, order}]}` with
+ * canonical values: what the editor's Apply maps back onto the Appearance
+ * controls. Unsupported or invalid entries are dropped (`bc_theme_check`
+ * explains why). Unparseable CSS is BC_ERR_BAD_INPUT. */
+int32_t bc_theme_declarations(const char *css, char *buffer,
+                             int32_t capacity, int32_t *needed);
+
 /* Deletes one entry by primary key. BC_ERR_NOT_FOUND when no such row. */
 int32_t bc_history_delete(const char *id);
 

@@ -47,12 +47,17 @@ final class SpotlightField: NSView {
     /// `resolvedRadius(forHeight:)` when drawing, which caps it at half the
     /// height so no setting can invert the arcs.
     static var cornerRadius: CGFloat = 10
+    /// User-CSS overrides, pushed by the toolbar controller after the cascade.
+    /// Nil means the structured theme stands: the field and the dropdown keep
+    /// drawing exactly as before.
+    static var cssBackgroundColor: NSColor?
+    static var cssCornerRadius: CGFloat?
     /// The 1pt border, drawn at the same radius as the fill so it tracks it.
     private static let borderWidth: CGFloat = 1
     /// Draw-time corner radius for a view of `height`: the configured value
     /// capped at half the height, so the maximum always reads as a pill.
     static func resolvedRadius(forHeight height: CGFloat) -> CGFloat {
-        min(max(Self.cornerRadius, 0), max(height, 0) / 2)
+        min(max(Self.cssCornerRadius ?? Self.cornerRadius, 0), max(height, 0) / 2)
     }
 
     /// Room for the leading glyph plus the gap to the text, measured from the left edge.
@@ -537,7 +542,7 @@ final class SpotlightField: NSView {
             topRadius: radius,
             bottomRadius: isOpen ? 0 : radius
         )
-        NSColor.controlBackgroundColor.setFill()
+        (Self.cssBackgroundColor ?? NSColor.controlBackgroundColor).setFill()
         path.fill()
         NSColor.separatorColor.setStroke()
         path.lineWidth = line

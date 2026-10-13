@@ -311,6 +311,12 @@ struct AppearanceSettingsView: View {
                 ) {
                     AddressBarSettingsGroups()
                 }
+                if matches(
+                    "Custom CSS",
+                    "css theme stylesheet style customize custom advanced code editor highlight"
+                ) {
+                    ThemeCSSSettingsGroups()
+                }
                 if matches("Reset Appearance", "reset restore defaults factory built-in appearance") {
                     resetGroup
                 }

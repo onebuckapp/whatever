@@ -30,6 +30,11 @@ final class BrowserPaneController: NSViewController {
     private let activeModel: ActivePaneModel
     private var activeCancellable: AnyCancellable?
     private var radiusCancellable: AnyCancellable?
+    private var themeCancellable: AnyCancellable?
+    /// Resolved user-CSS overrides for the page card, applied in
+    /// `applyPageAppearance` after the structured values.
+    private var pageThemeProps: [String: String] = [:]
+    private var themeGeneration = 0
     private var pageContainer: NSView?
     private var pageBottomConstraint: NSLayoutConstraint?
     private var pageLeadingConstraint: NSLayoutConstraint?
@@ -176,6 +181,10 @@ final class BrowserPaneController: NSViewController {
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.applyPageAppearance() }
+        themeCancellable = ThemeEngine.shared.$fullCSS
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshPageThemeStyles() }
         // Capture requests belong to a page, not to the tab in the
         // abstract: a navigation strands their handlers, so the leftovers
         // are answered denied here while the tab controller drops the
@@ -211,13 +220,43 @@ final class BrowserPaneController: NSViewController {
     }
 
     /// Applies the page card's roundness and the bottom inset that keeps it
-    /// attached to the strip below.
+    /// attached to the strip below. CSS overrides the radius while set and
+    /// paints the card behind the (usually opaque) page, visible at rounded
+    /// corners and wherever the page lets through.
     private func applyPageAppearance() {
-        pageContainer?.layer?.cornerRadius = CGFloat(max(
+        let structured = CGFloat(max(
             SettingsStore.shared.settings.appearance.pageCornerRadius, 0))
+        pageContainer?.layer?.cornerRadius =
+            ThemeStyleValue.length(pageThemeProps, "border-radius") ?? structured
         pageContainer?.layer?.maskedCorners = pageMaskedCorners()
+        pageContainer?.layer?.backgroundColor =
+            ThemeStyleValue.color(pageThemeProps, "background-color")?.cgColor
         pageBottomConstraint?.constant = -Self.currentPageBottomInset
     }
+
+    /// Re-resolves user-CSS over the page node and repaints. The only page
+    /// state is the focused split (`:active`); settings arrive through the
+    /// stylesheet subscription.
+    private func refreshPageThemeStyles() {
+        themeGeneration += 1
+        let current = themeGeneration
+        var states: [String] = []
+        if pageIsActiveForTheme { states.append("active") }
+        let tree = [ThemeNode(
+            key: "window", element: "window",
+            children: [ThemeNode(
+                key: "page", element: "page", id: "page", states: states)])]
+        Task { [weak self] in
+            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            guard let self, current == self.themeGeneration else { return }
+            self.pageThemeProps = styles["page"] ?? [:]
+            self.applyPageAppearance()
+        }
+    }
+
+    /// Whether this pane's tab is the focused one, mirrored from
+    /// `updateBorder` so the `:active` state follows the accent border.
+    private var pageIsActiveForTheme = false
 
     /// Which page corners round: the split owns the inner sides (flush and
     /// square where panes meet), the tab shape owns the page edge facing the
@@ -655,6 +694,10 @@ final class BrowserPaneController: NSViewController {
         pageContainer?.layer?.borderColor = isActive
             ? NSColor.controlAccentColor.cgColor
             : NSColor.clear.cgColor
+        if isActive != pageIsActiveForTheme {
+            pageIsActiveForTheme = isActive
+            refreshPageThemeStyles()
+        }
     }
 }
 
