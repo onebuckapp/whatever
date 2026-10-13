@@ -85,6 +85,16 @@ struct TabHistory: Equatable {
         return urls[index]
     }
 
+    /// Jumps to the entry at `newIndex`, returning its address, or nil
+    /// when out of range. The list itself never changes: only the position
+    /// moves, like `moveBack`/`moveForward` with a destination. The
+    /// long-press history menus' jump.
+    mutating func move(to newIndex: Int) -> URL? {
+        guard urls.indices.contains(newIndex) else { return nil }
+        index = newIndex
+        return urls[index]
+    }
+
     /// Drops the entry matching `url`, fixing the index. Returns whether
     /// anything changed. Used when Nim reports the entry is a click tracker
     /// that should never have registered: the tracker's page may still be

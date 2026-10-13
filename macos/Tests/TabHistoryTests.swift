@@ -254,4 +254,33 @@ struct TabHistoryTests {
         #expect(history.urls.map(\.absoluteString) == ["https://b.example"])
         #expect(history.index == 0)
     }
+
+    @Test("jumping lands directly on any entry, list untouched")
+    func jumpToEntry() {
+        var history = TabHistory(
+            urls: [url("https://a.example"), url("https://b.example"), url("https://c.example")],
+            index: 2
+        )
+        #expect(history.move(to: 0)?.absoluteString == "https://a.example")
+        #expect(history.index == 0)
+        #expect(history.canGoBack == false)
+        #expect(history.canGoForward == true)
+        // The list itself never changes: only the position moves.
+        #expect(history.urls.map(\.absoluteString) == [
+            "https://a.example", "https://b.example", "https://c.example",
+        ])
+        #expect(history.move(to: 2)?.absoluteString == "https://c.example")
+    }
+
+    @Test("jumping out of range lands nowhere")
+    func jumpOutOfRange() {
+        var history = TabHistory(
+            urls: [url("https://a.example"), url("https://b.example")],
+            index: 1
+        )
+        #expect(history.move(to: 2) == nil)
+        #expect(history.move(to: -1) == nil)
+        #expect(history.index == 1)
+        #expect(history.currentURL?.absoluteString == "https://b.example")
+    }
 }

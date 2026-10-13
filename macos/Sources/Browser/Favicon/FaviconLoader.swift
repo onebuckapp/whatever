@@ -129,6 +129,21 @@ final class FaviconLoader {
         hostsWithoutIcons.remove(host)
     }
 
+    /// The site's icon when a previous lookup already cached it, or nil.
+    ///
+    /// Synchronous and network-free: history menus show what is known and
+    /// fall back to their globe, rather than fetching on open. Pages the
+    /// tab visited this session are warm by construction — every committed
+    /// page looks its icon up — so back/forward entries usually hit.
+    func cachedIcon(forPageAt url: URL) -> NSImage? {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host
+        else {
+            return nil
+        }
+        return cache.object(forKey: host as NSString)
+    }
+
     // MARK: - Private
 
     /// Reads `link[rel*=icon]` out of the page and reports each entry's

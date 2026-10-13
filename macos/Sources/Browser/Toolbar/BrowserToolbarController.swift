@@ -90,6 +90,14 @@ final class BrowserToolbarController: NSObject {
     /// unlike the `NSTextField` it replaced. Set while editing so `syncControls`
     /// does not overwrite what is being typed.
     private var isEditingAddress = false
+    /// The long-press history panel's host: the window's content view, so
+    /// the panel can cover the tab bar and the page like the spotlight's
+    /// own dropdown. Kept from `attachSpotlightDropdown`, which runs once
+    /// the content view exists.
+    private weak var dropdownContainer: NSView?
+    /// The long-press back/forward panel. One instance per window, shown
+    /// per press and removed on dismiss.
+    private let historyMenu = HistoryMenuController()
 
     var onAddressSubmitted: ((URL) -> Void)?
     /// Opens the settings modal.
@@ -213,6 +221,7 @@ final class BrowserToolbarController: NSObject {
     /// because the toolbar is built before that view is loaded.
     func attachSpotlightDropdown(to container: NSView) {
         spotlightController.attach(field: spotlight, container: container)
+        dropdownContainer = container
     }
 
     // MARK: - Tab binding
@@ -221,6 +230,8 @@ final class BrowserToolbarController: NSObject {
         guard self.tab?.id != tab?.id else { return }
         self.tab = tab
         cancellables.removeAll()
+        // The panel lists the previous tab's entries: never carry it over.
+        historyMenu.dismiss()
         isEditingAddress = false
 
         guard let tab else {
@@ -455,6 +466,59 @@ final class BrowserToolbarController: NSObject {
         tab?.goForward()
     }
 
+    /// Which side of the current entry a history menu lists.
+    enum HistoryDirection {
+        case back
+        case forward
+    }
+
+    /// Ordered (address, list-index) pairs for a history menu: back walks
+    /// the older entries nearest-first, forward walks the newer ones in
+    /// order. The current page is never listed — the menu opens from it,
+    /// it is not somewhere to go. Static so the ordering is testable
+    /// without a tab.
+    nonisolated static func historyEntries(
+        urls: [URL],
+        index: Int,
+        direction: HistoryDirection
+    ) -> [(url: URL, index: Int)] {
+        guard urls.indices.contains(index) else { return [] }
+        switch direction {
+        case .back:
+            return urls[..<index].indices.reversed().map { (urls[$0], $0) }
+        case .forward:
+            return urls[(index + 1)...].indices.map { (urls[$0], $0) }
+        }
+    }
+
+    /// The long-press jump: the tab's back (or forward) entries in a
+    /// floating panel hung below the pressed button — favicon, title, and
+    /// address per row — choosing one loads it directly instead of
+    /// stepping. Empty (a disabled button never long-presses, so only a
+    /// tab switch mid-press lands here) shows nothing.
+    private func showHistoryMenu(direction: HistoryDirection, from button: BrowserToolbarButton?) {
+        guard let button, let tab, let container = dropdownContainer else { return }
+        let snapshot = tab.historySnapshot()
+        let pairs = Self.historyEntries(
+            urls: snapshot.urls,
+            index: snapshot.index,
+            direction: direction
+        )
+        guard !pairs.isEmpty else { return }
+        historyMenu.show(
+            entries: pairs.map {
+                HistoryMenuEntry(
+                    url: $0.url,
+                    index: $0.index,
+                    favicon: FaviconLoader.shared.cachedIcon(forPageAt: $0.url)
+                )
+            },
+            anchoredTo: button,
+            in: container,
+            onChoose: { [weak self] index in self?.tab?.goToHistoryEntry(at: index) }
+        )
+    }
+
     @objc private func toggleReload() {
         guard let state = tab?.tabController else { return }
         if state.isLoading {
@@ -520,6 +584,12 @@ final class BrowserToolbarController: NSObject {
             help: tr("Back", ctx: "Toolbar"),
             action: #selector(goBack)
         )
+        // A held press lists the tab's back entries under the button; a
+        // click still steps once. Wired here rather than in the button's
+        // init because it needs `self`.
+        backButton.onLongPress = { [weak self] in
+            self?.showHistoryMenu(direction: .back, from: self?.backButton)
+        }
         configureBundled(
             forwardButton,
             asset: "TablerChevronRight",
@@ -527,6 +597,9 @@ final class BrowserToolbarController: NSObject {
             help: tr("Forward", ctx: "Toolbar"),
             action: #selector(goForward)
         )
+        forwardButton.onLongPress = { [weak self] in
+            self?.showHistoryMenu(direction: .forward, from: self?.forwardButton)
+        }
         configureBundled(
             reloadButton,
             asset: "TablerReload",

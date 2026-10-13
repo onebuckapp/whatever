@@ -61,6 +61,42 @@ struct SpotlightGhostTests {
         #expect(SpotlightController.ghost(kind: "navigate", trimmed: "   ", engine: engine) == nil)
     }
 
+    @Test("re-setting the same ghost repaints nothing")
+    @MainActor
+    func sameGhostIsNoop() {
+        let field = SpotlightField(frame: NSRect(x: 0, y: 0, width: 600, height: 36))
+        field.textField.stringValue = "cats"
+        #expect(field.setGhost("Search on DuckDuckGo") == true)
+        // The backend names the same action on the next keystroke: no
+        // hide-and-repaint, so the ghost holds steady instead of
+        // flickering while typing.
+        #expect(field.setGhost("Search on DuckDuckGo") == false)
+        #expect(field.ghostTextForTesting == "Search on DuckDuckGo")
+        #expect(field.setGhost(nil) == true)
+        #expect(field.setGhost(nil) == false)
+        #expect(field.ghostTextForTesting == nil)
+    }
+
+    @Test("the ghost travels with the growing text, gap intact")
+    @MainActor
+    func ghostFollowsTyping() throws {
+        let field = SpotlightField(frame: NSRect(x: 0, y: 0, width: 600, height: 36))
+        field.layoutSubtreeIfNeeded()
+        field.textField.stringValue = "cats"
+        field.setGhost("Search on DuckDuckGo")
+        field.layoutSubtreeIfNeeded()
+        let first = try #require(field.ghostFrameForTesting).minX
+        // Next keystrokes, same ghost content: the label must move right
+        // with the text rather than sit where the first keystroke parked
+        // it while the text types over it.
+        field.textField.stringValue = "cats and dogs"
+        field.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification))
+        field.layoutSubtreeIfNeeded()
+        let second = try #require(field.ghostFrameForTesting).minX
+        #expect(second > first)
+    }
+
     @Test("ghost parks on whole points so the text stays sharp")
     @MainActor
     func ghostSnapsToPixels() throws {

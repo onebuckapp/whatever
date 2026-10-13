@@ -558,29 +558,25 @@ final class BrowserTab: NSObject {
     /// Re-accesses the previous address with a new view. Nothing is
     /// restored from cache; the address is loaded anew.
     func goBack() {
+        goToHistoryEntry(at: tabHistory.index - 1)
+    }
+
+    /// Re-accesses the next address with a new view.
+    func goForward() {
+        goToHistoryEntry(at: tabHistory.index + 1)
+    }
+
+    /// Loads the history entry at `newIndex` directly: the long-press
+    /// menus' jump across several entries at once. An out-of-range index
+    /// beeps like a dead-end step rather than loading nothing.
+    func goToHistoryEntry(at newIndex: Int) {
         // See `navigate(to:)` above: taking over voids pending form work.
         armedFormSkip = nil
         postedFormURLs.removeAll()
         // Captured before the move: `currentURL` already answers with the new
         // one by the time `load` runs, and `load` needs the old one.
         let previous = currentURL
-        guard let target = tabHistory.moveBack() else {
-            SystemBeep.play()
-            return
-        }
-        load(target, from: previous)
-        updateHistoryNavigation()
-        BrowserCoordinator.shared.sessionDidChange()
-    }
-
-    /// Re-accesses the next address with a new view.
-    func goForward() {
-        // See `navigate(to:)` above: taking over voids pending form work.
-        armedFormSkip = nil
-        postedFormURLs.removeAll()
-        // Captured before the move, for the same reason as in `goBack`.
-        let previous = currentURL
-        guard let target = tabHistory.moveForward() else {
+        guard let target = tabHistory.move(to: newIndex) else {
             SystemBeep.play()
             return
         }

@@ -133,11 +133,83 @@ final class BrowserToolbarButton: NSButton {
         Self.fittingDimensions
     }
 
+    /// Held-press action, fired once when a press outlasts
+    /// `longPressInterval` instead of the button's own action. Nil keeps the
+    /// stock click behavior; only the navigation buttons set this.
+    var onLongPress: (() -> Void)?
+
+    /// How long a press must be held before it counts as a long press: long
+    /// enough to be deliberate, short enough to feel attached to the press.
+    static let longPressInterval: TimeInterval = 0.5
+
     override var acceptsFirstResponder: Bool {
         // Never: a button that takes focus would pull the caret out of the address
         // field, and tabbing through six chrome buttons nobody keyboard-navigates to
         // is not worth the ring.
         false
+    }
+
+    /// Click tracking with a long-press branch, replacing the cell's own
+    /// tracking for buttons that have one.
+    ///
+    /// The cell's tracking loop cannot host a hold threshold: it decides
+    /// click-versus-nothing on release alone. This waits for the earlier of
+    /// a release (a normal click, cancelled when released outside like the
+    /// cell would) or the hold interval (the long-press action, swallowing
+    /// the press so no click follows it). The pressed fill shows for both,
+    /// like the cell would paint.
+    override func mouseDown(with event: NSEvent) {
+        guard onLongPress != nil, isEnabled else {
+            super.mouseDown(with: event)
+            return
+        }
+        guard let window else {
+            super.mouseDown(with: event)
+            return
+        }
+        isHighlighted = true
+        needsDisplay = true
+        defer {
+            isHighlighted = false
+            needsDisplay = true
+        }
+        let deadline = Date().addingTimeInterval(Self.longPressInterval)
+        while true {
+            let remaining = deadline.timeIntervalSinceNow
+            if remaining <= 0 {
+                onLongPress?()
+                // The press may already be over — a menu tracks its own
+                // release — so this only waits while a finger is still
+                // down, and never blocks past the gesture.
+                if NSEvent.pressedMouseButtons & 0x1 != 0 {
+                    _ = window.nextEvent(
+                        matching: .leftMouseUp,
+                        until: .distantFuture,
+                        inMode: .eventTracking,
+                        dequeue: true
+                    )
+                }
+                return
+            }
+            guard let next = window.nextEvent(
+                matching: [.leftMouseUp, .leftMouseDragged],
+                until: Date().addingTimeInterval(max(0, min(remaining, 0.05))),
+                inMode: .eventTracking,
+                dequeue: true
+            ) else {
+                continue
+            }
+            if next.type == .leftMouseUp {
+                let point = convert(next.locationInWindow, from: nil)
+                if bounds.contains(point) {
+                    _ = sendAction(action, to: target)
+                }
+                return
+            }
+            // Dragged: the hold keeps running. A drag far away still
+            // long-presses; the menu then dismisses on release like any
+            // popup.
+        }
     }
 
     // MARK: - Hover

@@ -68,6 +68,14 @@ final class SpotlightField: NSView {
     /// The ghost reads one step down from the input, so the two never merge
     /// into one run of text.
     private static let ghostFontSize: CGFloat = 12
+    /// Breathing room between the typed text and the ghost, so the two
+    /// never touch no matter the widths involved.
+    private static let ghostGap: CGFloat = 8
+    /// Room the clear button needs at the trailing edge while text is showing.
+    private static let ghostTrailingReserve: CGFloat = 20
+    /// Below this much room the ghost would collapse to an ellipsis stub, so
+    /// it stands down instead of crowding the text it follows.
+    private static let ghostMinimumRoom: CGFloat = 40
 
     // MARK: State
 
@@ -258,11 +266,20 @@ final class SpotlightField: NSView {
 
     /// Shows muted ghost text after the typed input, or clears it. The
     /// controller owns the content; this view owns the position.
-    func setGhost(_ text: String?) {
+    ///
+    /// Returns whether anything changed: setting the text it already shows
+    /// is a no-op, so a backend answer naming the same action as the one
+    /// showing — "Search on <engine>" on nearly every keystroke of a
+    /// search — never hides and repaints the label, which is the flicker
+    /// typing caused when each keystroke cleared and re-set identical text.
+    @discardableResult
+    func setGhost(_ text: String?) -> Bool {
+        guard text != ghostText else { return false }
         ghostText = text
         ghostLabel.stringValue = text ?? ""
         ghostLabel.isHidden = text?.isEmpty ?? true
         needsLayout = true
+        return true
     }
 
     /// Ghost text currently showing, for tests: positioning needs a window
@@ -281,23 +298,27 @@ final class SpotlightField: NSView {
         layoutGhost()
     }
 
-    /// Parks the ghost right past the typed text, centered on the field's
-    /// midline rather than sharing the input's taller line box. The origin
-    /// snaps to whole points: a measured text width and a halved line height
-    /// are fractional by routine, and text parked half a point off the pixel
-    /// grid paints soft next to the crisp input. Hidden while the text
-    /// overflows: the field editor scrolls overflowing input, and a ghost
-    /// measured from the full string would park past the visible edge and
-    /// lie about where the text ends. Sized to the whole ghost plus a
-    /// measuring-slack point allowance, so an address reads in full instead
-    /// of collapsing to an ellipsis a few points early; genuinely longer
-    /// than the room left still truncates at the clear button.
+    /// Parks the ghost past the typed text with breathing room, centered on
+    /// the field's midline rather than sharing the input's taller line box.
+    /// The origin snaps to whole points: a measured text width and a halved
+    /// line height are fractional by routine, and text parked half a point
+    /// off the pixel grid paints soft next to the crisp input. Hidden while
+    /// the text overflows: the field editor scrolls overflowing input, and a
+    /// ghost measured from the full string would park past the visible edge
+    /// and lie about where the text ends. Hidden too when less than a stub
+    /// of room is left (past the text, the gap, and the clear button): an
+    /// ellipsis stub crowds the text worse than no ghost at all. Sized to
+    /// the whole ghost plus a measuring-slack point allowance, so an address
+    /// reads in full instead of collapsing to an ellipsis a few points
+    /// early; genuinely longer than the room left still truncates before
+    /// the clear button.
     private func layoutGhost() {
         guard let ghostText, !ghostText.isEmpty, !textField.stringValue.isEmpty else { return }
         let inputFont = textField.font ?? .systemFont(ofSize: 14)
         let typedWidth = (textField.stringValue as NSString).size(withAttributes: [.font: inputFont]).width
         let visibleWidth = textField.bounds.width
-        guard typedWidth < visibleWidth - 8 else {
+        let room = visibleWidth - Self.ghostTrailingReserve - typedWidth - Self.ghostGap
+        guard room >= Self.ghostMinimumRoom else {
             ghostLabel.isHidden = true
             return
         }
@@ -306,9 +327,9 @@ final class SpotlightField: NSView {
         let ghostWidth = (ghostText as NSString).size(withAttributes: [.font: ghostFont]).width
         let lineHeight = ceil(ghostFont.ascender - ghostFont.descender + ghostFont.leading)
         ghostLabel.frame = NSRect(
-            x: (Self.leadingInset + typedWidth + 4).rounded(),
+            x: (Self.leadingInset + typedWidth + Self.ghostGap).rounded(),
             y: (textField.frame.midY - lineHeight / 2).rounded(),
-            width: max(0, min(ceil(ghostWidth) + 8, visibleWidth - typedWidth - 8)),
+            width: max(0, min(ceil(ghostWidth) + 8, room)),
             height: lineHeight
         )
     }
@@ -601,6 +622,12 @@ extension SpotlightField: NSTextFieldDelegate {
 
     func controlTextDidChange(_ obj: Notification) {
         updateClearButton()
+        // The ghost parks past the typed text, so it re-measures on every
+        // keystroke even when its content is unchanged — otherwise the
+        // growing text types right over the parked label. Layout alone
+        // moves it, with no hide/show, so the steady-ghost fix keeps
+        // holding while the spacing follows the caret.
+        needsLayout = true
         onTextChanged?(textField.stringValue)
     }
 

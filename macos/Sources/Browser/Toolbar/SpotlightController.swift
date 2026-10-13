@@ -135,15 +135,16 @@ final class SpotlightController {
 
     /// The ghost and the history both answer the live text. The ghost goes
     /// out undebounced on every keystroke (the call is pure computation, so
-    /// it tracks typing); history keeps its debounce below. A stale ghost
-    /// clears up front and returns with the hint, so it can never name the
-    /// previous keystroke's action.
+    /// it tracks typing); history keeps its debounce below. A hint that
+    /// names the same action as the one showing repaints nothing (see
+    /// `setGhost`), so typing a search holds "Search on <engine>" steady
+    /// instead of flickering it; a hint naming a different action replaces
+    /// it when it lands.
     func queryChanged(_ text: String) {
         generation += 1
         let generation = self.generation
         pendingSearch?.cancel()
         hintTask?.cancel()
-        fieldView?.setGhost(nil)
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         // Empty means "most recent", not "nothing": clearing the field should still
@@ -151,6 +152,9 @@ final class SpotlightController {
         // character is not a search, it is a prefix, and a dropdown of everything
         // for it is noise.
         guard !trimmed.isEmpty else {
+            // No text names no action: the previous ghost stands down here,
+            // since no hint is coming to replace it.
+            fieldView?.setGhost(nil)
             showMostRecent()
             return
         }
@@ -226,6 +230,10 @@ final class SpotlightController {
         let engine = SettingsStore.shared.settings.search.engine()
         guard let resolved = Self.ghost(kind: hint.kind, trimmed: trimmed, engine: engine) else {
             cachedHint = nil
+            // The text names its own destination now, so nothing is
+            // promised. Cleared here rather than up front per keystroke:
+            // when already clear this is a no-op instead of a flicker.
+            fieldView?.setGhost(nil)
             return
         }
         cachedHint = (trimmed, resolved.url)
