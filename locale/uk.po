@@ -1,0 +1,3285 @@
+# Whatever Ukrainian translation.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever\n"
+"Language: uk\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Оновлення програми"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Whatever ніколи не оновлюється самостійно. Перевірка запитує в GitHub найновіший випуск; завантаження отримує його образ диска для цього Mac, а оновлення з нього залишається у ваших руках."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Стандартний браузер"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Посилання, натиснуті в інших програмах, відкриваються тут."
+
+#. Settings > General > default-browser row when Whatever is default.
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Whatever — ваш стандартний браузер"
+
+#. Settings > General > default-browser row when it is not.
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Whatever не є вашим стандартним браузером"
+
+#. Settings > General > default-browser subtitle when Whatever is default.
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Цей Mac уже відкриває вебпосилання у Whatever."
+
+#. Settings > General > default-browser subtitle when it is not.
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "Перейміть посилання http та https від вашого поточного браузера."
+
+#. Settings > General > button claiming http/https handling.
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Зробити Whatever стандартним браузером"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Сеанс"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "Відновлення повторно відкриває вкладки попереднього вікна."
+
+#. Settings > General > toggle: reopen the previous window's tabs at launch.
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Відновлювати останній сеанс"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Повторно відкривати вкладки попереднього вікна під час запуску."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Вихід"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "Друге натискання виходить одразу, навіть якщо вікна відкриті."
+
+#. Settings > General > toggle: first ⌘Q prompts instead of quitting.
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Підтверджувати перед виходом"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "Перше натискання ⌘Q показує запит; натисніть ⌘Q ще раз, щоб вийти."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "History"
+msgstr "Історія"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Приватні вкладки ніколи не записуються, незалежно від цього налаштування."
+
+#. Settings > General > toggle: record main-frame visits in history.
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Записувати відвідані сторінки"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Додає підтверджені відвідування головного фрейма до історії."
+
+#. Settings > General > slider: collapse near-duplicate revisits (seconds).
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Об’єднувати повтори протягом"
+
+#. Settings > General > update button at rest.
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Перевірити наявність оновлень"
+
+#. Settings > General > update button when a release is ready.
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Завантажити оновлення"
+
+#. Settings > General > update button after the disk image landed.
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Показати у Finder"
+
+#. Settings > General > group title for the interface language picker.
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Мова"
+
+#. Settings > General > language group footnote.
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "Мова інтерфейсу. Перекладений текст перемикається одразу."
+
+#. Settings > General > language picker option following the system locale.
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Системна"
+
+#. App menu > About item (replaces the stock one).
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "Про Whatever"
+
+#. App menu > Quit item (warns instead of quitting at once).
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Вийти з Whatever"
+
+#. App menu > opens our Settings modal.
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Налаштування…"
+
+#. App menu > opens the password manager.
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Паролі…"
+
+#. Menu bar > top-level File title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "File"
+msgstr "Файл"
+
+#. Menu bar > top-level Edit title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Edit"
+msgstr "Редагування"
+
+#. Menu bar > top-level Window title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Window"
+msgstr "Вікно"
+
+#. Menu bar > top-level Help title.
+msgctxt "Menu.Bar"
+msgid "Help"
+msgstr "Довідка"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Нова вкладка"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Нове вікно"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Нове вікно інкогніто"
+
+#. File menu > file picker.
+msgctxt "Menu.File"
+msgid "Open…"
+msgstr "Відкрити…"
+
+#. File menu > print preview.
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Друкувати…"
+
+#. File menu > the system Close item, retitled: it closes the tab.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Закрити вкладку"
+
+#. Top-level Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Пошук"
+
+#. Find menu > find bar.
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Знайти на сторінці…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Знайти далі"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Знайти попереднє"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Вигляд"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Оновити сторінку"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Перезавантажити з джерела"
+
+#. View menu > steps the page or PDF zoom in.
+msgctxt "Menu.View"
+msgid "Zoom In"
+msgstr "Збільшити"
+
+#. View menu > steps the page or PDF zoom out.
+msgctxt "Menu.View"
+msgid "Zoom Out"
+msgstr "Зменшити"
+
+#. View menu > returns the page or PDF zoom to actual size.
+msgctxt "Menu.View"
+msgid "Actual Size"
+msgstr "Справжній розмір"
+
+#. View menu > bookmark bar toggle.
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Показати панель закладок"
+
+#. PDF viewer toolbar > zooms the document out.
+msgctxt "PDF"
+msgid "Zoom Out"
+msgstr "Зменшити"
+
+#. PDF viewer toolbar > zooms the document in.
+msgctxt "PDF"
+msgid "Zoom In"
+msgstr "Збільшити"
+
+#. PDF viewer toolbar > scales the document to the window.
+msgctxt "PDF"
+msgid "Fit to Window"
+msgstr "Вписати у вікно"
+
+#. PDF viewer toolbar > goes to the previous page.
+msgctxt "PDF"
+msgid "Previous Page"
+msgstr "Попередня сторінка"
+
+#. PDF viewer toolbar > goes to the next page.
+msgctxt "PDF"
+msgid "Next Page"
+msgstr "Наступна сторінка"
+
+#. PDF viewer toolbar > prints the document.
+msgctxt "PDF"
+msgid "Print"
+msgstr "Друкувати"
+
+#. PDF viewer toolbar > saves the document.
+msgctxt "PDF"
+msgid "Save…"
+msgstr "Зберегти…"
+
+#. PDF viewer > retries a failed load.
+msgctxt "PDF"
+msgid "Retry"
+msgstr "Повторити"
+
+#. PDF viewer > shown when the document cannot be fetched or parsed.
+msgctxt "PDF"
+msgid "Could not open this PDF."
+msgstr "Не вдалося відкрити цей PDF."
+
+#. PDF viewer toolbar > current page within the document.
+msgctxt "PDF"
+msgid "Page {current} of {total}"
+msgstr "Сторінка {current} з {total}"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Вкладка"
+
+#. Tab menu > focuses the address bar in history mode.
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Шукати в історії"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Перейти до адресного рядка"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Відновити закриту вкладку"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Перемістити вкладку в нове вікно"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Показати попередню вкладку"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Показати наступну вкладку"
+
+#. Tab menu > one item per number 1-9. {n} is filled per item, core-side.
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Вибрати вкладку {n}"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Розділення"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Розділити з наступною вкладкою"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Розділити з попередньою вкладкою"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Перейти до наступної панелі"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Перейти до попередньої панелі"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Прибрати розділення"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Закрити панель"
+
+#. Help menu > credits window.
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Автори"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "{n} стаття"
+msgstr[1] "{n} статті"
+msgstr[2] "{n} статей"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "{n} доступний канал"
+msgstr[1] "{n} доступні канали"
+msgstr[2] "{n} доступних каналів"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "{n} файл cookie"
+msgstr[1] "{n} файли cookie"
+msgstr[2] "{n} файлів cookie"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "{n} елемент"
+msgstr[1] "{n} елементи"
+msgstr[2] "{n} елементів"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "{n} косметичне правило"
+msgstr[1] "{n} косметичні правила"
+msgstr[2] "{n} косметичних правил"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "{n} завантаження"
+msgstr[1] "{n} завантаження"
+msgstr[2] "{n} завантажень"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "{n} завантажений елемент"
+msgstr[1] "{n} завантажені елементи"
+msgstr[2] "{n} завантажених елементів"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "{n} виняток"
+msgstr[1] "{n} винятки"
+msgstr[2] "{n} винятків"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "{n} хост"
+msgstr[1] "{n} хости"
+msgstr[2] "{n} хостів"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "{n} елемент"
+msgstr[1] "{n} елементи"
+msgstr[2] "{n} елементів"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "{n} рядок, який компілятор проігнорував"
+msgstr[1] "{n} рядки, які компілятор проігнорував"
+msgstr[2] "{n} рядків, які компілятор проігнорував"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "{n} сторінка"
+msgstr[1] "{n} сторінки"
+msgstr[2] "{n} сторінок"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "{n} правило"
+msgstr[1] "{n} правила"
+msgstr[2] "{n} правил"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "{n} джерело"
+msgstr[1] "{n} джерела"
+msgstr[2] "{n} джерел"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "{n} недоступний"
+msgstr[1] "{n} недоступні"
+msgstr[2] "{n} недоступних"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "{n} непрочитаний"
+msgstr[1] "{n} непрочитані"
+msgstr[2] "{n} непрочитаних"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "{n} відвідування"
+msgstr[1] "{n} відвідування"
+msgstr[2] "{n} відвідувань"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Перегляд мертвого інтернету"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "Зроблено людьми з OpenPeeps для OneBuck.app"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Реклама та трекери тут заблоковані."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Блокувати рекламу та трекери на цьому сайті"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "Налаштування блокувальника вмісту"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Відкрийте вебсайт, щоб керувати ним тут."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "Призупинено на цьому сайті."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Ця сторінка"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Адреса"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Ви впевнені? Це не можна скасувати."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Панель закладок"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Видалити"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "Видалити “{item}”?"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "Видалити “{name}”?"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Редагувати закладку"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Редагувати папку"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Папка"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Нова закладка"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Нова папка"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Папку та елемент у ній буде видалено."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Папку та {items} у ній буде видалено."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Назва"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "цю закладку"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "цю папку"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Копіювати посилання"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Видалити"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Редагувати…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Нова закладка…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Нова папка…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Відкрити"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Відкрити все в нових вкладках"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Відкрити налаштування закладок"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Відкрити в новій вкладці"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Перейменувати…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "Поділитися як QR-код"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Знімок усієї сторінки"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Відкрити посилання в новій вкладці"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Відкрити в новій вкладці"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Закрити інші вкладки"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Закрити панель"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Закрити вкладку"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Закрити вкладки праворуч"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "Копіювати URL"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Дублювати вкладку"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Перейти до наступної панелі"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Перейти до попередньої панелі"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "Поділитися як QR-код"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Вимкнути звук у вкладці"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Нове вікно в режимі інкогніто"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Нова вкладка"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Нове вікно"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Відкрити в новому вікні"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Закріпити вкладку"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Оновити вкладку"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Задати розмір вікна…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Налаштування…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Розділити з наступною вкладкою"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Розділити з попередньою вкладкою"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Увімкнути звук у вкладці"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Відкріпити вкладку"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Статично типізована компільована системна мова програмування"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "Набір вбудованих сховищ даних на основі WAL"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Мова застосунку та інтерфейсу"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Автор Tomasz Kurylik"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Створено та підтримується: Paweł Kuna"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Створено за допомогою"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "Колекція компактних парсерів і дамперів"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Подяки"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Дизайн і розробка · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Домівка Whatever"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Інтерфейс"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Автор"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Оцінювач надійності паролів (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Криптографічна бібліотека на чистому Nim"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Ядро сховища"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Інструменти та інфраструктура"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Написано мовою"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "Гаразд"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Відкрити"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Ця сторінка"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "Скасовано"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Видалено"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Завершено"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "Завантаження"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Не вдалося"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Поки що немає завантажень."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Нічого не завантажено"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Відкрити"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Оновити"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Вилучити зі списку"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Показати у Finder"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Невідомий розмір"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{received} з {expected}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Немає чого кодувати."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Не вдалося зберегти налаштування."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "Ядро відхилило QR-буфер."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "Не вдалося закодувати QR."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "Кодувальник QR повернув неочікуваний статус ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Служба сховища Whatever недоступна."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "Вбудований знімок фільтрів відсутній."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Ця URL-адреса задовга для QR-коду."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "Час збереження сеансу вичерпано"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Назад до статей"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Копіювати посилання на статтю"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Копіювати посилання"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Стрічка"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Стрічки"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Стрічки вимкнено в налаштуваннях."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "З приватної вкладки стрічки зберегти не можна."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Позначити як прочитане"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Позначити як непрочитане"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Позначити прочитаним"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Позначити непрочитаним"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "У цьому поданні немає статей."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Поки що немає підписок."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Для цієї статті доступний лише короткий зміст."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Відкрити"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Відкрити статтю"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Відкрити в новій вкладці"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Відкриває статтю в режимі читання."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Оновити"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Зняти позначку «Збережено»"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Зберегти статтю"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Збережені"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "Підписатися"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Підпишіться на стрічку, щоб почати читати."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Це непідтримувана адреса стрічки."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "Підписку не знайдено після збереження."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Ця сторінка пропонує стрічки, але приватні вкладки не можуть їх зберігати."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Ця сторінка пропонує:"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Непрочитані"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Лише непрочитані"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Відписатися"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Копіювати шлях"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Папка порожня"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Перейти до батьківської папки"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Приховані"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Батьківська папка"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Оновити"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Показати у Finder"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Показувати приховані файли"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "показано перші {shown} з {total}"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "Не вдалося відкрити “{directory}”."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Закрити панель пошуку"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Знайти на сторінці"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Підсвітити все"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Враховувати регістр"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Наступний збіг"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Немає результатів"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Попередній збіг"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Цілі слова"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{index} з {total}{more}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "Дозволити"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Запитувати"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Блокувати"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Камера"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Пристрої захоплення"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Вибір запам’ятовується для цього сайту. Блокування або дозвіл застосовується, коли сторінка запитає наступного разу — перезавантаження завершує активне захоплення."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Закрити"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "Для {kind}"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "Використовується"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Мікрофон"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "Не запитано"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Приватна вкладка: вибір діє один раз і ніколи не запам’ятовується. Перезавантаження сторінки завершує активне захоплення."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Перезавантажити сторінку"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "Очікування вашої відповіді"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Хоче використовувати ваші пристрої"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "macOS блокує цей пристрій — дозвольте Whatever у Системних налаштуваннях, у розділі «Приватність і безпека»."
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Нове вікно в режимі інкогніто"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Нова вкладка"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Нове вікно"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Додати інші облікові дані"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Ви впевнені? Це неможливо скасувати."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "З великої літери"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Змінити підказку сховища"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Символи"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Підтвердьте головний пароль"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Скопіювати пароль"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Скопіювати ім’я користувача"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Створити сховище"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Створіть головний пароль"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Видалити"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Видалити облікові дані"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Видалити ці облікові дані"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Видалити ці облікові дані?"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Видалити цей сайт і всі облікові дані в ньому"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "Видалити “{site}”?"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Цифри"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Крапка (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Згенерувати пароль"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Приховати пароль"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "Підказка (необов’язково)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "Підказка: {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Дефіс (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Він відкриває ваше сховище. Відновлення немає: якщо ви його забудете, ви втратите всі збережені паролі."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Довжина: {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Заблокувати сховище"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Малі літери"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Головний пароль"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Головний пароль (8+ символів)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Середній"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Режим"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Новий сайт"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "Підказку не встановлено"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Сайт не вибрано"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Число"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Пароль"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Паролі"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Виберіть вебсайт ліворуч або додайте новий."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Згенерувати знову"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Пошук"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Роздільник"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Показати пароль"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Показується після кількох неправильних паролів. Ніколи не сам пароль."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Назва сайту"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Надійний"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Символи"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Сайт і всі облікові дані в ньому буде видалено. Це неможливо скасувати."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Не вдалося створити сховище."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Підкреслення (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Розблокувати"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Розблокувати паролі"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Сайт без назви"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Великі літери"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Використати"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Підказка сховища"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Слабкий"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Слова"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Слова: {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Неправильний головний пароль, спробуйте ще раз."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "цей сайт"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Фактичний розмір"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Фони"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Копій: {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Не вдалося відобразити цю сторінку."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Вмістити на сторінку"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Альбомна"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Друкувати можна лише завантажені вебсторінки."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Орієнтація"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Папір"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Книжкова"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Підготовка попереднього перегляду…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Таблиця стилів друку"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Друкувати…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "Зберегти як PDF…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Масштаб"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Без назви"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Натисніть ⌘Q ще раз, щоб вийти"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "Колір у точці вздовж градієнта."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "Текстура плівкового зерна поверх усього вікна. Кожна зміна застосовується одразу."
+
+msgctxt "Settings.Appearance"
+msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live. Fold a rule with its chevron."
+msgstr "Таблиця стилів для інтерфейсу браузера у стилі GTK. Правила, що відповідають елементу керування, оновлюють його; решта застосовується як перевизначення і все одно перемальовується наживо. Згорніть правило за допомогою стрілки."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Відеофайл на диску."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Додати"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Додати зупинку"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Адресний рядок"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "Вздовж X"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "Вздовж Y"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Завжди без звуку і завжди зациклено: вікно, яке саме починає шуміти, — це проблема, для вирішення якої існує ця функція, а фон, що завмер наприкінці, — це нічиє уявлення про фон."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Файл зображення на диску."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Прив’язка"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Кут"
+
+msgctxt "Settings.Appearance"
+msgid "Apply"
+msgstr "Застосувати"
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {count} declarations update controls."
+msgstr "Застосовано — {count} оголошень оновлюють елементи керування."
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {updated} update controls, {cssOnly} stay CSS-only overrides."
+msgstr "Застосовано — {updated} оновлюють елементи керування, {cssOnly} залишаються лише CSS-перевизначеннями."
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Ви впевнені? Зерно, фон, тема вкладок і адресний рядок повернуться до вбудованих значень за замовчуванням."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Прикріплені"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Прикріплені вкладки зливаються зі сторінкою; пігулки плавають із проміжком над нею і завжди повністю заокруглені, ігноруючи радіус кутів нижче."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Автовідтворення"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Повернутися до вбудованого зерна."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Повернутися до вбудованого вигляду."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Фон і текст для всіх вкладок, крім вибраної."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Фон і текст для вибраної вкладки."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "Позаду сторінки. Застосовується до кожного вікна під час змін."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Розмиття"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Обидва"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Низ"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "Внизу по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "Внизу ліворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "Внизу праворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Яскравість"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "Центр"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "По центру ліворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "По центру праворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Центр X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Центр Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "Виберіть стоп-кадр, який показуватиметься, доки не надійде перший кадр відео."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Виберіть відео для відтворення за сторінкою."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Виберіть відео для відтворення за вкладкою."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Виберіть зображення для показу за сторінкою."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Виберіть зображення для показу за вкладкою."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Вибрати…"
+
+msgctxt "Settings.Appearance"
+msgid "Clean — Apply stores it and updates matching controls."
+msgstr "Без помилок — «Застосувати» збереже його та оновить відповідні елементи керування."
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Очистити"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Колір"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Колір"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Контраст"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Радіус заокруглення"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Поточна вкладка"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Власний"
+
+msgctxt "Settings.Appearance"
+msgid "Custom CSS"
+msgstr "Власний CSS"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Закрити"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Ефекти"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Обмеження — вісім."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Увімкнено"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Кінець"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Висота поля"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Заповнити"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Заповнити доступну ширину"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Заповнити з"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Фільтрувати налаштування"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Вписати"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Згенерувати"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Згенерувати інше зерно"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Градієнт"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Зерно"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Розмір зерна"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Приховує текстуру без втрати цих налаштувань."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Горизонтальний"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Зображення"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "Неактивні вкладки"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "Внутрішній радіус"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Інтенсивність"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Тип"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Дозволяє показувати тло за сторінкою."
+
+msgctxt "Settings.Appearance"
+msgid "Loading…"
+msgstr "Завантаження…"
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Лінійний"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Бульбашка посилання"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Вигляд"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Файл відсутній або нечитабельний. Виберіть його знову."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Монохромний"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Спочатку потрібне тло. Поки що нічого показувати."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Новий візерунок"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Файл не вибрано"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Постер не вибрано"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "Жодне налаштування не відповідає {query}."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Немає"
+
+msgctxt "Settings.Appearance"
+msgid "Nothing yet — still generating."
+msgstr "Поки що порожньо — триває створення."
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "Вимкнено за замовчуванням. Робить сторінки прозорими, через що деякі сайти втрачають своє тло. Очікуйте частковий ефект: сайт, який малює власне тло, все одно перекриє медіа."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Непрозорість"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Оригінал"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Зовнішній радіус"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Кути сторінки"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Призупиняти, коли приховано"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Призупиняти, коли неактивно"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Відсоток"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Пігулки"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Пункти"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Положення"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Радіальний"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Видалити"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Повторювати"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Скинути"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Скинути вигляд"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Скинути налаштування вигляду"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Скинути налаштування вигляду?"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Скинути…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Враховувати зменшення руху"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Відновлює всі налаштування на цій сторінці — зерно, тло, тему вкладок та адресний рядок — до вбудованих значень за замовчуванням."
+
+msgctxt "Settings.Appearance"
+msgid "Revert"
+msgstr "Повернути"
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Заокруглення кожної прикріпленої клітинки вкладки. Змінюється наживо під час налаштування."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Ті самі налаштування, інше зерно."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Насиченість"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Масштаб"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Форма"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Показувати крізь сторінки"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Розмір"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Розмір і форма поля. Змінюється наживо під час налаштування."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Суцільний"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Швидкість"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "Показується, доки не надійде перший кадр. Також це єдине, до чого застосовується корекція кольорів з «Ефектів» для відео."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Початок"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Починати з"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Запускається автоматично, коли відкривається вікно."
+
+msgctxt "Settings.Appearance"
+msgid "Stored — everything applies as a CSS override, no controls changed."
+msgstr "Збережено — усе застосовується як перевизначення CSS, жоден елемент керування не змінено."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Зупинки застосовуються по порядку вздовж градієнта."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "Зупиняється, коли інша програма попереду."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "Зупиняється, коли вікно перекрито, згорнуто або програму приховано."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Розтягнути"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "Розтягується між кнопками замість центрованого поля."
+
+msgctxt "Settings.Appearance"
+msgid "Supported selectors & properties"
+msgstr "Підтримувані селектори й властивості"
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Система"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Кути вкладок"
+
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Положення вкладок"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Вкладки розташовуються над сторінкою або під нею."
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Форма вкладок"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Колір тексту"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Тло вимкнено. Виберіть інший файл."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "Плаваюча адреса, що показується під час наведення на посилання."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Система наразі просить зменшити рух, тому це відео призупинено."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Система не просить зменшувати рух."
+
+msgctxt "Settings.Appearance"
+msgid "The theme service did not answer — try again."
+msgstr "Служба тем не відповіла — спробуйте ще раз."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Відтінок"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Верх"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "Верх по центру"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "Верх ліворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "Верх праворуч"
+
+msgctxt "Settings.Appearance"
+msgid "Too large — keep stylesheets under 200 KB."
+msgstr "Занадто великий — розмір таблиць стилів має бути до 200 КБ."
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Прозорі сторінки"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Використати"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Вертикальний"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Відео"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Тло вікна"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent}% уздовж"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Appearance"
+msgid "{errors} errors and {warnings} warnings — errors block Apply."
+msgstr "{errors} помилок і {warnings} попереджень — помилки блокують «Застосувати»."
+
+msgctxt "Settings.Appearance"
+msgid "{errors} errors — they block Apply."
+msgstr "{errors} помилок — вони блокують «Застосувати»."
+
+msgctxt "Settings.Appearance"
+msgid "{warnings} warnings — Apply still works, flagged rules are skipped."
+msgstr "{warnings} попереджень — «Застосувати» все одно працює, позначені правила пропускаються."
+
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "Стандартний список блокування AdAway · CC BY 3.0 · плюс наші власні доповнення"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Додати"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Застосувати правила"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Блокувати рекламу й трекери"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Блокування"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Вбудований знімок"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Власні правила"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "Винятки"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Списки фільтрів"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Рядки hosts, а також правила ||, @@ і ##, по одному на рядок. Застосовуються разом зі знімком."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Остання помилка"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "Немає винятків."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Сторінки перезавантажуються, щоб застосувати зміни."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "Видалити {host}"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Правила"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Постачається з програмою. Нічого не завантажується, і жодні дані перегляду не залишають пристрій: списки компілюються на пристрої."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Сайти, які блокувальник не чіпає, включно з піддоменами."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Пропущені рядки"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Джерело"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Сторонні запити до зазначених хостів ніколи не залишають сторінку."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Закладки недоступні"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Додані вами закладки відображатимуться тут."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Поки що немає закладок"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Видалити все"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Видалити цю закладку"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Видалити цю папку та весь її вміст"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Показувати панель закладок"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Очистити"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Очистити все"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Очистити історію"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "Папка завантажень"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "Історія завантажень"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Усі завантаження зберігаються тут. Імена файлів автоматично унікалізуються, тому ніщо ніколи не перезаписується."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Забути всі записи завантажень."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Забути всі записи завантажень?"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Записи історії вказують на файли на диску. Очищення видаляє записи; файли залишаються на місці."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Розташування"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Поки що немає завантажень"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Показати"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Сховище"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "Між заголовками показано 1–2 символи."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Застосувати"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Застосувати зберігання"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Статей на стрічку"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Автоматично"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Непрозорість тла"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Висота панелі"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Положення панелі"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Внизу"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Вгорі"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Кешований вміст"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Радіус кутів"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Напрямок біжучого рядка"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Швидкість біжучого рядка"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Видалити всі підписки та кешовані стрічки."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "Виявлення лише повідомляє про стрічки. Нічого не завантажується й не зберігається, доки стрічку не буде підписано або оновлено."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Завантажувати фавікони"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Увімкнути біжучий рядок"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "Увімкнути RSS-стрічки"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Отримання"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Розмір шрифту"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Біжучий рядок заголовків"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "Зліва направо"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Позначати статті прочитаними під час відкриття"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Немає підписаних джерел."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Немає підписок"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Вимкнено"
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Відкриття статті прибирає позначку непрочитаного."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Обробка"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Зберігати одну перевірену піктограму сайту для кожної підписки."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Скоротити кожну підписку до зазначеного вище ліміту."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Лише зображення видавців"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Читання"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Оновити"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Оновити все"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Оновлювати автоматично"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Інтервал оновлення"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Оновлювати застарілі підписки, коли читач їх завантажує."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Оновити це джерело зараз"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Оновлення використовують умовні запити, якщо видавець їх підтримує. Приватні вкладки ніколи не підписуються, не оновлюються й нічого не завантажують."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Оновлення…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "Відхиляти стрічки, які не проходять перевірку RSS або Atom, замість їх відновлення."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Видалити"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Видалити кожну підписку та всі кешовані статті й зображення?"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Видалити все"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Зберігання"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "Зберігання застосовується після отримання та щоразу після натискання «Застосувати». Позначки прочитаного й збереженого самі по собі ніколи не спричиняють скорочення."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "Справа наліво"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Роздільник"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Показувати елемент керування на панелі інструментів на сторінках, які оголошують стрічку, і дозволяти нові підписки."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Показує рухому панель із заголовками внизу."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Сховище"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "Сувора обробка відхиляє пошкоджені стрічки та RDF/RSS 1.0. Поблажлива обробка відновлює придатні назви, посилання, дати й підсумки, коли їх усе ще можна розпізнати."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Сувора перевірка"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Підписані джерела"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Підписки, статті, фавікони та мініатюри зберігаються в окремій базі даних стрічок. Видалення всього не можна скасувати."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Біжучий рядок приховується, коли нема чого показати. Текст завжди використовує системний колір підпису, тому він відповідає світлому та темному режиму."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Мініатюри"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Увімкніть RSS-стрічки, щоб керувати підписками."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Відписатися від цього джерела"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Скасування підписки видаляє підписку, її кешовані статті та збережені зображення."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Очистити все"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Згортати повтори протягом"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "Видалити старше 30 днів"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "Історія"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Поки що немає історії"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Відвідані вами сторінки відображатимуться тут."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Приватні вкладки ніколи не записуються, незалежно від цього налаштування."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Записувати відвідані сторінки"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Видалити цей запис"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Вигляд"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "Блокувальник вмісту"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Загальні"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "Історія"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS і стрічки"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Пошук"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Налаштування"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Веб"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Додайте систему, щоб шукати там, куди ці не охоплюють."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Адреса"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "Адреса та параметр запиту, який вона приймає."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Очищати посилання результатів пошуку"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Клацання та скопійовані посилання ведуть до призначення."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Типова система"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Введіть параметр запиту, зазвичай q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Введіть адресу пошуку."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Назвіть систему."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Мій пошук"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Назва"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Параметр запиту"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Записує те, що ви шукаєте"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Вилучити цю пошукову систему"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Посилання в результатах"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Забороняє пошуковим системам підміняти посилання в результатах трекерними переходами після натискання. Діє лише на підтримуваних сторінках результатів."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Ця адреса недійсна."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "Адреса має починатися з http:// або https://"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Куди поле адреси надсилає пошук. Усе, що схоже на веб-адресу, усе одно відкривається безпосередньо."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Ваші пошукові системи"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "Через 1 годину"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "Через 15 хвилин"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "Через 30 хвилин"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "Через 5 хвилин"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "Дозволити JavaScript"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "Застосовується до відкритих сторінок одразу."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Аудіо"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Жести «назад/уперед»"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Відображення"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Усе"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Попередження про шахрайські вебсайти"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Приховані вкладки після цього часу простою втрачають сторінку та звільняють її пам’ять. Показ такої вкладки перезавантажує її адресу; відображувані, закріплені вкладки, вкладки зі звуком і ті, що завантажуються, ніколи не присипляються."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Взаємодія"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "JavaScript може відкривати вікна"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Дозволяє сторінці відкривати вкладку без натискання. Спливні вікна відкриваються в цьому вікні."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Попередній перегляд посилань"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Масштабування"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Медіа"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Мінімальний розмір шрифту"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Нічого"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Вимкнено"
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Вимкнення блокує скрипти, через що більшість сайтів не працюватимуть."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Масштаб сторінки"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Сторінки"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Відтворювати без натискання"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Конфіденційність"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Зчитується під час відкриття сторінки. Зміни набувають чинності на наступній сторінці."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Режим сумісності для окремих сайтів"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Присипляти невикористовувані вкладки"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "Сплячі вкладки"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Деякі з цих параметрів набувають чинності на наступній сторінці."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "Клавіша Tab фокусує посилання"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Оновлювати відомі хости до HTTPS"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Відео"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "вимкнено"
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Сертифікат"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Відомості про сертифікат для цього відвідування недоступні."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Очистити"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "З’єднання незахищене."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "З’єднання захищене."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Файли cookie та дані сайтів"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Термін дії спливає"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Відбиток"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Видано"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Видано для"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Завантаження даних сайту."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Немає збережених даних для цього сайту."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Відкрийте вебсайт, щоб перевірити його тут."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Налаштування сайту"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Ця сторінка"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Ця сторінка завантажена не через HTTPS, тому сертифікат відсутній."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Невідомо"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Закрити вкладку"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Закрити вкладки"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Вимкнути звук вкладки"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Нова вкладка"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Увімкнути звук вкладки"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Додати закладку"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Доступний канал"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Доступні канали"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Назад"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Закладки"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Камера або мікрофон використовуються — відкрити елементи керування записом"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Камера або мікрофон запитані — відкрити елементи керування записом"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Елементи керування записом"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Очистити адресу"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "Блокувальник вмісту — активний на цьому сайті"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "Блокувальник вмісту — призупинено на цьому сайті"
+
+msgctxt "Toolbar"
+msgid "Close floating player"
+msgstr "Закрити плавальний програвач"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Блокувальник вмісту активний на цьому сайті"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Блокувальник вмісту призупинено на цьому сайті"
+
+msgctxt "Toolbar"
+msgid "Couldn't open Picture in Picture ({reason})"
+msgstr "Не вдалося відкрити «Картинка в картинці» ({reason})"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Редагувати закладку"
+
+msgctxt "Toolbar"
+msgid "Exit Picture in Picture"
+msgstr "Вийти з режиму «Картинка в картинці»"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "Уперед"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Інкогніто"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Незахищене з’єднання"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Менеджер паролів"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Перезавантажити"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Пошук"
+
+msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "Шукати в {name}"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Шукайте або введіть адресу"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Захищене з’єднання"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Налаштування"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Відомості про сайт"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Зупинити"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Це вікно в режимі інкогніто: його вкладки не зберігаються в історії."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "Перейти до {address}"
+
+msgctxt "Toolbar"
+msgid "Watch video in Picture in Picture"
+msgstr "Дивитися відео в режимі «Картинка в картинці»"
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "Запитуємо в GitHub найновіший випуск."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Перевірка оновлень"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "Не вдалося перевірити оновлення"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Завантаження Whatever {version}."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Завантаження оновлення"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "GitHub відповів неочікувано. Спробуйте пізніше."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "GitHub обмежує частоту перевірок оновлень. Спробуйте трохи згодом."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "У GitHub ще немає випусків. Спробуйте пізніше."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Оновлення програмного забезпечення"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "Перевірка не вдалася. Перевірте з’єднання та спробуйте ще раз."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "Завантаження не вдалося. Перевірте з’єднання та спробуйте ще раз."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Доступне оновлення"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Оновлення завантажено"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Whatever оновлено"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Доступна версія Whatever {version} — у вас {current}."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Доступна версія Whatever {version}, але вона не містить образу диска для цього Mac."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Whatever {version} у файлі {file} — відкрийте його, щоб оновитися."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Whatever {version} установлено."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Whatever {version} — найновіший випуск."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Не вдалося завантажити"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Завантаження…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Нова вкладка"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Перезавантаження…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Застосувати"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Введіть додатні числа для ширини та висоти."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Висота"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Ширина"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Розмір вікна"
+
