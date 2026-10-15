@@ -1,0 +1,3268 @@
+# Whatever Turkish translation.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever\n"
+"Language: tr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Yazılım Güncelleme"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Whatever kendini asla güncellemez. Denetleme, en son sürüm için GitHub'a sorar; indirme, bu Mac için disk görüntüsünü getirir ve buradan güncelleme sizin elinizdedir."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Varsayılan Tarayıcı"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Diğer uygulamalarda tıklanan bağlantılar burada açılır."
+
+#. Settings > General > default-browser row when Whatever is default.
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Whatever varsayılan tarayıcınız"
+
+#. Settings > General > default-browser row when it is not.
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Whatever varsayılan tarayıcınız değil"
+
+#. Settings > General > default-browser subtitle when Whatever is default.
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Bu Mac web bağlantılarını zaten Whatever ile açıyor."
+
+#. Settings > General > default-browser subtitle when it is not.
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "http ve https bağlantılarını mevcut tarayıcınızdan alın."
+
+#. Settings > General > button claiming http/https handling.
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Whatever'ı Varsayılan Tarayıcı Yap"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Oturum"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "Geri yükleme, önceki pencerenin sekmelerini yeniden açar."
+
+#. Settings > General > toggle: reopen the previous window's tabs at launch.
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Son oturumu geri yükle"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Başlatmada önceki pencerenin sekmelerini yeniden açın."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Çıkış"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "İkinci basışta, pencereler açık olsa bile hemen çıkılır."
+
+#. Settings > General > toggle: first ⌘Q prompts instead of quitting.
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Çıkmadan önce onay iste"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "İlk ⌘Q bir ileti gösterir; çıkmak için ⌘Q'ya yeniden basın."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "History"
+msgstr "Geçmiş"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Bu ayar ne derse desin, gizli sekmeler asla kaydedilmez."
+
+#. Settings > General > toggle: record main-frame visits in history.
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Ziyaret edilen sayfaları kaydet"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Onaylanan ana çerçeve ziyaretlerini geçmişe ekler."
+
+#. Settings > General > slider: collapse near-duplicate revisits (seconds).
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Yinelemeleri birleştirme aralığı"
+
+#. Settings > General > update button at rest.
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Güncellemeleri Denetle"
+
+#. Settings > General > update button when a release is ready.
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Güncellemeyi İndir"
+
+#. Settings > General > update button after the disk image landed.
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Finder'da Göster"
+
+#. Settings > General > group title for the interface language picker.
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Dil"
+
+#. Settings > General > language group footnote.
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "Arayüz dili. Çevrilen metin hemen değişir."
+
+#. Settings > General > language picker option following the system locale.
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Sistem"
+
+#. App menu > About item (replaces the stock one).
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "Whatever Hakkında"
+
+#. App menu > Quit item (warns instead of quitting at once).
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Whatever'dan Çık"
+
+#. App menu > opens our Settings modal.
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Ayarlar…"
+
+#. App menu > opens the password manager.
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Parolalar…"
+
+#. Menu bar > top-level File title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "File"
+msgstr "Dosya"
+
+#. Menu bar > top-level Edit title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Edit"
+msgstr "Düzenle"
+
+#. Menu bar > top-level Window title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Window"
+msgstr "Pencere"
+
+#. Menu bar > top-level Help title.
+msgctxt "Menu.Bar"
+msgid "Help"
+msgstr "Yardım"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Yeni Sekme"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Yeni Pencere"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Yeni Gizli Pencere"
+
+#. File menu > file picker.
+msgctxt "Menu.File"
+msgid "Open…"
+msgstr "Aç…"
+
+#. File menu > print preview.
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Yazdır…"
+
+#. File menu > the system Close item, retitled: it closes the tab.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Sekmeyi Kapat"
+
+#. Top-level Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Bul"
+
+#. Find menu > find bar.
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Sayfada Bul…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Sonrakini Bul"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Öncekini Bul"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Görünüm"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Sayfayı Yeniden Yükle"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Kaynaktan Yeniden Yükle"
+
+#. View menu > steps the page or PDF zoom in.
+msgctxt "Menu.View"
+msgid "Zoom In"
+msgstr "Yakınlaştır"
+
+#. View menu > steps the page or PDF zoom out.
+msgctxt "Menu.View"
+msgid "Zoom Out"
+msgstr "Uzaklaştır"
+
+#. View menu > returns the page or PDF zoom to actual size.
+msgctxt "Menu.View"
+msgid "Actual Size"
+msgstr "Gerçek Boyut"
+
+#. View menu > bookmark bar toggle.
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Yer İmleri Çubuğunu Göster"
+
+#. PDF viewer toolbar > zooms the document out.
+msgctxt "PDF"
+msgid "Zoom Out"
+msgstr "Uzaklaştır"
+
+#. PDF viewer toolbar > zooms the document in.
+msgctxt "PDF"
+msgid "Zoom In"
+msgstr "Yakınlaştır"
+
+#. PDF viewer toolbar > scales the document to the window.
+msgctxt "PDF"
+msgid "Fit to Window"
+msgstr "Pencereye Sığdır"
+
+#. PDF viewer toolbar > goes to the previous page.
+msgctxt "PDF"
+msgid "Previous Page"
+msgstr "Önceki Sayfa"
+
+#. PDF viewer toolbar > goes to the next page.
+msgctxt "PDF"
+msgid "Next Page"
+msgstr "Sonraki Sayfa"
+
+#. PDF viewer toolbar > prints the document.
+msgctxt "PDF"
+msgid "Print"
+msgstr "Yazdır"
+
+#. PDF viewer toolbar > saves the document.
+msgctxt "PDF"
+msgid "Save…"
+msgstr "Kaydet…"
+
+#. PDF viewer > retries a failed load.
+msgctxt "PDF"
+msgid "Retry"
+msgstr "Yeniden Dene"
+
+#. PDF viewer > shown when the document cannot be fetched or parsed.
+msgctxt "PDF"
+msgid "Could not open this PDF."
+msgstr "Bu PDF açılamadı."
+
+#. PDF viewer toolbar > current page within the document.
+msgctxt "PDF"
+msgid "Page {current} of {total}"
+msgstr "Sayfa {current} / {total}"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Sekme"
+
+#. Tab menu > focuses the address bar in history mode.
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Geçmişte Ara"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Adres Çubuğuna Odaklan"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Kapatılan Sekmeyi Yeniden Aç"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Sekmeyi Yeni Pencereye Taşı"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Önceki Sekmeyi Göster"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Sonraki Sekmeyi Göster"
+
+#. Tab menu > one item per number 1-9. {n} is filled per item, core-side.
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "{n}. Sekmeyi Seç"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Böl"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Sonraki Sekmeyle Böl"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Önceki Sekmeyle Böl"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Sonraki Bölmeye Odaklan"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Önceki Bölmeye Odaklan"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Bölmeyi Birleştir"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Bölmeyi Kapat"
+
+#. Help menu > credits window.
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Emeği Geçenler"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "bir makale"
+msgstr[1] "{n} makale"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "bir kullanılabilir besleme"
+msgstr[1] "{n} kullanılabilir besleme"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "{n} çerez"
+msgstr[1] "{n} çerez"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "{n} öğe"
+msgstr[1] "{n} öğe"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "bir kozmetik kural"
+msgstr[1] "{n} kozmetik kural"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "bir indirme"
+msgstr[1] "{n} indirme"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "bir indirilen öğe"
+msgstr[1] "{n} indirilen öğe"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "bir özel durum"
+msgstr[1] "{n} özel durum"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "bir ana makine"
+msgstr[1] "{n} ana makine"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "bir öğe"
+msgstr[1] "{n} öğe"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "derleyicinin yok saydığı bir satır"
+msgstr[1] "derleyicinin yok saydığı {n} satır"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "bir sayfa"
+msgstr[1] "{n} sayfa"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "bir kural"
+msgstr[1] "{n} kural"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "bir kaynak"
+msgstr[1] "{n} kaynak"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "bir kullanılamayan"
+msgstr[1] "{n} kullanılamayan"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "bir okunmamış"
+msgstr[1] "{n} okunmamış"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "bir ziyaret"
+msgstr[1] "{n} ziyaret"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Ölü internette gezinin"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "OneBuck.app için OpenPeeps İnsanları tarafından yapıldı"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Reklamlar ve izleyiciler burada engelleniyor."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Bu sitede reklamları ve izleyicileri engelle"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "İçerik Engelleyici ayarları"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Burada yönetmek için bir web sitesi açın."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "Bu sitede duraklatıldı."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Bu sayfa"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Adres"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Emin misiniz? Bu işlem geri alınamaz."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Yer İmleri Çubuğu"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Sil"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "“{item}” silinsin mi?"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "“{name}” silinsin mi?"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Yer İmini Düzenle"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Klasörü Düzenle"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Klasör"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Yeni Yer İmi"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Yeni Klasör"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Kaydet"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Klasör ve içindeki öğe kaldırılacak."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Klasör ve içindeki {items} kaldırılacak."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Başlık"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "bu yer imi"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "bu klasör"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Bağlantıyı Kopyala"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Sil"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Düzenle…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Yeni Yer İmi…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Yeni Klasör…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Aç"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Tümünü Yeni Sekmelerde Aç"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Yer İmi Ayarlarını Aç"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Yeni Sekmede Aç"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Yeniden Adlandır…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "QR Kod Olarak Paylaş"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Tam Ekran Görüntüsü"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Bağlantıyı Yeni Sekmede Aç"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Yeni Sekmede Aç"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Diğer Sekmeleri Kapat"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Bölmeyi Kapat"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Sekmeyi Kapat"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Sağdaki Sekmeleri Kapat"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "URL'yi Kopyala"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Sekmeyi Çoğalt"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Sonraki Bölmeye Odaklan"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Önceki Bölmeye Odaklan"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "QR Kod Olarak Paylaş"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Sekmeyi Sessize Al"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Yeni Gizli Pencere"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Yeni Sekme"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Yeni Pencere"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Yeni Pencerede Aç"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Sekmeyi Sabitle"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Sekmeyi Yeniden Yükle"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Pencere Boyutunu Ayarla…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Ayarlar…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Sonraki Sekmeyle Böl"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Önceki Sekmeyle Böl"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Sekmenin Sesini Aç"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Sekme Sabitlemesini Kaldır"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Statik tipli, derlenen bir sistem programlama dili"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "WAL tabanlı gömülü veri depoları paketi"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Uygulama ve arayüz dili"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Yazar Tomasz Kurylik"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Paweł Kuna tarafından oluşturuldu ve sürdürülüyor"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Kullanılan teknolojiler"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "Küçük ayrıştırıcı ve döküm araçları koleksiyonu"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Künye"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Tasarım ve geliştirme · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Whatever ana sayfası"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Arayüz"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Oluşturan"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Parola gücü tahmin aracı (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Saf Nim kriptografi kitaplığı"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Depolama çekirdeği"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Araçlar ve altyapı"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Yazıldığı dil"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "Tamam"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Aç"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Bu sayfa"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "İptal Edildi"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Silindi"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Tamamlandı"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "İndiriliyor"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "İndirilenler"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Başarısız Oldu"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Henüz indirme yok."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Hiçbir şey indirilmedi"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Aç"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Yenile"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Listeden Kaldır"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Yeniden Dene"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Finder'da Göster"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Bilinmeyen boyut"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{expected} içinden {received}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Kodlanacak bir şey yok."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Ayarlar kaydedilemedi."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "QR arabelleği çekirdek tarafından reddedildi."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "QR kodlayıcı başarısız oldu."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "QR kodlayıcı beklenmeyen bir durum döndürdü ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Whatever depolama hizmeti kullanılamıyor."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "Birlikte gelen filtre anlık görüntüsü eksik."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Bu URL bir QR koda sığmayacak kadar uzun."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "oturum kaydetme zaman aşımına uğradı"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Makalelere Dön"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Makale bağlantısını kopyala"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Bağlantıyı Kopyala"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Besleme"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Beslemeler"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Beslemeler Ayarlar'da kapalı."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "Beslemeler gizli sekmeden kaydedilemez."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Okundu olarak işaretle"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Okunmadı olarak işaretle"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Okundu İşaretle"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Okunmadı İşaretle"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "Bu görünüme uygun makale yok."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Henüz abonelik yok."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Bu makale için yalnızca özet mevcut."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Aç"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Makaleyi Aç"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Yeni sekmede aç"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Makale okuma görünümünü açar."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Yenile"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Kaydedildi işaretini kaldır"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Kaydet"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Makaleyi Kaydet"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Kaydedildi"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "Abone Ol"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Okumaya başlamak için bir beslemeye abone olun."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Bu, desteklenen bir besleme adresi değil."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "Abonelik kaydedildikten sonra bulunamadı."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Bu sayfa beslemeler sunuyor, ancak gizli sekmeler bunları kaydedemez."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Bu sayfa şunları sunuyor:"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Okunmadı"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Yalnızca okunmadıklar"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Aboneliği İptal Et"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Yolu Kopyala"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Boş klasör"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Üst klasöre git"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Gizli"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Üst klasör"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Yenile"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Yeniden Dene"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Finder'da Göster"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Gizli dosyaları göster"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "{total} öğeden ilk {shown} tanesi gösteriliyor"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "“{directory}” açılamadı."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Bulma çubuğunu kapat"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Sayfada Bul"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Tümünü Vurgula"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Büyük/Küçük Harfe Duyarlı"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Sonraki eşleşme"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Sonuç yok"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Önceki eşleşme"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Tam Sözcükler"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{total}{more} içinde {index}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "İzin Ver"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Sor"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Engelle"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Kamera"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Yakalama aygıtları"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Seçimler bu site için hatırlanır. Engelleme veya izin verme, sayfa bir dahaki sefere istediğinde uygulanır; yeniden yükleme devam eden yakalamayı sonlandırır."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Kapat"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "{kind} için"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "Kullanımda"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Mikrofon"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "İstenmedi"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Gizli sekme: seçimler yalnızca bir kez uygulanır ve asla hatırlanmaz. Sayfayı yeniden yüklemek devam eden yakalamayı sonlandırır."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Sayfayı Yeniden Yükle"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "Yanıtınız bekleniyor"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Aygıtlarınızı kullanmak istiyor"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "macOS bu aygıtı engelliyor; Sistem Ayarları, Gizlilik ve Güvenlik bölümünde Whatever uygulamasına izin verin."
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Yeni Gizli Pencere"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Yeni Sekme"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Yeni Pencere"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Başka bir kimlik bilgisi ekleyin"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Emin misiniz? Bu işlem geri alınamaz."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "Büyük Harf"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Kasa ipucunu değiştirin"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Karakterler"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Ana parolayı onaylayın"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Parolayı kopyalayın"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Kullanıcı adını kopyalayın"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Kasa Oluştur"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Bir ana parola oluşturun"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Sil"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Kimlik bilgisini silin"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Bu kimlik bilgisini silin"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Bu kimlik bilgisi silinsin mi?"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Bu siteyi ve içindeki tüm kimlik bilgilerini silin"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "“{site}” silinsin mi?"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Rakamlar"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Nokta (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Parola oluşturun"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Parolayı gizleyin"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "İpucu (isteğe bağlı)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "İpucu: {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Tire (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Kasanızı açar. Kurtarma seçeneği yoktur: unutmanız hâlinde kayıtlı tüm parolalar kaybolur."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Uzunluk: {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Kasayı kilitleyin"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Küçük Harf"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Ana parola"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Ana parola (8+ karakter)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Orta"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Mod"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Yeni Site"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "İpucu ayarlanmadı"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Site seçilmedi"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Sayı"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Parola"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Parolalar"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Soldan bir web sitesi seçin veya yeni bir tane ekleyin."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Yeniden Oluştur"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Kaydet"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Ara"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Ayırıcı"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Parolayı gösterin"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Birkaç yanlış paroladan sonra gösterilir. Asla parolanın kendisi değildir."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Site adı"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Güçlü"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Semboller"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Site ve içindeki tüm kimlik bilgileri kaldırılacak. Bu işlem geri alınamaz."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Kasa oluşturulamadı."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Alt çizgi (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Kilidi Aç"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Parolaların Kilidini Aç"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Adsız site"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Büyük Harf"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Kullan"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Kasa ipucu"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Zayıf"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Sözcükler"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Sözcükler: {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Ana parola yanlış, yeniden deneyin."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "bu site"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Gerçek boyut"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Arka planlar"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Kopya sayısı: {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Bu sayfa oluşturulamadı."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Sayfaya sığdır"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Yatay"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Yalnızca yüklenen web sayfaları yazdırılabilir."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Yönlendirme"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Kâğıt"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Dikey"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Önizleme hazırlanıyor…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Yazdırma stil sayfası"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Yazdır…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "PDF olarak kaydet…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Ölçek"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Adsız"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Çıkmak için ⌘Q tuşuna yeniden basın"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "Degrade üzerinde bir noktadaki renk."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "Tüm pencerenin üzerinde film greni dokusu. Her değişiklik siz ayarladıkça uygulanır."
+
+msgctxt "Settings.Appearance"
+msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live. Fold a rule with its chevron."
+msgstr "Tarayıcı arayüzü için GTK tarzı bir stil sayfası. Bir denetimle eşleşen kurallar onu günceller; geri kalanı geçersiz kılma olarak uygulanır ve yine de canlı olarak yeniden çizilir. Bir kuralı ok işaretiyle katlayın."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Diskte bir video dosyası."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Ekle"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Durak Ekle"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Adres Çubuğu"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "X Boyunca"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "Y Boyunca"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Her zaman sessiz ve her zaman döngüsel: kendi kendine ses çıkarmaya başlayan bir pencere, bu özelliğin çözmek için var olduğu sorundur ve sonda donmuş bir arka plan kimsenin arka plan fikri değildir."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Diskte bir görüntü dosyası."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Bağlantı Noktası"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Açı"
+
+msgctxt "Settings.Appearance"
+msgid "Apply"
+msgstr "Uygula"
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {count} declarations update controls."
+msgstr "Uygulandı; {count} bildirim denetimleri günceller."
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {updated} update controls, {cssOnly} stay CSS-only overrides."
+msgstr "Uygulandı; {updated} denetimi günceller, {cssOnly} yalnızca CSS geçersiz kılma olarak kalır."
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Emin misiniz? Gren, arka plan, sekme teması ve adres çubuğu yerleşik varsayılanlarına dönecek."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Bitişik"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Bitişik sekmeler sayfayla birleşir; haplar üstte bir boşlukla yüzer ve aşağıdaki Köşe Yarıçapı yok sayılarak her zaman tamamen yuvarlaktır."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Otomatik oynat"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Yerleşik grene dönün."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Yerleşik görünüme dönün."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Seçili sekme dışındaki tüm sekmelerin arka planı ve metni."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Seçili sekmenin arka planı ve metni."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "Sayfanın arkasında. Değiştirdikçe tüm pencerelere uygulanır."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Bulanıklık"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Her İkisi"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Alt"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "Alt Orta"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "Sol Alt"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "Sağ Alt"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Parlaklık"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "Merkez"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "Sol Orta"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "Sağ Orta"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Merkez X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Merkez Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "İlk video karesi gelene kadar gösterilecek bir durağan görüntü seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Sayfanın arkasında oynatılacak bir video seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Sekmenin arkasında oynatılacak bir video seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Sayfanın arkasında gösterilecek bir görüntü seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Sekmenin arkasında gösterilecek bir görüntü seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Seç…"
+
+msgctxt "Settings.Appearance"
+msgid "Clean — Apply stores it and updates matching controls."
+msgstr "Temiz — Uygula bunu kaydeder ve eşleşen denetimleri günceller."
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Temizle"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Renk"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Renk"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Köşe Yarıçapı"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Geçerli Sekme"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Özel"
+
+msgctxt "Settings.Appearance"
+msgid "Custom CSS"
+msgstr "Özel CSS"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Kapat"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Efektler"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Sekiz sınırdır."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Etkin"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Bitiş"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Alan Yüksekliği"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Doldur"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Kullanılabilir Genişliği Doldur"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Şununla Doldur"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Ayarları filtreleyin"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Sığdır"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Oluştur"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Farklı bir gren oluşturun"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Gradyan"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Gren"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Gren Boyutu"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Bu ayarları kaybetmeden dokuyu gizler."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Yatay"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Görüntü"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "Etkin Olmayan Sekmeler"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "İç Yarıçap"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Yoğunluk"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Tür"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Arka planın sayfanın arkasında görünmesine izin verir."
+
+msgctxt "Settings.Appearance"
+msgid "Loading…"
+msgstr "Yükleniyor…"
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Doğrusal"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Bağlantı Baloncuğu"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Görünüm"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Eksik veya okunamıyor. Yeniden seçin."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Tek Renk"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Önce bir arka plan gerekir. Henüz ortaya çıkarılacak bir şey yok."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Yeni desen"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Dosya seçilmedi"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Poster seçilmedi"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "{query} ile eşleşen ayar yok."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Yok"
+
+msgctxt "Settings.Appearance"
+msgid "Nothing yet — still generating."
+msgstr "Henüz bir şey yok — hâlâ oluşturuluyor."
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "Varsayılan olarak kapalıdır. Sayfaları saydam olmaya zorlar, bu yüzden bazı siteler arka planını kaybeder. Kısmi olmasını bekleyin: kendi arka planını çizen bir site medyayı yine de kapatır."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Opaklık"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Orijinal"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Dış Yarıçap"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Sayfa Köşeleri"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Gizlendiğinde Duraklat"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Etkin Değilken Duraklat"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Yüzde"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Kapsül"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Punto"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Konum"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Radyal"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Kaldır"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Tekrarla"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Sıfırla"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Görünümü Sıfırla"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Görünüm ayarlarını sıfırlayın"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Görünüm ayarları sıfırlansın mı?"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Sıfırla…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Hareketi Azalt Ayarına Uyun"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Bu sayfadaki tüm ayarları — gren, arka plan, sekme teması ve adres çubuğu — yerleşik varsayılanlarına döndürür."
+
+msgctxt "Settings.Appearance"
+msgid "Revert"
+msgstr "Geri Al"
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Ekli her sekme hücresinin yuvarlaklığı. Değiştikçe canlı olarak uygulanır."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Aynı ayarlar, farklı gren."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Doygunluk"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Kaydet"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Ölçek"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Şekil"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Sayfalardan Göster"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Boyut"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Alanın boyutu ve şekli. Değiştikçe canlı olarak uygulanır."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Düz"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Hız"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "İlk kare gelene kadar yerine geçer. Ayrıca bir video için Efekt derecelendirmenin uygulandığı tek öğedir."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Başlangıç"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Başlangıç Konumu"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Pencere açıldığında kendiliğinden başlar."
+
+msgctxt "Settings.Appearance"
+msgid "Stored — everything applies as a CSS override, no controls changed."
+msgstr "Kaydedildi — her şey CSS geçersiz kılma olarak uygulanır, hiçbir denetim değişmedi."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Duraklar gradyan boyunca sırayla uygulanır."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "Başka bir uygulama öndeyken durur."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "Pencere kaplandığında, simge durumuna küçültüldüğünde veya uygulama gizlendiğinde durur."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Esnet"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "Ortalanmış bir alan yerine düğmeler arasında esner."
+
+msgctxt "Settings.Appearance"
+msgid "Supported selectors & properties"
+msgstr "Desteklenen seçiciler ve özellikler"
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Sistem"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Sekme Köşeleri"
+
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Sekme Konumu"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Sekmeler sayfanın üstünde veya altında yer alır."
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Sekme Şekli"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Metin Rengi"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Arka plan kapatıldı. Farklı bir dosya seçin."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "Bir bağlantının üzerine gelindiğinde gösterilen kayan adres."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Sistem şu anda hareketin azaltılmasını istiyor, bu nedenle bu video duraklatılıyor."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Sistem hareketin azaltılmasını istemiyor."
+
+msgctxt "Settings.Appearance"
+msgid "The theme service did not answer — try again."
+msgstr "Tema hizmeti yanıt vermedi — yeniden deneyin."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Renk Tonu"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Üst"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "Üst Orta"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "Sol Üst"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "Sağ Üst"
+
+msgctxt "Settings.Appearance"
+msgid "Too large — keep stylesheets under 200 KB."
+msgstr "Çok büyük — stil sayfalarını 200 KB altında tutun."
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Saydam Sayfalar"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Kullan"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Dikey"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Pencere Arka Planı"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent}% konumunda"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Appearance"
+msgid "{errors} errors and {warnings} warnings — errors block Apply."
+msgstr "{errors} hata ve {warnings} uyarı — hatalar Uygula işlemini engelliyor."
+
+msgctxt "Settings.Appearance"
+msgid "{errors} errors — they block Apply."
+msgstr "{errors} hata — bunlar Uygula işlemini engelliyor."
+
+msgctxt "Settings.Appearance"
+msgid "{warnings} warnings — Apply still works, flagged rules are skipped."
+msgstr "{warnings} uyarı — Uygula yine de çalışır, işaretli kurallar atlanır."
+
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "AdAway varsayılan engelleme listesi · CC BY 3.0 · artı kendi eklerimiz"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Ekle"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Kuralları uygulayın"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Reklamları ve izleyicileri engelleyin"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Engelleme"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Yerleşik anlık görüntü"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Özel kurallar"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "İstisnalar"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Filtre listeleri"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Hosts satırları ile ||, @@ ve ## kuralları, satır başına bir tane. Anlık görüntüyle birlikte uygulanır."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Son hata"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "İstisna yok."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Değişikliğin uygulanması için sayfalar yeniden yüklenir."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "{host} adresini kaldır"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Kurallar"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Uygulamayla birlikte gelir. Hiçbir şey indirilmez ve tarama verisi cihazdan ayrılmaz: listeler cihazda derlenir."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Engelleyicinin dokunmadığı siteler, alt alan adları dahil."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Atlanan satırlar"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Kaynak"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Listelenen ana bilgisayarlara yönelik üçüncü taraf istekleri sayfadan asla ayrılmaz."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Yer imleri"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Yer imleri kullanılamıyor"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Eklediğiniz yer imleri burada listelenir."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Henüz yer imi yok"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Tümünü Kaldır"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Bu yer imini kaldır"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Bu klasörü ve içindekileri kaldır"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Yer imleri çubuğunu göster"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Temizle"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Tümünü temizle"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Geçmişi temizle"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "İndirme klasörü"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "İndirme geçmişi"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Tüm indirmeler buraya kaydedilir. Dosya adları otomatik olarak tekilleştirilir, böylece hiçbir şeyin üzerine yazılmaz."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Tüm indirme satırlarını unut."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Tüm indirme satırları unutulsun mu?"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Geçmiş satırları diskteki dosyaları gösterir. Temizleme yalnızca satırları unutur; dosyalar yerinde kalır."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Konum"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Henüz indirme yok"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Göster"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Depolama"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "Başlıklar arasında 1–2 karakter gösterilir."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Uygula"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Saklama süresini uygula"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Besleme başına makale"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Otomatik"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Arka plan opaklığı"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Çubuk yüksekliği"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Çubuk konumu"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Alt"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Üst"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Önbelleğe alınan içerik"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Köşe yarıçapı"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Kayan yazı yönü"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Kayan yazı hızı"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Tüm abonelikleri ve önbelleğe alınan beslemeleri silin."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "Keşif yalnızca beslemeleri duyurur. Bir beslemeye abone olunana veya besleme yenilenene kadar hiçbir şey indirilmez ya da kaydedilmez."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Site simgelerini indir"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Kayan Yazıyı Etkinleştir"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "RSS beslemelerini etkinleştir"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Getiriliyor"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Yazı tipi boyutu"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Manşet kayan yazısı"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "Soldan sağa"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Açınca makaleleri okundu olarak işaretle"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Abone olunan kaynak yok."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Abonelik yok"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Kapalı"
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Bir makaleyi açmanız, okunmadı işaretini temizler."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Ayrıştırılıyor"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Abonelik başına doğrulanmış bir site simgesi saklayın."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Her aboneliği yukarıdaki sınıra göre budayın."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Yalnızca yayıncı görselleri"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Okunuyor"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Yenile"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Tümünü yenile"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Otomatik olarak yenile"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Yenileme aralığı"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Okuyucu yüklediğinde eski abonelikleri yenileyin."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Bu kaynağı şimdi yenile"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Yenilemelerde, yayıncı destekliyorsa koşullu istekler kullanılır. Gizli sekmeler asla abone olmaz, yenilemez veya indirmez."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Yenileniyor…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "RSS veya Atom doğrulamasında başarısız olan beslemeleri kurtarmak yerine reddedin."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Kaldır"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Tüm abonelikler ile önbelleğe alınan tüm makaleler ve görseller kaldırılsın mı?"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Tümünü kaldır"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Saklama"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "Saklama, içe aktarmadan sonra ve Uygula'ya her basıldığında uygulanır. Okundu ve kaydedildi işaretleri tek başına budamaya neden olmaz."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "Sağdan sola"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Ayırıcı"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Besleme duyuran sayfalarda araç çubuğu denetimini gösterin ve yeni aboneliklere izin verin."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Altta manşetleri gösteren kayan bir çubuk gösterir."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Depolama"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "Sıkı ayrıştırma, bozuk beslemeleri ve RDF/RSS 1.0'ı reddeder. Esnek ayrıştırma, tanımlanabildiği sürece kullanılabilir başlıkları, bağlantıları, tarihleri ve özetleri kurtarır."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Sıkı doğrulama"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Abone olunan kaynaklar"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Abonelikler, makaleler, site simgeleri ve küçük resimler ayrı besleme veritabanında tutulur. Tümünü kaldırma işlemi geri alınamaz."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Gösterilecek bir şey olmadığında kayan yazı kendini gizler. Metin her zaman sistem etiket rengini kullanır, böylece Açık ve Koyu Mod'a uyar."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Küçük resimler"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Abonelikleri yönetmek için RSS beslemelerini açın."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Bu kaynağın aboneliğini iptal et"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Aboneliği iptal etmeniz, aboneliği, önbelleğe alınan makalelerini ve kaydedilen görsellerini kaldırır."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Tümünü Temizle"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Yinelenenleri şunda birleştir"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "30 Günden Eskileri Sil"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "Geçmiş"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Henüz geçmiş yok"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Ziyaret ettiğiniz sayfalar burada görünür."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Burada ne yazarsa yazsın, gizli sekmeler asla kaydedilmez."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Ziyaret edilen sayfaları kaydet"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Bu girdiyi kaldır"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Görünüm"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Yer İmleri"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "İçerik Engelleyici"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "İndirilenler"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Genel"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "Geçmiş"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS ve Beslemeler"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Arama"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Ayarlar"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Web"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Bunların ulaşmadığı yerlerde arama yapmak için bir motor ekleyin."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Adres"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "Bir adres ve aldığı sorgu parametresi."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Arama sonucu bağlantılarını temizle"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Tıklamalar ve kopyalanan bağlantılar hedefi taşır."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Varsayılan Motor"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Sorgu parametresini girin, genellikle q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Arama adresini girin."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Motora bir ad verin."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Aramam"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Ad"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Sorgu parametresi"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Aradıklarınızı kaydeder"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Bu motoru kaldırın"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Sonuç Bağlantıları"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Kaydet"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Arama motorlarının, bastığınızda sonuç bağlantılarını izleyici yönlendirmeleriyle değiştirmesini engeller. Yalnızca desteklenen sonuç sayfalarında etkindir."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Bu adres geçerli değil."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "Adres http:// veya https:// ile başlamalıdır"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Adres alanının aramayı gönderdiği yer. Web adresine benzeyen her şey yine de doğrudan yüklenir."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Motorlarınız"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "1 saat sonra"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "15 dakika sonra"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "30 dakika sonra"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "5 dakika sonra"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "JavaScript'e izin verin"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "Açık sayfalara hemen uygulanır."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Ses"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Geri/ileri hareketleri"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Görünüm"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Tümü"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Sahte web sitesi uyarıları"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Bu boşta kalma süresini aşan gizli sekmeler sayfalarını kaybeder ve belleğini boşaltır. Birini göstermek adresini yeniden yükler; görüntülenen, sabitlenen, ses çalan ve yüklenen sekmeler hiçbir zaman uyumaz."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Etkileşim"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "JavaScript pencere açabilir"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Bir sayfanın tıklama olmadan sekme açmasına izin verir. Açılır pencereler bu pencerede açılır."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Bağlantı önizlemeleri"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Büyütme"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Medya"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Minimum yazı tipi boyutu"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Hiçbiri"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Kapalı"
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Kapalı olması komut dosyalarını engeller, bu da çoğu sitenin çalışmasını durdurur."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Sayfa yakınlaştırma"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Sayfalar"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Tıklamadan oynatın"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Gizlilik"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Bir sayfa açıldığında okunur. Değişiklikler sonraki sayfada geçerli olur."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Siteye özgü uyumluluk modu"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Kullanılmayan sekmeleri uyutun"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "Uyuyan sekmeler"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Bunlardan bazıları sonraki sayfada geçerli olur."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "Sekme tuşu bağlantılara odaklanır"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Bilinen ana bilgisayarları HTTPS'e yükseltin"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "kapalı"
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Sertifika"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Bu ziyaret için sertifika ayrıntıları kullanılamıyor."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Temizle"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "Bağlantı güvenli değil."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "Bağlantı güvenli."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Çerezler ve site verileri"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Bitiş"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Parmak izi"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Veren"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Verilen"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Site verileri yükleniyor."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Bu site için kayıtlı veri yok."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Burada incelemek için bir web sitesi açın."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Site ayarları"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Bu sayfa"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Bu sayfa HTTPS üzerinden yüklenmedi, bu nedenle gösterilecek sertifika yok."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Bilinmiyor"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Sekmeyi Kapat"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Sekmeleri Kapat"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Sekmeyi Sessize Al"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Yeni Sekme"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Sekmenin Sesini Aç"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Yer İmi Ekle"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Kullanılabilir besleme"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Kullanılabilir beslemeler"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Geri"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Yer İmleri"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Kamera veya mikrofon kullanımda — yakalama denetimlerini açın"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Kamera veya mikrofon istendi — yakalama denetimlerini açın"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Yakalama denetimleri"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Adresi temizleyin"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "İçerik Engelleyici — bu sitede etkin"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "İçerik Engelleyici — bu sitede duraklatıldı"
+
+msgctxt "Toolbar"
+msgid "Close floating player"
+msgstr "Kayan oynatıcıyı kapatın"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Bu sitede içerik engelleyici etkin"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Bu sitede içerik engelleyici duraklatıldı"
+
+msgctxt "Toolbar"
+msgid "Couldn't open Picture in Picture ({reason})"
+msgstr "Resim İçinde Resim açılamadı ({reason})"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "İndirilenler"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Yer İmini Düzenle"
+
+msgctxt "Toolbar"
+msgid "Exit Picture in Picture"
+msgstr "Resim İçinde Resim'den Çık"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "İleri"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Gizli"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Güvenli olmayan bağlantı"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Parola Yöneticisi"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Yeniden Yükle"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Ara"
+
+msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "{name} üzerinde arayın"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Arayın veya adres girin"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Güvenli bağlantı"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Ayarlar"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Site bilgileri"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Durdur"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Bu pencere gizlidir: sekmeleri geçmişe kaydedilmez."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "{address} adresini ziyaret edin"
+
+msgctxt "Toolbar"
+msgid "Watch video in Picture in Picture"
+msgstr "Videoyu Resim İçinde Resim ile izleyin"
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "En son sürüm için GitHub'a soruluyor."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Güncellemeler denetleniyor"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "Güncellemeler denetlenemedi"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Whatever {version} indiriliyor."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Güncelleme indiriliyor"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "GitHub beklenmedik şekilde yanıt verdi. Daha sonra tekrar deneyin."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "GitHub güncelleme denetimlerini hız sınırlıyor. Biraz sonra tekrar deneyin."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "GitHub henüz sürüm bildirmedi. Daha sonra tekrar deneyin."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Yazılım güncellemesi"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "Denetim başarısız oldu. Bağlantınızı denetleyin ve tekrar deneyin."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "İndirme başarısız oldu. Bağlantınızı denetleyin ve tekrar deneyin."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Güncelleme mevcut"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Güncelleme indirildi"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Whatever güncel"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Whatever {version} mevcut — sizde {current} var."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Whatever {version} mevcut, ancak bu Mac için disk görüntüsü içermiyor."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Whatever {version} {file} içinde — güncellemek için açın."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Whatever {version} yüklendi."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Whatever {version} en son sürümdür."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Yüklenemedi"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Yükleniyor…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Yeni Sekme"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Yeniden yükleniyor…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Uygula"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "İptal"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Genişlik ve yükseklik için pozitif sayılar girin."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Yükseklik"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Genişlik"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Pencere Boyutu"
+
