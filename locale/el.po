@@ -1,0 +1,3268 @@
+# Whatever Greek translation.
+msgid ""
+msgstr ""
+"Project-Id-Version: Whatever\n"
+"Language: el\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Software Update"
+msgstr "Ενημέρωση λογισμικού"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Whatever never updates itself. Checking asks GitHub for the latest release; downloading fetches its disk image for this Mac, and updating from it stays in your hands."
+msgstr "Το Whatever δεν ενημερώνεται ποτέ από μόνο του. Ο έλεγχος ζητά από το GitHub την πιο πρόσφατη έκδοση· η λήψη ανακτά την εικόνα δίσκου για αυτό το Mac και η ενημέρωση από αυτήν επαφίεται σε εσάς."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Default Browser"
+msgstr "Προεπιλεγμένο πρόγραμμα περιήγησης"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Links clicked in other apps open here."
+msgstr "Οι σύνδεσμοι στους οποίους κάνετε κλικ σε άλλες εφαρμογές ανοίγουν εδώ."
+
+#. Settings > General > default-browser row when Whatever is default.
+msgctxt "Settings.General"
+msgid "Whatever is your default browser"
+msgstr "Το Whatever είναι το προεπιλεγμένο πρόγραμμα περιήγησής σας"
+
+#. Settings > General > default-browser row when it is not.
+msgctxt "Settings.General"
+msgid "Whatever is not your default browser"
+msgstr "Το Whatever δεν είναι το προεπιλεγμένο πρόγραμμα περιήγησής σας"
+
+#. Settings > General > default-browser subtitle when Whatever is default.
+msgctxt "Settings.General"
+msgid "This Mac already opens web links in Whatever."
+msgstr "Αυτό το Mac ανοίγει ήδη τους συνδέσμους ιστού στο Whatever."
+
+#. Settings > General > default-browser subtitle when it is not.
+msgctxt "Settings.General"
+msgid "Claim http and https links from your current browser."
+msgstr "Διεκδικήστε τους συνδέσμους http και https από το τρέχον πρόγραμμα περιήγησής σας."
+
+#. Settings > General > button claiming http/https handling.
+msgctxt "Settings.General"
+msgid "Set Whatever as Default Browser"
+msgstr "Ορισμός του Whatever ως προεπιλεγμένου προγράμματος περιήγησης"
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Session"
+msgstr "Συνεδρία"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Restoring reopens the previous window's tabs."
+msgstr "Η επαναφορά ανοίγει ξανά τις καρτέλες του προηγούμενου παραθύρου."
+
+#. Settings > General > toggle: reopen the previous window's tabs at launch.
+msgctxt "Settings.General"
+msgid "Restore last session"
+msgstr "Επαναφορά τελευταίας συνεδρίας"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Reopen the previous window's tabs at launch."
+msgstr "Επανάνοιγμα των καρτελών του προηγούμενου παραθύρου κατά την εκκίνηση."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "Quitting"
+msgstr "Έξοδος"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "The second press quits at once, even with windows open."
+msgstr "Το δεύτερο πάτημα προκαλεί άμεση έξοδο, ακόμη και με ανοιχτά παράθυρα."
+
+#. Settings > General > toggle: first ⌘Q prompts instead of quitting.
+msgctxt "Settings.General"
+msgid "Confirm before quitting"
+msgstr "Επιβεβαίωση πριν από την έξοδο"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "First ⌘Q shows a prompt; press ⌘Q again to quit."
+msgstr "Το πρώτο ⌘Q εμφανίζει προτροπή· πατήστε ξανά ⌘Q για έξοδο."
+
+#. Settings > General > group title.
+msgctxt "Settings.General"
+msgid "History"
+msgstr "Ιστορικό"
+
+#. Settings > General > group footnote.
+msgctxt "Settings.General"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Οι ιδιωτικές καρτέλες δεν καταγράφονται ποτέ, ανεξαρτήτως αυτής της ρύθμισης."
+
+#. Settings > General > toggle: record main-frame visits in history.
+msgctxt "Settings.General"
+msgid "Record visited pages"
+msgstr "Καταγραφή σελίδων που επισκεφθήκατε"
+
+#. Settings > General > toggle subtitle.
+msgctxt "Settings.General"
+msgid "Adds committed main-frame visits to history."
+msgstr "Προσθέτει τις ολοκληρωμένες επισκέψεις κύριου πλαισίου στο ιστορικό."
+
+#. Settings > General > slider: collapse near-duplicate revisits (seconds).
+msgctxt "Settings.General"
+msgid "Collapse repeats within"
+msgstr "Σύμπτυξη επαναλήψεων εντός"
+
+#. Settings > General > update button at rest.
+msgctxt "Settings.General"
+msgid "Check for Updates"
+msgstr "Έλεγχος για ενημερώσεις"
+
+#. Settings > General > update button when a release is ready.
+msgctxt "Settings.General"
+msgid "Download Update"
+msgstr "Λήψη ενημέρωσης"
+
+#. Settings > General > update button after the disk image landed.
+msgctxt "Settings.General"
+msgid "Show in Finder"
+msgstr "Εμφάνιση στο Finder"
+
+#. Settings > General > group title for the interface language picker.
+msgctxt "Settings.General"
+msgid "Language"
+msgstr "Γλώσσα"
+
+#. Settings > General > language group footnote.
+msgctxt "Settings.General"
+msgid "The interface language. Translated text switches right away."
+msgstr "Η γλώσσα της διεπαφής. Το μεταφρασμένο κείμενο αλλάζει αμέσως."
+
+#. Settings > General > language picker option following the system locale.
+msgctxt "Settings.General"
+msgid "System"
+msgstr "Σύστημα"
+
+#. App menu > About item (replaces the stock one).
+msgctxt "Menu.App"
+msgid "About Whatever"
+msgstr "Περί του Whatever"
+
+#. App menu > Quit item (warns instead of quitting at once).
+msgctxt "Menu.App"
+msgid "Quit Whatever"
+msgstr "Έξοδος από το Whatever"
+
+#. App menu > opens our Settings modal.
+msgctxt "Menu.App"
+msgid "Settings…"
+msgstr "Ρυθμίσεις…"
+
+#. App menu > opens the password manager.
+msgctxt "Menu.App"
+msgid "Passwords…"
+msgstr "Συνθηματικά…"
+
+#. Menu bar > top-level File title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "File"
+msgstr "Αρχείο"
+
+#. Menu bar > top-level Edit title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Edit"
+msgstr "Επεξεργασία"
+
+#. Menu bar > top-level Window title (stock items stay in the system language).
+msgctxt "Menu.Bar"
+msgid "Window"
+msgstr "Παράθυρο"
+
+#. Menu bar > top-level Help title.
+msgctxt "Menu.Bar"
+msgid "Help"
+msgstr "Βοήθεια"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Tab"
+msgstr "Νέα καρτέλα"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Window"
+msgstr "Νέο παράθυρο"
+
+#. File menu.
+msgctxt "Menu.File"
+msgid "New Incognito Window"
+msgstr "Νέο παράθυρο ανώνυμης περιήγησης"
+
+#. File menu > file picker.
+msgctxt "Menu.File"
+msgid "Open…"
+msgstr "Άνοιγμα…"
+
+#. File menu > print preview.
+msgctxt "Menu.File"
+msgid "Print…"
+msgstr "Εκτύπωση…"
+
+#. File menu > the system Close item, retitled: it closes the tab.
+msgctxt "Menu.File"
+msgid "Close Tab"
+msgstr "Κλείσιμο καρτέλας"
+
+#. Top-level Find menu.
+msgctxt "Menu.Find"
+msgid "Find"
+msgstr "Εύρεση"
+
+#. Find menu > find bar.
+msgctxt "Menu.Find"
+msgid "Find in Page…"
+msgstr "Εύρεση στη σελίδα…"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Next"
+msgstr "Εύρεση επόμενου"
+
+#. Find menu.
+msgctxt "Menu.Find"
+msgid "Find Previous"
+msgstr "Εύρεση προηγούμενου"
+
+#. Top-level View menu.
+msgctxt "Menu.View"
+msgid "View"
+msgstr "Προβολή"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload Page"
+msgstr "Ανανέωση σελίδας"
+
+#. View menu.
+msgctxt "Menu.View"
+msgid "Reload From Origin"
+msgstr "Ανανέωση από την πηγή"
+
+#. View menu > steps the page or PDF zoom in.
+msgctxt "Menu.View"
+msgid "Zoom In"
+msgstr "Μεγέθυνση"
+
+#. View menu > steps the page or PDF zoom out.
+msgctxt "Menu.View"
+msgid "Zoom Out"
+msgstr "Σμίκρυνση"
+
+#. View menu > returns the page or PDF zoom to actual size.
+msgctxt "Menu.View"
+msgid "Actual Size"
+msgstr "Πραγματικό μέγεθος"
+
+#. View menu > bookmark bar toggle.
+msgctxt "Menu.View"
+msgid "Show Bookmarks Bar"
+msgstr "Εμφάνιση γραμμής σελιδοδεικτών"
+
+#. PDF viewer toolbar > zooms the document out.
+msgctxt "PDF"
+msgid "Zoom Out"
+msgstr "Σμίκρυνση"
+
+#. PDF viewer toolbar > zooms the document in.
+msgctxt "PDF"
+msgid "Zoom In"
+msgstr "Μεγέθυνση"
+
+#. PDF viewer toolbar > scales the document to the window.
+msgctxt "PDF"
+msgid "Fit to Window"
+msgstr "Προσαρμογή στο παράθυρο"
+
+#. PDF viewer toolbar > goes to the previous page.
+msgctxt "PDF"
+msgid "Previous Page"
+msgstr "Προηγούμενη σελίδα"
+
+#. PDF viewer toolbar > goes to the next page.
+msgctxt "PDF"
+msgid "Next Page"
+msgstr "Επόμενη σελίδα"
+
+#. PDF viewer toolbar > prints the document.
+msgctxt "PDF"
+msgid "Print"
+msgstr "Εκτύπωση"
+
+#. PDF viewer toolbar > saves the document.
+msgctxt "PDF"
+msgid "Save…"
+msgstr "Αποθήκευση…"
+
+#. PDF viewer > retries a failed load.
+msgctxt "PDF"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+#. PDF viewer > shown when the document cannot be fetched or parsed.
+msgctxt "PDF"
+msgid "Could not open this PDF."
+msgstr "Δεν ήταν δυνατό το άνοιγμα αυτού του PDF."
+
+#. PDF viewer toolbar > current page within the document.
+msgctxt "PDF"
+msgid "Page {current} of {total}"
+msgstr "Σελίδα {current} από {total}"
+
+#. Top-level Tab menu.
+msgctxt "Menu.Tab"
+msgid "Tab"
+msgstr "Καρτέλα"
+
+#. Tab menu > focuses the address bar in history mode.
+msgctxt "Menu.Tab"
+msgid "Search History"
+msgstr "Αναζήτηση ιστορικού"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Focus Address Bar"
+msgstr "Εστίαση στη γραμμή διευθύνσεων"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Reopen Closed Tab"
+msgstr "Επανάνοιγμα κλειστής καρτέλας"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Move Tab to New Window"
+msgstr "Μετακίνηση καρτέλας σε νέο παράθυρο"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Previous Tab"
+msgstr "Εμφάνιση προηγούμενης καρτέλας"
+
+#. Tab menu.
+msgctxt "Menu.Tab"
+msgid "Show Next Tab"
+msgstr "Εμφάνιση επόμενης καρτέλας"
+
+#. Tab menu > one item per number 1-9. {n} is filled per item, core-side.
+msgctxt "Menu.Tab"
+msgid "Select Tab {n}"
+msgstr "Επιλογή καρτέλας {n}"
+
+#. Top-level Split menu.
+msgctxt "Menu.Split"
+msgid "Split"
+msgstr "Διαχωρισμός"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Next Tab"
+msgstr "Διαχωρισμός με την επόμενη καρτέλα"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Split with Previous Tab"
+msgstr "Διαχωρισμός με την προηγούμενη καρτέλα"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Next Pane"
+msgstr "Εστίαση στο επόμενο τμήμα"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Focus Previous Pane"
+msgstr "Εστίαση στο προηγούμενο τμήμα"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Collapse Split"
+msgstr "Σύμπτυξη διαχωρισμού"
+
+#. Split menu.
+msgctxt "Menu.Split"
+msgid "Close Pane"
+msgstr "Κλείσιμο τμήματος"
+
+#. Help menu > credits window.
+msgctxt "Menu.Help"
+msgid "Credits"
+msgstr "Συντελεστές"
+
+#. Generic plural templates shared by several screens.
+msgid "one article"
+msgid_plural "{n} articles"
+msgstr[0] "ένα άρθρο"
+msgstr[1] "{n} άρθρα"
+
+msgid "one available feed"
+msgid_plural "{n} available feeds"
+msgstr[0] "μία διαθέσιμη ροή"
+msgstr[1] "{n} διαθέσιμες ροές"
+
+#. Site info popup: stored-data line. Digit singulars so even one reads as a numeral.
+msgctxt "SiteInfo"
+msgid "{n} cookie"
+msgid_plural "{n} cookies"
+msgstr[0] "{n} cookie"
+msgstr[1] "{n} cookies"
+
+#. Site info popup: stored-data line (non-cookie storage).
+msgctxt "SiteInfo"
+msgid "{n} item"
+msgid_plural "{n} items"
+msgstr[0] "{n} στοιχείο"
+msgstr[1] "{n} στοιχεία"
+
+msgid "one cosmetic rule"
+msgid_plural "{n} cosmetic rules"
+msgstr[0] "ένας κανόνας εμφάνισης"
+msgstr[1] "{n} κανόνες εμφάνισης"
+
+msgid "one download"
+msgid_plural "{n} downloads"
+msgstr[0] "μία λήψη"
+msgstr[1] "{n} λήψεις"
+
+msgid "one downloaded item"
+msgid_plural "{n} downloaded items"
+msgstr[0] "ένα ληφθέν στοιχείο"
+msgstr[1] "{n} ληφθέντα στοιχεία"
+
+msgid "one exception"
+msgid_plural "{n} exceptions"
+msgstr[0] "μία εξαίρεση"
+msgstr[1] "{n} εξαιρέσεις"
+
+msgid "one host"
+msgid_plural "{n} hosts"
+msgstr[0] "ένας κεντρικός υπολογιστής"
+msgstr[1] "{n} κεντρικοί υπολογιστές"
+
+msgid "one item"
+msgid_plural "{n} items"
+msgstr[0] "ένα στοιχείο"
+msgstr[1] "{n} στοιχεία"
+
+msgid "one line the compiler ignored"
+msgid_plural "{n} lines the compiler ignored"
+msgstr[0] "μία γραμμή που αγνόησε ο μεταγλωττιστής"
+msgstr[1] "{n} γραμμές που αγνόησε ο μεταγλωττιστής"
+
+msgid "one page"
+msgid_plural "{n} pages"
+msgstr[0] "μία σελίδα"
+msgstr[1] "{n} σελίδες"
+
+msgid "one rule"
+msgid_plural "{n} rules"
+msgstr[0] "ένας κανόνας"
+msgstr[1] "{n} κανόνες"
+
+msgid "one source"
+msgid_plural "{n} sources"
+msgstr[0] "μία πηγή"
+msgstr[1] "{n} πηγές"
+
+msgid "one unavailable"
+msgid_plural "{n} unavailable"
+msgstr[0] "ένα μη διαθέσιμο"
+msgstr[1] "{n} μη διαθέσιμα"
+
+msgid "one unread"
+msgid_plural "{n} unread"
+msgstr[0] "ένα αδιάβαστο"
+msgstr[1] "{n} αδιάβαστα"
+
+msgid "one visit"
+msgid_plural "{n} visits"
+msgstr[0] "μία επίσκεψη"
+msgstr[1] "{n} επισκέψεις"
+
+#. About panel and its credits.
+msgctxt "About"
+msgid "Browsing the dead internet"
+msgstr "Περιήγηση στο νεκρό διαδίκτυο"
+
+msgctxt "About"
+msgid "Made by Humans from OpenPeeps for OneBuck.app"
+msgstr "Δημιουργήθηκε από ανθρώπους της OpenPeeps για το OneBuck.app"
+
+#. Content-blocker popup card.
+msgctxt "Blocker"
+msgid "Ads and trackers are blocked here."
+msgstr "Οι διαφημίσεις και οι ιχνηλάτες αποκλείονται εδώ."
+
+msgctxt "Blocker"
+msgid "Block ads and trackers on this site"
+msgstr "Αποκλεισμός διαφημίσεων και ιχνηλατών σε αυτόν τον ιστότοπο"
+
+msgctxt "Blocker"
+msgid "Content Blocker settings"
+msgstr "Ρυθμίσεις αποκλεισμού περιεχομένου"
+
+msgctxt "Blocker"
+msgid "Open a website to manage it here."
+msgstr "Ανοίξτε έναν ιστότοπο για να τον διαχειριστείτε εδώ."
+
+msgctxt "Blocker"
+msgid "Paused on this site."
+msgstr "Σε παύση σε αυτόν τον ιστότοπο."
+
+msgctxt "Blocker"
+msgid "This page"
+msgstr "Αυτή η σελίδα"
+
+#. Bookmark editor, bookmark bar, and the Settings > Bookmarks pane.
+msgctxt "Bookmarks"
+msgid "Address"
+msgstr "Διεύθυνση"
+
+msgctxt "Bookmarks"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Είστε βέβαιοι; Αυτό δεν μπορεί να αναιρεθεί."
+
+msgctxt "Bookmarks"
+msgid "Bookmarks Bar"
+msgstr "Γραμμή σελιδοδεικτών"
+
+msgctxt "Bookmarks"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "Bookmarks"
+msgid "Delete"
+msgstr "Διαγραφή"
+
+msgctxt "Bookmarks"
+msgid "Delete “{item}”?"
+msgstr "Διαγραφή του «{item}»;"
+
+msgctxt "Bookmarks"
+msgid "Delete “{name}”?"
+msgstr "Διαγραφή του «{name}»;"
+
+msgctxt "Bookmarks"
+msgid "Edit Bookmark"
+msgstr "Επεξεργασία σελιδοδείκτη"
+
+msgctxt "Bookmarks"
+msgid "Edit Folder"
+msgstr "Επεξεργασία φακέλου"
+
+msgctxt "Bookmarks"
+msgid "Folder"
+msgstr "Φάκελος"
+
+msgctxt "Bookmarks"
+msgid "New Bookmark"
+msgstr "Νέος σελιδοδείκτης"
+
+msgctxt "Bookmarks"
+msgid "New Folder"
+msgstr "Νέος φάκελος"
+
+msgctxt "Bookmarks"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "Bookmarks"
+msgid "The folder and the item inside it will be removed."
+msgstr "Ο φάκελος και το στοιχείο που περιέχει θα καταργηθούν."
+
+msgctxt "Bookmarks"
+msgid "The folder and {items} inside it will be removed."
+msgstr "Ο φάκελος και τα {items} που περιέχει θα καταργηθούν."
+
+msgctxt "Bookmarks"
+msgid "Title"
+msgstr "Τίτλος"
+
+msgctxt "Bookmarks"
+msgid "this bookmark"
+msgstr "αυτός ο σελιδοδείκτης"
+
+msgctxt "Bookmarks"
+msgid "this folder"
+msgstr "αυτός ο φάκελος"
+
+#. Bookmark right-click menus.
+msgctxt "Context.Bookmarks"
+msgid "Copy Link"
+msgstr "Αντιγραφή συνδέσμου"
+
+msgctxt "Context.Bookmarks"
+msgid "Delete"
+msgstr "Διαγραφή"
+
+msgctxt "Context.Bookmarks"
+msgid "Edit…"
+msgstr "Επεξεργασία…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Bookmark…"
+msgstr "Νέος σελιδοδείκτης…"
+
+msgctxt "Context.Bookmarks"
+msgid "New Folder…"
+msgstr "Νέος φάκελος…"
+
+msgctxt "Context.Bookmarks"
+msgid "Open"
+msgstr "Άνοιγμα"
+
+msgctxt "Context.Bookmarks"
+msgid "Open All in New Tabs"
+msgstr "Άνοιγμα όλων σε νέες καρτέλες"
+
+msgctxt "Context.Bookmarks"
+msgid "Open Bookmarks Settings"
+msgstr "Άνοιγμα ρυθμίσεων σελιδοδεικτών"
+
+msgctxt "Context.Bookmarks"
+msgid "Open in New Tab"
+msgstr "Άνοιγμα σε νέα καρτέλα"
+
+msgctxt "Context.Bookmarks"
+msgid "Rename…"
+msgstr "Μετονομασία…"
+
+#. Web-page right-click menu items owned by the app (WebKit's own items stay in the system language).
+msgctxt "Context.Page"
+msgid "Share as QR Code"
+msgstr "Κοινοποίηση ως κωδικός QR"
+
+msgctxt "Context.Page"
+msgid "Full Screen Capture"
+msgstr "Λήψη πλήρους οθόνης"
+
+msgctxt "Context.Page"
+msgid "Open Link in New Tab"
+msgstr "Άνοιγμα συνδέσμου σε νέα καρτέλα"
+
+msgctxt "Context.Page"
+msgid "Open in New Tab"
+msgstr "Άνοιγμα σε νέα καρτέλα"
+
+#. Tab-strip right-click menus.
+msgctxt "Context.Tab"
+msgid "Close Other Tabs"
+msgstr "Κλείσιμο των άλλων καρτελών"
+
+msgctxt "Context.Tab"
+msgid "Close Pane"
+msgstr "Κλείσιμο πλαισίου"
+
+msgctxt "Context.Tab"
+msgid "Close Tab"
+msgstr "Κλείσιμο καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "Close Tabs to the Right"
+msgstr "Κλείσιμο καρτελών στα δεξιά"
+
+msgctxt "Context.Tab"
+msgid "Copy URL"
+msgstr "Αντιγραφή διεύθυνσης URL"
+
+msgctxt "Context.Tab"
+msgid "Duplicate Tab"
+msgstr "Διπλασιασμός καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "Focus Next Pane"
+msgstr "Εστίαση στο επόμενο πλαίσιο"
+
+msgctxt "Context.Tab"
+msgid "Focus Previous Pane"
+msgstr "Εστίαση στο προηγούμενο πλαίσιο"
+
+msgctxt "Context.Tab"
+msgid "Share as QR Code"
+msgstr "Κοινοποίηση ως κωδικός QR"
+
+msgctxt "Context.Tab"
+msgid "Mute Tab"
+msgstr "Σίγαση καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "New Incognito Window"
+msgstr "Νέο παράθυρο ανώνυμης περιήγησης"
+
+msgctxt "Context.Tab"
+msgid "New Tab"
+msgstr "Νέα καρτέλα"
+
+msgctxt "Context.Tab"
+msgid "New Window"
+msgstr "Νέο παράθυρο"
+
+msgctxt "Context.Tab"
+msgid "Open in New Window"
+msgstr "Άνοιγμα σε νέο παράθυρο"
+
+msgctxt "Context.Tab"
+msgid "Pin Tab"
+msgstr "Καρφίτσωμα καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "Reload Tab"
+msgstr "Ανανέωση καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "Set Window Size…"
+msgstr "Ορισμός μεγέθους παραθύρου…"
+
+msgctxt "Context.Tab"
+msgid "Settings…"
+msgstr "Ρυθμίσεις…"
+
+msgctxt "Context.Tab"
+msgid "Split with Next Tab"
+msgstr "Διαίρεση με την επόμενη καρτέλα"
+
+msgctxt "Context.Tab"
+msgid "Split with Previous Tab"
+msgstr "Διαίρεση με την προηγούμενη καρτέλα"
+
+msgctxt "Context.Tab"
+msgid "Unmute Tab"
+msgstr "Κατάργηση σίγασης καρτέλας"
+
+msgctxt "Context.Tab"
+msgid "Unpin Tab"
+msgstr "Ξεκαρφίτσωμα καρτέλας"
+
+#. Credits window.
+msgctxt "Credits"
+msgid "A statically typed compiled systems programming language"
+msgstr "Μια στατικά τυποποιημένη μεταγλωττισμένη γλώσσα προγραμματισμού συστημάτων"
+
+msgctxt "Credits"
+msgid "A suite of WAL-based embedded data stores"
+msgstr "Μια σουίτα ενσωματωμένων χώρων αποθήκευσης δεδομένων βασισμένων σε WAL"
+
+msgctxt "Credits"
+msgid "App and interface language"
+msgstr "Γλώσσα εφαρμογής και διεπαφής"
+
+msgctxt "Credits"
+msgid "Author Tomasz Kurylik"
+msgstr "Συγγραφέας Tomasz Kurylik"
+
+msgctxt "Credits"
+msgid "Built and maintained by Paweł Kuna"
+msgstr "Δημιουργία και συντήρηση από τον Paweł Kuna"
+
+msgctxt "Credits"
+msgid "Built with"
+msgstr "Δημιουργήθηκε με"
+
+msgctxt "Credits"
+msgid "Collection of tiny parsers and dumpers"
+msgstr "Συλλογή μικρών αναλυτών και εξαγωγέων"
+
+msgctxt "Credits"
+msgid "Credits"
+msgstr "Συντελεστές"
+
+msgctxt "Credits"
+msgid "Design and development · © 2026"
+msgstr "Σχεδιασμός και ανάπτυξη · © 2026"
+
+msgctxt "Credits"
+msgid "Home of Whatever"
+msgstr "Αρχική σελίδα του Whatever"
+
+msgctxt "Credits"
+msgid "Interface"
+msgstr "Διεπαφή"
+
+msgctxt "Credits"
+msgid "Made by"
+msgstr "Δημιουργήθηκε από"
+
+msgctxt "Credits"
+msgid "Password strength estimator (Nim)"
+msgstr "Εκτιμητής ισχύος συνθηματικού (Nim)"
+
+msgctxt "Credits"
+msgid "Pure-Nim cryptographic library"
+msgstr "Κρυπτογραφική βιβλιοθήκη αμιγώς σε Nim"
+
+msgctxt "Credits"
+msgid "Storage core"
+msgstr "Πυρήνας αποθήκευσης"
+
+msgctxt "Credits"
+msgid "Tooling and infrastructure"
+msgstr "Εργαλεία και υποδομή"
+
+msgctxt "Credits"
+msgid "Written in"
+msgstr "Γραμμένο σε"
+
+#. System dialog buttons and JavaScript dialogs.
+msgctxt "Dialogs"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "Dialogs"
+msgid "OK"
+msgstr "Εντάξει"
+
+msgctxt "Dialogs"
+msgid "Open"
+msgstr "Άνοιγμα"
+
+msgctxt "Dialogs"
+msgid "This page"
+msgstr "Αυτή η σελίδα"
+
+#. Downloads card.
+msgctxt "Downloads"
+msgid "Cancelled"
+msgstr "Ακυρώθηκε"
+
+msgctxt "Downloads"
+msgid "Deleted"
+msgstr "Διαγράφηκε"
+
+msgctxt "Downloads"
+msgid "Done"
+msgstr "Ολοκληρώθηκε"
+
+msgctxt "Downloads"
+msgid "Downloading"
+msgstr "Λήψη"
+
+msgctxt "Downloads"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "Downloads"
+msgid "Failed"
+msgstr "Απέτυχε"
+
+msgctxt "Downloads"
+msgid "No downloads yet."
+msgstr "Δεν υπάρχουν ακόμη λήψεις."
+
+msgctxt "Downloads"
+msgid "Nothing downloaded"
+msgstr "Δεν έχει ληφθεί τίποτα"
+
+msgctxt "Downloads"
+msgid "Open"
+msgstr "Άνοιγμα"
+
+msgctxt "Downloads"
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+msgctxt "Downloads"
+msgid "Remove from List"
+msgstr "Κατάργηση από τη λίστα"
+
+msgctxt "Downloads"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "Downloads"
+msgid "Reveal in Finder"
+msgstr "Αποκάλυψη στο Finder"
+
+msgctxt "Downloads"
+msgid "Unknown size"
+msgstr "Άγνωστο μέγεθος"
+
+msgctxt "Downloads"
+msgid "{received} of {expected}"
+msgstr "{received} από {expected}"
+
+#. User-facing error sentences.
+msgctxt "Errors"
+msgid "Nothing to encode."
+msgstr "Δεν υπάρχει τίποτα για κωδικοποίηση."
+
+msgctxt "Errors"
+msgid "Settings could not be saved."
+msgstr "Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων."
+
+msgctxt "Errors"
+msgid "The QR buffer was rejected by the core."
+msgstr "Το buffer QR απορρίφθηκε από τον πυρήνα."
+
+msgctxt "Errors"
+msgid "The QR encoder failed."
+msgstr "Ο κωδικοποιητής QR απέτυχε."
+
+msgctxt "Errors"
+msgid "The QR encoder returned an unexpected status ({code})."
+msgstr "Ο κωδικοποιητής QR επέστρεψε μη αναμενόμενη κατάσταση ({code})."
+
+msgctxt "Errors"
+msgid "The Whatever store service is not available."
+msgstr "Η υπηρεσία αποθήκευσης του Whatever δεν είναι διαθέσιμη."
+
+msgctxt "Errors"
+msgid "The bundled filter snapshot is missing."
+msgstr "Το ενσωματωμένο στιγμιότυπο φίλτρου λείπει."
+
+msgctxt "Errors"
+msgid "This URL is too long to fit in a QR code."
+msgstr "Αυτή η διεύθυνση URL είναι πολύ μεγάλη για κωδικό QR."
+
+msgctxt "Errors"
+msgid "session save timed out"
+msgstr "Η αποθήκευση της συνεδρίας έληξε λόγω χρονικού ορίου"
+
+#. Feed reader, article cards, and feed errors.
+msgctxt "Feeds"
+msgid "Back to articles"
+msgstr "Επιστροφή στα άρθρα"
+
+msgctxt "Feeds"
+msgid "Copy article link"
+msgstr "Αντιγραφή συνδέσμου άρθρου"
+
+msgctxt "Feeds"
+msgid "Copy link"
+msgstr "Αντιγραφή συνδέσμου"
+
+msgctxt "Feeds"
+msgid "Feed"
+msgstr "Ροή"
+
+msgctxt "Feeds"
+msgid "Feeds"
+msgstr "Ροές"
+
+msgctxt "Feeds"
+msgid "Feeds are turned off in Settings."
+msgstr "Οι ροές είναι απενεργοποιημένες στις Ρυθμίσεις."
+
+msgctxt "Feeds"
+msgid "Feeds cannot be saved from a private tab."
+msgstr "Δεν είναι δυνατή η αποθήκευση ροών από ιδιωτική καρτέλα."
+
+msgctxt "Feeds"
+msgid "Mark as read"
+msgstr "Σήμανση ως αναγνωσμένο"
+
+msgctxt "Feeds"
+msgid "Mark as unread"
+msgstr "Σήμανση ως μη αναγνωσμένο"
+
+msgctxt "Feeds"
+msgid "Mark read"
+msgstr "Σήμανση αναγνωσμένου"
+
+msgctxt "Feeds"
+msgid "Mark unread"
+msgstr "Σήμανση μη αναγνωσμένου"
+
+msgctxt "Feeds"
+msgid "No articles match this view."
+msgstr "Κανένα άρθρο δεν αντιστοιχεί σε αυτήν την προβολή."
+
+msgctxt "Feeds"
+msgid "No subscriptions yet."
+msgstr "Δεν υπάρχουν ακόμη συνδρομές."
+
+msgctxt "Feeds"
+msgid "Only the summary is available for this article."
+msgstr "Μόνο η περίληψη είναι διαθέσιμη για αυτό το άρθρο."
+
+msgctxt "Feeds"
+msgid "Open"
+msgstr "Άνοιγμα"
+
+msgctxt "Feeds"
+msgid "Open article"
+msgstr "Άνοιγμα άρθρου"
+
+msgctxt "Feeds"
+msgid "Open in new tab"
+msgstr "Άνοιγμα σε νέα καρτέλα"
+
+msgctxt "Feeds"
+msgid "Opens the article reader view."
+msgstr "Ανοίγει την προβολή ανάγνωσης άρθρου."
+
+msgctxt "Feeds"
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+msgctxt "Feeds"
+msgid "Remove saved mark"
+msgstr "Κατάργηση σήμανσης αποθηκευμένου"
+
+msgctxt "Feeds"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "Feeds"
+msgid "Save article"
+msgstr "Αποθήκευση άρθρου"
+
+msgctxt "Feeds"
+msgid "Saved"
+msgstr "Αποθηκευμένα"
+
+msgctxt "Feeds"
+msgid "Subscribe"
+msgstr "Εγγραφή"
+
+msgctxt "Feeds"
+msgid "Subscribe to a feed to start reading."
+msgstr "Εγγραφείτε σε μια ροή για να ξεκινήσετε την ανάγνωση."
+
+msgctxt "Feeds"
+msgid "That is not a supported feed address."
+msgstr "Αυτή δεν είναι υποστηριζόμενη διεύθυνση ροής."
+
+msgctxt "Feeds"
+msgid "The subscription was not found after saving it."
+msgstr "Η συνδρομή δεν βρέθηκε μετά την αποθήκευσή της."
+
+msgctxt "Feeds"
+msgid "This page offers feeds, but private tabs cannot save them."
+msgstr "Αυτή η σελίδα προσφέρει ροές, αλλά οι ιδιωτικές καρτέλες δεν μπορούν να τις αποθηκεύσουν."
+
+msgctxt "Feeds"
+msgid "This page offers:"
+msgstr "Αυτή η σελίδα προσφέρει:"
+
+msgctxt "Feeds"
+msgid "Unread"
+msgstr "Μη αναγνωσμένα"
+
+msgctxt "Feeds"
+msgid "Unread only"
+msgstr "Μόνο μη αναγνωσμένα"
+
+msgctxt "Feeds"
+msgid "Unsubscribe"
+msgstr "Κατάργηση εγγραφής"
+
+msgctxt "Feeds"
+msgid "{name} ({n})"
+msgstr "{name} ({n})"
+
+#. File browser card.
+msgctxt "Files"
+msgid "Copy Path"
+msgstr "Αντιγραφή διαδρομής"
+
+msgctxt "Files"
+msgid "Empty folder"
+msgstr "Κενός φάκελος"
+
+msgctxt "Files"
+msgid "Go to parent folder"
+msgstr "Μετάβαση στον γονικό φάκελο"
+
+msgctxt "Files"
+msgid "Hidden"
+msgstr "Κρυφά"
+
+msgctxt "Files"
+msgid "Parent folder"
+msgstr "Γονικός φάκελος"
+
+msgctxt "Files"
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+msgctxt "Files"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "Files"
+msgid "Reveal in Finder"
+msgstr "Αποκάλυψη στο Finder"
+
+msgctxt "Files"
+msgid "Show hidden files"
+msgstr "Εμφάνιση κρυφών αρχείων"
+
+msgctxt "Files"
+msgid "showing first {shown} of {total}"
+msgstr "εμφάνιση των πρώτων {shown} από {total}"
+
+msgctxt "Files"
+msgid "“{directory}” could not be opened."
+msgstr "Δεν ήταν δυνατό το άνοιγμα του “{directory}”."
+
+#. Find bar.
+msgctxt "Find"
+msgid "Close find bar"
+msgstr "Κλείσιμο γραμμής εύρεσης"
+
+msgctxt "Find"
+msgid "Find in page"
+msgstr "Εύρεση στη σελίδα"
+
+msgctxt "Find"
+msgid "Highlight All"
+msgstr "Επισήμανση όλων"
+
+msgctxt "Find"
+msgid "Match Case"
+msgstr "Διάκριση πεζών-κεφαλαίων"
+
+msgctxt "Find"
+msgid "Next match"
+msgstr "Επόμενη αντιστοίχιση"
+
+msgctxt "Find"
+msgid "No results"
+msgstr "Χωρίς αποτελέσματα"
+
+msgctxt "Find"
+msgid "Previous match"
+msgstr "Προηγούμενη αντιστοίχιση"
+
+msgctxt "Find"
+msgid "Whole Words"
+msgstr "Ολόκληρες λέξεις"
+
+msgctxt "Find"
+msgid "{index} of {total}{more}"
+msgstr "{index} από {total}{more}"
+
+#. Camera/microphone permission card.
+msgctxt "MediaCapture"
+msgid "Allow"
+msgstr "Αποδοχή"
+
+msgctxt "MediaCapture"
+msgid "Ask"
+msgstr "Ερώτηση"
+
+msgctxt "MediaCapture"
+msgid "Block"
+msgstr "Αποκλεισμός"
+
+msgctxt "MediaCapture"
+msgid "Camera"
+msgstr "Κάμερα"
+
+msgctxt "MediaCapture"
+msgid "Capture devices"
+msgstr "Συσκευές λήψης"
+
+msgctxt "MediaCapture"
+msgid "Choices are remembered for this site. Blocking or allowing applies when the page next asks — reloading ends any live capture."
+msgstr "Οι επιλογές απομνημονεύονται για αυτόν τον ιστότοπο. Ο αποκλεισμός ή η αποδοχή εφαρμόζεται όταν η σελίδα ζητήσει ξανά — η επαναφόρτωση τερματίζει κάθε ζωντανή λήψη."
+
+msgctxt "MediaCapture"
+msgid "Close"
+msgstr "Κλείσιμο"
+
+msgctxt "MediaCapture"
+msgid "For {kind}"
+msgstr "Για {kind}"
+
+msgctxt "MediaCapture"
+msgid "In use"
+msgstr "Σε χρήση"
+
+msgctxt "MediaCapture"
+msgid "Microphone"
+msgstr "Μικρόφωνο"
+
+msgctxt "MediaCapture"
+msgid "Not requested"
+msgstr "Δεν ζητήθηκε"
+
+msgctxt "MediaCapture"
+msgid "Private tab: choices apply once and are never remembered. Reloading the page ends any live capture."
+msgstr "Ιδιωτική καρτέλα: οι επιλογές ισχύουν μία φορά και δεν απομνημονεύονται ποτέ. Η επαναφόρτωση της σελίδας τερματίζει κάθε ζωντανή λήψη."
+
+msgctxt "MediaCapture"
+msgid "Reload Page"
+msgstr "Επαναφόρτωση σελίδας"
+
+msgctxt "MediaCapture"
+msgid "Waiting for your answer"
+msgstr "Αναμονή για την απάντησή σας"
+
+msgctxt "MediaCapture"
+msgid "Wants to use your devices"
+msgstr "Θέλει να χρησιμοποιήσει τις συσκευές σας"
+
+msgctxt "MediaCapture"
+msgid "macOS is blocking this device — allow Whatever in System Settings, Privacy & Security."
+msgstr "Το macOS αποκλείει αυτήν τη συσκευή — επιτρέψτε το Whatever στις Ρυθμίσεις συστήματος, Απόρρητο και ασφάλεια."
+
+#. Dock menu.
+msgctxt "Menu.Dock"
+msgid "New Incognito Window"
+msgstr "Νέο παράθυρο ανώνυμης περιήγησης"
+
+msgctxt "Menu.Dock"
+msgid "New Tab"
+msgstr "Νέα καρτέλα"
+
+msgctxt "Menu.Dock"
+msgid "New Window"
+msgstr "Νέο παράθυρο"
+
+#. Password manager.
+msgctxt "Passwords"
+msgid "Add another credential"
+msgstr "Προσθήκη άλλου διαπιστευτηρίου"
+
+msgctxt "Passwords"
+msgid "Are you sure? This cannot be reverted."
+msgstr "Είστε βέβαιοι; Αυτό δεν μπορεί να αναιρεθεί."
+
+msgctxt "Passwords"
+msgid "Cancel"
+msgstr "Άκυρο"
+
+msgctxt "Passwords"
+msgid "Capitalize"
+msgstr "Κεφαλαίο αρχικό"
+
+msgctxt "Passwords"
+msgid "Change the vault hint"
+msgstr "Αλλαγή υπόδειξης θησαυροφυλακίου"
+
+msgctxt "Passwords"
+msgid "Characters"
+msgstr "Χαρακτήρες"
+
+msgctxt "Passwords"
+msgid "Confirm master password"
+msgstr "Επιβεβαίωση κύριου κωδικού"
+
+msgctxt "Passwords"
+msgid "Copy password"
+msgstr "Αντιγραφή κωδικού"
+
+msgctxt "Passwords"
+msgid "Copy username"
+msgstr "Αντιγραφή ονόματος χρήστη"
+
+msgctxt "Passwords"
+msgid "Create Vault"
+msgstr "Δημιουργία θησαυροφυλακίου"
+
+msgctxt "Passwords"
+msgid "Create a master password"
+msgstr "Δημιουργήστε κύριο κωδικό"
+
+msgctxt "Passwords"
+msgid "Delete"
+msgstr "Διαγραφή"
+
+msgctxt "Passwords"
+msgid "Delete credential"
+msgstr "Διαγραφή διαπιστευτηρίου"
+
+msgctxt "Passwords"
+msgid "Delete this credential"
+msgstr "Διαγραφή αυτού του διαπιστευτηρίου"
+
+msgctxt "Passwords"
+msgid "Delete this credential?"
+msgstr "Διαγραφή αυτού του διαπιστευτηρίου;"
+
+msgctxt "Passwords"
+msgid "Delete this site and every credential in it"
+msgstr "Διαγραφή αυτού του ιστότοπου και όλων των διαπιστευτηρίων του"
+
+msgctxt "Passwords"
+msgid "Delete “{site}”?"
+msgstr "Διαγραφή του “{site}”;"
+
+msgctxt "Passwords"
+msgid "Digits"
+msgstr "Ψηφία"
+
+msgctxt "Passwords"
+msgid "Dot (.)"
+msgstr "Τελεία (.)"
+
+msgctxt "Passwords"
+msgid "Generate a password"
+msgstr "Δημιουργία κωδικού"
+
+msgctxt "Passwords"
+msgid "Hide password"
+msgstr "Απόκρυψη κωδικού"
+
+msgctxt "Passwords"
+msgid "Hint (optional)"
+msgstr "Υπόδειξη (προαιρετικά)"
+
+msgctxt "Passwords"
+msgid "Hint: {hint}"
+msgstr "Υπόδειξη: {hint}"
+
+msgctxt "Passwords"
+msgid "Hyphen (-)"
+msgstr "Παύλα (-)"
+
+msgctxt "Passwords"
+msgid "It opens your vault. There is no recovery: forgetting it loses every saved password."
+msgstr "Ανοίγει το θησαυροφυλάκιό σας. Δεν υπάρχει ανάκτηση: αν το ξεχάσετε, χάνετε όλους τους αποθηκευμένους κωδικούς."
+
+msgctxt "Passwords"
+msgid "Length: {n}"
+msgstr "Μήκος: {n}"
+
+msgctxt "Passwords"
+msgid "Lock the vault"
+msgstr "Κλείδωμα θησαυροφυλακίου"
+
+msgctxt "Passwords"
+msgid "Lowercase"
+msgstr "Πεζά"
+
+msgctxt "Passwords"
+msgid "Master password"
+msgstr "Κύριος κωδικός"
+
+msgctxt "Passwords"
+msgid "Master password (8+ characters)"
+msgstr "Κύριος κωδικός (8+ χαρακτήρες)"
+
+msgctxt "Passwords"
+msgid "Medium"
+msgstr "Μέτρια"
+
+msgctxt "Passwords"
+msgid "Mode"
+msgstr "Λειτουργία"
+
+msgctxt "Passwords"
+msgid "New Site"
+msgstr "Νέος ιστότοπος"
+
+msgctxt "Passwords"
+msgid "No hint set"
+msgstr "Δεν έχει οριστεί υπόδειξη"
+
+msgctxt "Passwords"
+msgid "No site selected"
+msgstr "Δεν έχει επιλεγεί ιστότοπος"
+
+msgctxt "Passwords"
+msgid "Number"
+msgstr "Αριθμός"
+
+msgctxt "Passwords"
+msgid "Password"
+msgstr "Κωδικός"
+
+msgctxt "Passwords"
+msgid "Passwords"
+msgstr "Κωδικοί"
+
+msgctxt "Passwords"
+msgid "Pick a website on the left, or add one."
+msgstr "Επιλέξτε έναν ιστότοπο στα αριστερά ή προσθέστε έναν."
+
+msgctxt "Passwords"
+msgid "Regenerate"
+msgstr "Αναδημιουργία"
+
+msgctxt "Passwords"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "Passwords"
+msgid "Search"
+msgstr "Αναζήτηση"
+
+msgctxt "Passwords"
+msgid "Separator"
+msgstr "Διαχωριστικό"
+
+msgctxt "Passwords"
+msgid "Show password"
+msgstr "Εμφάνιση κωδικού"
+
+msgctxt "Passwords"
+msgid "Shown after several wrong passwords. Never the password itself."
+msgstr "Εμφανίζεται μετά από αρκετούς λανθασμένους κωδικούς. Ποτέ ο ίδιος ο κωδικός."
+
+msgctxt "Passwords"
+msgid "Site name"
+msgstr "Όνομα ιστότοπου"
+
+msgctxt "Passwords"
+msgid "Strong"
+msgstr "Ισχυρός"
+
+msgctxt "Passwords"
+msgid "Symbols"
+msgstr "Σύμβολα"
+
+msgctxt "Passwords"
+msgid "The site and every credential in it will be removed. This cannot be reverted."
+msgstr "Ο ιστότοπος και όλα τα διαπιστευτήριά του θα καταργηθούν. Αυτό δεν μπορεί να αναιρεθεί."
+
+msgctxt "Passwords"
+msgid "The vault could not be created."
+msgstr "Δεν ήταν δυνατή η δημιουργία του θησαυροφυλακίου."
+
+msgctxt "Passwords"
+msgid "Underscore (_)"
+msgstr "Κάτω παύλα (_)"
+
+msgctxt "Passwords"
+msgid "Unlock"
+msgstr "Ξεκλείδωμα"
+
+msgctxt "Passwords"
+msgid "Unlock Passwords"
+msgstr "Ξεκλείδωμα κωδικών"
+
+msgctxt "Passwords"
+msgid "Untitled site"
+msgstr "Ιστότοπος χωρίς τίτλο"
+
+msgctxt "Passwords"
+msgid "Uppercase"
+msgstr "Κεφαλαία"
+
+msgctxt "Passwords"
+msgid "Use"
+msgstr "Χρήση"
+
+msgctxt "Passwords"
+msgid "Vault hint"
+msgstr "Υπόδειξη θησαυροφυλακίου"
+
+msgctxt "Passwords"
+msgid "Weak"
+msgstr "Αδύναμος"
+
+msgctxt "Passwords"
+msgid "Words"
+msgstr "Λέξεις"
+
+msgctxt "Passwords"
+msgid "Words: {n}"
+msgstr "Λέξεις: {n}"
+
+msgctxt "Passwords"
+msgid "Wrong master password, try again."
+msgstr "Λανθασμένος κύριος κωδικός, δοκιμάστε ξανά."
+
+msgctxt "Passwords"
+msgid "this site"
+msgstr "αυτός ο ιστότοπος"
+
+#. Print preview.
+msgctxt "Print"
+msgid "Actual size"
+msgstr "Πραγματικό μέγεθος"
+
+msgctxt "Print"
+msgid "Backgrounds"
+msgstr "Φόντα"
+
+msgctxt "Print"
+msgid "Copies: {n}"
+msgstr "Αντίγραφα: {n}"
+
+msgctxt "Print"
+msgid "Could not render this page."
+msgstr "Δεν ήταν δυνατή η απόδοση αυτής της σελίδας."
+
+msgctxt "Print"
+msgid "Fit to page"
+msgstr "Προσαρμογή στη σελίδα"
+
+msgctxt "Print"
+msgid "Landscape"
+msgstr "Οριζόντιος"
+
+msgctxt "Print"
+msgid "Only loaded web pages can be printed."
+msgstr "Μόνο οι φορτωμένες ιστοσελίδες μπορούν να εκτυπωθούν."
+
+msgctxt "Print"
+msgid "Orientation"
+msgstr "Προσανατολισμός"
+
+msgctxt "Print"
+msgid "Paper"
+msgstr "Χαρτί"
+
+msgctxt "Print"
+msgid "Portrait"
+msgstr "Κατακόρυφος"
+
+msgctxt "Print"
+msgid "Preparing preview…"
+msgstr "Προετοιμασία προεπισκόπησης…"
+
+msgctxt "Print"
+msgid "Print stylesheet"
+msgstr "Φύλλο στυλ εκτύπωσης"
+
+msgctxt "Print"
+msgid "Print…"
+msgstr "Εκτύπωση…"
+
+msgctxt "Print"
+msgid "Save as PDF…"
+msgstr "Αποθήκευση ως PDF…"
+
+msgctxt "Print"
+msgid "Scale"
+msgstr "Κλίμακα"
+
+msgctxt "Print"
+msgid "Untitled"
+msgstr "Χωρίς τίτλο"
+
+#. Quit confirmation.
+msgctxt "Quit"
+msgid "Press ⌘Q again to quit"
+msgstr "Πατήστε ξανά ⌘Q για έξοδο"
+
+#. Settings > Appearance pane.
+msgctxt "Settings.Appearance"
+msgid "A colour at a point along the gradient."
+msgstr "Ένα χρώμα σε ένα σημείο της διαβάθμισης."
+
+msgctxt "Settings.Appearance"
+msgid "A film-grain texture over the whole window. Every change applies as you make it."
+msgstr "Μια υφή κόκκου φιλμ σε ολόκληρο το παράθυρο. Κάθε αλλαγή εφαρμόζεται καθώς την κάνετε."
+
+msgctxt "Settings.Appearance"
+msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live. Fold a rule with its chevron."
+msgstr "Ένα φύλλο στυλ για το περιβάλλον του προγράμματος περιήγησης, σε στυλ GTK. Οι κανόνες που αντιστοιχούν σε ένα στοιχείο ελέγχου το ενημερώνουν· οι υπόλοιποι εφαρμόζονται ως παράκαμψη και επανασχεδιάζονται ζωντανά. Διπλώστε έναν κανόνα με το βέλος του."
+
+msgctxt "Settings.Appearance"
+msgid "A video file on disk."
+msgstr "Ένα αρχείο βίντεο στον δίσκο."
+
+msgctxt "Settings.Appearance"
+msgid "Add"
+msgstr "Προσθήκη"
+
+msgctxt "Settings.Appearance"
+msgid "Add Stop"
+msgstr "Προσθήκη στάσης"
+
+msgctxt "Settings.Appearance"
+msgid "Address Bar"
+msgstr "Γραμμή διευθύνσεων"
+
+msgctxt "Settings.Appearance"
+msgid "Along X"
+msgstr "Κατά X"
+
+msgctxt "Settings.Appearance"
+msgid "Along Y"
+msgstr "Κατά Y"
+
+msgctxt "Settings.Appearance"
+msgid "Always silent and always looping: a window that starts making noise on its own is the problem this feature exists to solve, and a background that froze at the end would be nobody's idea of a background."
+msgstr "Πάντα σίγαση και πάντα επανάληψη: ένα παράθυρο που αρχίζει να κάνει θόρυβο από μόνο του είναι το πρόβλημα που υπάρχει αυτή η λειτουργία για να λύσει, και ένα φόντο που πάγωσε στο τέλος δεν θα ήταν φόντο για κανέναν."
+
+msgctxt "Settings.Appearance"
+msgid "An image file on disk."
+msgstr "Ένα αρχείο εικόνας στον δίσκο."
+
+msgctxt "Settings.Appearance"
+msgid "Anchor"
+msgstr "Άγκυρα"
+
+msgctxt "Settings.Appearance"
+msgid "Angle"
+msgstr "Γωνία"
+
+msgctxt "Settings.Appearance"
+msgid "Apply"
+msgstr "Εφαρμογή"
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {count} declarations update controls."
+msgstr "Εφαρμόστηκε — {count} δηλώσεις ενημερώνουν στοιχεία ελέγχου."
+
+msgctxt "Settings.Appearance"
+msgid "Applied — {updated} update controls, {cssOnly} stay CSS-only overrides."
+msgstr "Εφαρμόστηκε — {updated} ενημερώνουν στοιχεία ελέγχου, {cssOnly} παραμένουν παρακάμψεις μόνο CSS."
+
+msgctxt "Settings.Appearance"
+msgid "Are you sure? Grain, background, tab theme, and address bar return to their built-in defaults."
+msgstr "Είστε βέβαιοι; Ο κόκκος, το φόντο, το θέμα καρτελών και η γραμμή διευθύνσεων επιστρέφουν στις ενσωματωμένες προεπιλογές."
+
+msgctxt "Settings.Appearance"
+msgid "Attached"
+msgstr "Προσαρτημένες"
+
+msgctxt "Settings.Appearance"
+msgid "Attached tabs join the page; pills float with a gap above it and are always fully rounded, ignoring Corner Radius below."
+msgstr "Οι προσαρτημένες καρτέλες ενώνονται με τη σελίδα· οι αποσπασμένες αιωρούνται με κενό από πάνω και είναι πάντα πλήρως στρογγυλεμένες, αγνοώντας την Ακτίνα γωνίας παρακάτω."
+
+msgctxt "Settings.Appearance"
+msgid "Autoplay"
+msgstr "Αυτόματη αναπαραγωγή"
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in grain."
+msgstr "Επιστροφή στον ενσωματωμένο κόκκο."
+
+msgctxt "Settings.Appearance"
+msgid "Back to the built-in look."
+msgstr "Επιστροφή στην ενσωματωμένη εμφάνιση."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for every tab but the selected one."
+msgstr "Φόντο και κείμενο για κάθε καρτέλα εκτός από την επιλεγμένη."
+
+msgctxt "Settings.Appearance"
+msgid "Background and text for the selected tab."
+msgstr "Φόντο και κείμενο για την επιλεγμένη καρτέλα."
+
+msgctxt "Settings.Appearance"
+msgid "Behind the page. Applies to every window as you change it."
+msgstr "Πίσω από τη σελίδα. Εφαρμόζεται σε κάθε παράθυρο καθώς το αλλάζετε."
+
+msgctxt "Settings.Appearance"
+msgid "Blur"
+msgstr "Θάμπωμα"
+
+msgctxt "Settings.Appearance"
+msgid "Both"
+msgstr "Και τα δύο"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom"
+msgstr "Κάτω"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Center"
+msgstr "Κάτω κέντρο"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Left"
+msgstr "Κάτω αριστερά"
+
+msgctxt "Settings.Appearance"
+msgid "Bottom Right"
+msgstr "Κάτω δεξιά"
+
+msgctxt "Settings.Appearance"
+msgid "Brightness"
+msgstr "Φωτεινότητα"
+
+msgctxt "Settings.Appearance"
+msgid "Cancel"
+msgstr "Άκυρο"
+
+msgctxt "Settings.Appearance"
+msgid "Center"
+msgstr "Κέντρο"
+
+msgctxt "Settings.Appearance"
+msgid "Center Left"
+msgstr "Κέντρο αριστερά"
+
+msgctxt "Settings.Appearance"
+msgid "Center Right"
+msgstr "Κέντρο δεξιά"
+
+msgctxt "Settings.Appearance"
+msgid "Centre X"
+msgstr "Κέντρο X"
+
+msgctxt "Settings.Appearance"
+msgid "Centre Y"
+msgstr "Κέντρο Y"
+
+msgctxt "Settings.Appearance"
+msgid "Choose a still to show until the first video frame arrives."
+msgstr "Επιλέξτε μια στατική εικόνα για εμφάνιση έως ότου φτάσει το πρώτο καρέ του βίντεο."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the page."
+msgstr "Επιλέξτε ένα βίντεο για αναπαραγωγή πίσω από τη σελίδα."
+
+msgctxt "Settings.Appearance"
+msgid "Choose a video to play behind the tab."
+msgstr "Επιλέξτε ένα βίντεο για αναπαραγωγή πίσω από την καρτέλα."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the page."
+msgstr "Επιλέξτε μια εικόνα για εμφάνιση πίσω από τη σελίδα."
+
+msgctxt "Settings.Appearance"
+msgid "Choose an image to show behind the tab."
+msgstr "Επιλέξτε μια εικόνα για εμφάνιση πίσω από την καρτέλα."
+
+msgctxt "Settings.Appearance"
+msgid "Choose…"
+msgstr "Επιλογή…"
+
+msgctxt "Settings.Appearance"
+msgid "Clean — Apply stores it and updates matching controls."
+msgstr "Χωρίς σφάλματα — η Εφαρμογή το αποθηκεύει και ενημερώνει τα αντίστοιχα στοιχεία ελέγχου."
+
+msgctxt "Settings.Appearance"
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgctxt "Settings.Appearance"
+msgid "Color"
+msgstr "Χρώμα"
+
+msgctxt "Settings.Appearance"
+msgid "Colour"
+msgstr "Χρώμα"
+
+msgctxt "Settings.Appearance"
+msgid "Contrast"
+msgstr "Αντίθεση"
+
+msgctxt "Settings.Appearance"
+msgid "Corner Radius"
+msgstr "Ακτίνα γωνίας"
+
+msgctxt "Settings.Appearance"
+msgid "Current Tab"
+msgstr "Τρέχουσα καρτέλα"
+
+msgctxt "Settings.Appearance"
+msgid "Custom"
+msgstr "Προσαρμοσμένο"
+
+msgctxt "Settings.Appearance"
+msgid "Custom CSS"
+msgstr "Προσαρμοσμένο CSS"
+
+msgctxt "Settings.Appearance"
+msgid "Dismiss"
+msgstr "Απόρριψη"
+
+msgctxt "Settings.Appearance"
+msgid "Effects"
+msgstr "Εφέ"
+
+msgctxt "Settings.Appearance"
+msgid "Eight is the limit."
+msgstr "Το όριο είναι οκτώ."
+
+msgctxt "Settings.Appearance"
+msgid "Enabled"
+msgstr "Ενεργοποιημένο"
+
+msgctxt "Settings.Appearance"
+msgid "End"
+msgstr "Τέλος"
+
+msgctxt "Settings.Appearance"
+msgid "Field Height"
+msgstr "Ύψος πεδίου"
+
+msgctxt "Settings.Appearance"
+msgid "Fill"
+msgstr "Γέμισμα"
+
+msgctxt "Settings.Appearance"
+msgid "Fill Available Width"
+msgstr "Πλήρωση διαθέσιμου πλάτους"
+
+msgctxt "Settings.Appearance"
+msgid "Fill With"
+msgstr "Πλήρωση με"
+
+msgctxt "Settings.Appearance"
+msgid "Filter settings"
+msgstr "Φιλτράρισμα ρυθμίσεων"
+
+msgctxt "Settings.Appearance"
+msgid "Fit"
+msgstr "Προσαρμογή"
+
+msgctxt "Settings.Appearance"
+msgid "Generate"
+msgstr "Δημιουργία"
+
+msgctxt "Settings.Appearance"
+msgid "Generate a different grain"
+msgstr "Δημιουργία διαφορετικού κόκκου"
+
+msgctxt "Settings.Appearance"
+msgid "Gradient"
+msgstr "Διαβάθμιση"
+
+msgctxt "Settings.Appearance"
+msgid "Grain"
+msgstr "Κόκκος"
+
+msgctxt "Settings.Appearance"
+msgid "Grain Size"
+msgstr "Μέγεθος κόκκου"
+
+msgctxt "Settings.Appearance"
+msgid "Hides the texture without losing these settings."
+msgstr "Αποκρύπτει την υφή χωρίς να χάνονται αυτές οι ρυθμίσεις."
+
+msgctxt "Settings.Appearance"
+msgid "Horizontal"
+msgstr "Οριζόντια"
+
+msgctxt "Settings.Appearance"
+msgid "Image"
+msgstr "Εικόνα"
+
+msgctxt "Settings.Appearance"
+msgid "Inactive Tabs"
+msgstr "Ανενεργές καρτέλες"
+
+msgctxt "Settings.Appearance"
+msgid "Inner Radius"
+msgstr "Εσωτερική ακτίνα"
+
+msgctxt "Settings.Appearance"
+msgid "Intensity"
+msgstr "Ένταση"
+
+msgctxt "Settings.Appearance"
+msgid "Kind"
+msgstr "Τύπος"
+
+msgctxt "Settings.Appearance"
+msgid "Lets the background show behind the page."
+msgstr "Επιτρέπει την εμφάνιση του φόντου πίσω από τη σελίδα."
+
+msgctxt "Settings.Appearance"
+msgid "Loading…"
+msgstr "Φόρτωση…"
+
+msgctxt "Settings.Appearance"
+msgid "Linear"
+msgstr "Γραμμική"
+
+msgctxt "Settings.Appearance"
+msgid "Link Bubble"
+msgstr "Φυσαλίδα συνδέσμου"
+
+msgctxt "Settings.Appearance"
+msgid "Look"
+msgstr "Όψη"
+
+msgctxt "Settings.Appearance"
+msgid "Missing or unreadable. Choose it again."
+msgstr "Λείπει ή δεν είναι αναγνώσιμο. Επιλέξτε το ξανά."
+
+msgctxt "Settings.Appearance"
+msgid "Monochrome"
+msgstr "Μονόχρωμο"
+
+msgctxt "Settings.Appearance"
+msgid "Needs a background first. Nothing to reveal yet."
+msgstr "Απαιτείται πρώτα ένα φόντο. Δεν υπάρχει ακόμη τίποτα για αποκάλυψη."
+
+msgctxt "Settings.Appearance"
+msgid "New pattern"
+msgstr "Νέο μοτίβο"
+
+msgctxt "Settings.Appearance"
+msgid "No file chosen"
+msgstr "Δεν έχει επιλεγεί αρχείο"
+
+msgctxt "Settings.Appearance"
+msgid "No poster chosen"
+msgstr "Δεν έχει επιλεγεί αφίσα"
+
+msgctxt "Settings.Appearance"
+msgid "No settings match {query}."
+msgstr "Καμία ρύθμιση δεν αντιστοιχεί σε {query}."
+
+msgctxt "Settings.Appearance"
+msgid "None"
+msgstr "Καμία"
+
+msgctxt "Settings.Appearance"
+msgid "Nothing yet — still generating."
+msgstr "Τίποτα ακόμη — γίνεται ακόμη δημιουργία."
+
+msgctxt "Settings.Appearance"
+msgid "Off by default. Forces pages to be see-through, which some sites lose their background over. Expect it to be partial: a site that paints its own background still covers the media."
+msgstr "Απενεργοποιημένο από προεπιλογή. Αναγκάζει τις σελίδες να είναι διαφανείς, με αποτέλεσμα ορισμένοι ιστότοποι να χάνουν το φόντο τους. Αναμένετε μερική λειτουργία: ένας ιστότοπος που σχεδιάζει το δικό του φόντο εξακολουθεί να καλύπτει το μέσο."
+
+msgctxt "Settings.Appearance"
+msgid "Opacity"
+msgstr "Αδιαφάνεια"
+
+msgctxt "Settings.Appearance"
+msgid "Original"
+msgstr "Πρωτότυπο"
+
+msgctxt "Settings.Appearance"
+msgid "Outer Radius"
+msgstr "Εξωτερική ακτίνα"
+
+msgctxt "Settings.Appearance"
+msgid "Page Corners"
+msgstr "Γωνίες σελίδας"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Hidden"
+msgstr "Παύση όταν είναι κρυμμένο"
+
+msgctxt "Settings.Appearance"
+msgid "Pause When Inactive"
+msgstr "Παύση όταν είναι ανενεργό"
+
+msgctxt "Settings.Appearance"
+msgid "Percent"
+msgstr "Ποσοστό"
+
+msgctxt "Settings.Appearance"
+msgid "Pills"
+msgstr "Κάψουλες"
+
+msgctxt "Settings.Appearance"
+msgid "Points"
+msgstr "Σημεία"
+
+msgctxt "Settings.Appearance"
+msgid "Position"
+msgstr "Θέση"
+
+msgctxt "Settings.Appearance"
+msgid "Radial"
+msgstr "Ακτινική"
+
+msgctxt "Settings.Appearance"
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+msgctxt "Settings.Appearance"
+msgid "Repeat"
+msgstr "Επανάληψη"
+
+msgctxt "Settings.Appearance"
+msgid "Reset"
+msgstr "Επαναφορά"
+
+msgctxt "Settings.Appearance"
+msgid "Reset Appearance"
+msgstr "Επαναφορά εμφάνισης"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings"
+msgstr "Επαναφορά ρυθμίσεων εμφάνισης"
+
+msgctxt "Settings.Appearance"
+msgid "Reset appearance settings?"
+msgstr "Επαναφορά ρυθμίσεων εμφάνισης;"
+
+msgctxt "Settings.Appearance"
+msgid "Reset…"
+msgstr "Επαναφορά…"
+
+msgctxt "Settings.Appearance"
+msgid "Respect Reduce Motion"
+msgstr "Τήρηση της Μείωσης κίνησης"
+
+msgctxt "Settings.Appearance"
+msgid "Restores every setting on this page — grain, background, tab theme, and address bar — to its built-in default."
+msgstr "Επαναφέρει κάθε ρύθμιση σε αυτήν τη σελίδα — κόκκο, φόντο, θέμα καρτελών και γραμμή διευθύνσεων — στην ενσωματωμένη προεπιλογή."
+
+msgctxt "Settings.Appearance"
+msgid "Revert"
+msgstr "Αναίρεση"
+
+msgctxt "Settings.Appearance"
+msgid "Roundness of every attached tab cell. Follows live as it changes."
+msgstr "Η στρογγυλότητα κάθε προσαρτημένου κελιού καρτέλας. Ακολουθεί ζωντανά καθώς αλλάζει."
+
+msgctxt "Settings.Appearance"
+msgid "Same settings, different grain."
+msgstr "Ίδιες ρυθμίσεις, διαφορετικός κόκκος."
+
+msgctxt "Settings.Appearance"
+msgid "Saturation"
+msgstr "Κορεσμός"
+
+msgctxt "Settings.Appearance"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "Settings.Appearance"
+msgid "Scale"
+msgstr "Κλίμακα"
+
+msgctxt "Settings.Appearance"
+msgid "Shape"
+msgstr "Σχήμα"
+
+msgctxt "Settings.Appearance"
+msgid "Show Through Pages"
+msgstr "Εμφάνιση μέσα από τις σελίδες"
+
+msgctxt "Settings.Appearance"
+msgid "Size"
+msgstr "Μέγεθος"
+
+msgctxt "Settings.Appearance"
+msgid "Size and shape of the field. Follows live as it changes."
+msgstr "Μέγεθος και σχήμα του πεδίου. Ακολουθεί ζωντανά καθώς αλλάζει."
+
+msgctxt "Settings.Appearance"
+msgid "Solid"
+msgstr "Συμπαγές"
+
+msgctxt "Settings.Appearance"
+msgid "Speed"
+msgstr "Ταχύτητα"
+
+msgctxt "Settings.Appearance"
+msgid "Stands in until the first frame arrives. It is also the only thing the Effects grading applies to for a video."
+msgstr "Λειτουργεί ως υποκατάστατο έως ότου φτάσει το πρώτο καρέ. Είναι επίσης το μόνο στο οποίο εφαρμόζεται η διαβάθμιση Εφέ για ένα βίντεο."
+
+msgctxt "Settings.Appearance"
+msgid "Start"
+msgstr "Έναρξη"
+
+msgctxt "Settings.Appearance"
+msgid "Start At"
+msgstr "Έναρξη σε"
+
+msgctxt "Settings.Appearance"
+msgid "Starts on its own when the window opens."
+msgstr "Ξεκινά αυτόματα όταν ανοίγει το παράθυρο."
+
+msgctxt "Settings.Appearance"
+msgid "Stored — everything applies as a CSS override, no controls changed."
+msgstr "Αποθηκεύτηκε — όλα εφαρμόζονται ως παράκαμψη CSS, χωρίς αλλαγή στοιχείων ελέγχου."
+
+msgctxt "Settings.Appearance"
+msgid "Stops are applied in order along the gradient."
+msgstr "Οι στάσεις εφαρμόζονται με τη σειρά κατά μήκος της διαβάθμισης."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when another app is in front."
+msgstr "Διακόπτεται όταν μια άλλη εφαρμογή βρίσκεται μπροστά."
+
+msgctxt "Settings.Appearance"
+msgid "Stops when the window is covered, minimized or the app is hidden."
+msgstr "Διακόπτεται όταν το παράθυρο καλύπτεται, ελαχιστοποιείται ή η εφαρμογή αποκρύπτεται."
+
+msgctxt "Settings.Appearance"
+msgid "Stretch"
+msgstr "Τέντωμα"
+
+msgctxt "Settings.Appearance"
+msgid "Stretches between the buttons instead of a centred field."
+msgstr "Εκτείνεται μεταξύ των κουμπιών αντί για κεντραρισμένο πεδίο."
+
+msgctxt "Settings.Appearance"
+msgid "Supported selectors & properties"
+msgstr "Υποστηριζόμενοι επιλογείς και ιδιότητες"
+
+msgctxt "Settings.Appearance"
+msgid "System"
+msgstr "Σύστημα"
+
+msgctxt "Settings.Appearance"
+msgid "Tab Corners"
+msgstr "Γωνίες καρτελών"
+
+#. Tab position group: the strip above or below the page.
+msgctxt "Settings.Appearance"
+msgid "Tab Position"
+msgstr "Θέση καρτελών"
+
+#. Tab position footnote.
+msgctxt "Settings.Appearance"
+msgid "Tabs sit above the page, or below it."
+msgstr "Οι καρτέλες βρίσκονται πάνω από τη σελίδα ή κάτω από αυτήν."
+
+msgctxt "Settings.Appearance"
+msgid "Tab Shape"
+msgstr "Σχήμα καρτελών"
+
+msgctxt "Settings.Appearance"
+msgid "Text Colour"
+msgstr "Χρώμα κειμένου"
+
+msgctxt "Settings.Appearance"
+msgid "The background has been turned off. Choose a different file."
+msgstr "Το φόντο έχει απενεργοποιηθεί. Επιλέξτε ένα διαφορετικό αρχείο."
+
+msgctxt "Settings.Appearance"
+msgid "The floating address shown while hovering a link."
+msgstr "Η αιωρούμενη διεύθυνση που εμφανίζεται κατά την κατάδειξη συνδέσμου."
+
+msgctxt "Settings.Appearance"
+msgid "The system currently asks for reduced motion, so this pauses the video."
+msgstr "Το σύστημα ζητά αυτήν τη στιγμή μειωμένη κίνηση, επομένως το βίντεο τίθεται σε παύση."
+
+msgctxt "Settings.Appearance"
+msgid "The system is not asking for reduced motion."
+msgstr "Το σύστημα δεν ζητά μειωμένη κίνηση."
+
+msgctxt "Settings.Appearance"
+msgid "The theme service did not answer — try again."
+msgstr "Η υπηρεσία θέματος δεν απάντησε — δοκιμάστε ξανά."
+
+msgctxt "Settings.Appearance"
+msgid "Tint"
+msgstr "Απόχρωση"
+
+msgctxt "Settings.Appearance"
+msgid "Top"
+msgstr "Επάνω"
+
+msgctxt "Settings.Appearance"
+msgid "Top Center"
+msgstr "Επάνω κέντρο"
+
+msgctxt "Settings.Appearance"
+msgid "Top Left"
+msgstr "Επάνω αριστερά"
+
+msgctxt "Settings.Appearance"
+msgid "Top Right"
+msgstr "Επάνω δεξιά"
+
+msgctxt "Settings.Appearance"
+msgid "Too large — keep stylesheets under 200 KB."
+msgstr "Πολύ μεγάλο — διατηρήστε τα φύλλα στυλ κάτω από 200 KB."
+
+msgctxt "Settings.Appearance"
+msgid "Transparent Pages"
+msgstr "Διαφανείς σελίδες"
+
+msgctxt "Settings.Appearance"
+msgid "Use"
+msgstr "Χρήση"
+
+msgctxt "Settings.Appearance"
+msgid "Vertical"
+msgstr "Κατακόρυφα"
+
+msgctxt "Settings.Appearance"
+msgid "Video"
+msgstr "Βίντεο"
+
+msgctxt "Settings.Appearance"
+msgid "Window Background"
+msgstr "Φόντο παραθύρου"
+
+msgctxt "Settings.Appearance"
+msgid "X"
+msgstr "X"
+
+msgctxt "Settings.Appearance"
+msgid "Y"
+msgstr "Y"
+
+msgctxt "Settings.Appearance"
+msgid "{percent}% along"
+msgstr "{percent}% κατά μήκος"
+
+#. Settings > Content Blocker pane.
+msgctxt "Settings.Appearance"
+msgid "{errors} errors and {warnings} warnings — errors block Apply."
+msgstr "{errors} σφάλματα και {warnings} προειδοποιήσεις — τα σφάλματα εμποδίζουν την Εφαρμογή."
+
+msgctxt "Settings.Appearance"
+msgid "{errors} errors — they block Apply."
+msgstr "{errors} σφάλματα — εμποδίζουν την Εφαρμογή."
+
+msgctxt "Settings.Appearance"
+msgid "{warnings} warnings — Apply still works, flagged rules are skipped."
+msgstr "{warnings} προειδοποιήσεις — η Εφαρμογή εξακολουθεί να λειτουργεί, οι επισημασμένοι κανόνες παραλείπονται."
+
+msgctxt "Settings.Blocker"
+msgid "AdAway default blocklist · CC BY 3.0 · plus our own extras"
+msgstr "Προεπιλεγμένη λίστα αποκλεισμού AdAway · CC BY 3.0 · συν τις δικές μας προσθήκες"
+
+msgctxt "Settings.Blocker"
+msgid "Add"
+msgstr "Προσθήκη"
+
+msgctxt "Settings.Blocker"
+msgid "Apply rules"
+msgstr "Εφαρμογή κανόνων"
+
+msgctxt "Settings.Blocker"
+msgid "Block ads and trackers"
+msgstr "Αποκλεισμός διαφημίσεων και ιχνηλατών"
+
+msgctxt "Settings.Blocker"
+msgid "Blocking"
+msgstr "Αποκλεισμός"
+
+msgctxt "Settings.Blocker"
+msgid "Bundled snapshot"
+msgstr "Ενσωματωμένο στιγμιότυπο"
+
+msgctxt "Settings.Blocker"
+msgid "Custom rules"
+msgstr "Προσαρμοσμένοι κανόνες"
+
+msgctxt "Settings.Blocker"
+msgid "Exceptions"
+msgstr "Εξαιρέσεις"
+
+msgctxt "Settings.Blocker"
+msgid "Filter lists"
+msgstr "Λίστες φίλτρων"
+
+msgctxt "Settings.Blocker"
+msgid "Hosts lines plus ||, @@ and ## rules, one per line. Applied together with the snapshot."
+msgstr "Γραμμές hosts καθώς και κανόνες ||, @@ και ##, μία ανά γραμμή. Εφαρμόζονται μαζί με το στιγμιότυπο."
+
+msgctxt "Settings.Blocker"
+msgid "Last error"
+msgstr "Τελευταίο σφάλμα"
+
+msgctxt "Settings.Blocker"
+msgid "No exceptions."
+msgstr "Καμία εξαίρεση."
+
+msgctxt "Settings.Blocker"
+msgid "Pages reload to pick up a change."
+msgstr "Οι σελίδες φορτώνονται ξανά για να εφαρμοστεί μια αλλαγή."
+
+msgctxt "Settings.Blocker"
+msgid "Remove {host}"
+msgstr "Κατάργηση {host}"
+
+msgctxt "Settings.Blocker"
+msgid "Rules"
+msgstr "Κανόνες"
+
+msgctxt "Settings.Blocker"
+msgid "Ships with the app. Nothing is downloaded and no browsing data leaves the machine: lists compile on device."
+msgstr "Περιλαμβάνεται στην εφαρμογή. Δεν λαμβάνεται τίποτα και κανένα δεδομένο περιήγησης δεν εγκαταλείπει τον υπολογιστή: οι λίστες μεταγλωττίζονται στη συσκευή."
+
+msgctxt "Settings.Blocker"
+msgid "Sites the blocker leaves alone, subdomains included."
+msgstr "Ιστότοποι που ο αποκλεισμός αφήνει ανεπηρέαστους, συμπεριλαμβανομένων των υποτομέων."
+
+msgctxt "Settings.Blocker"
+msgid "Skipped lines"
+msgstr "Παραλειφθείσες γραμμές"
+
+msgctxt "Settings.Blocker"
+msgid "Source"
+msgstr "Πηγή"
+
+msgctxt "Settings.Blocker"
+msgid "Third-party requests to listed hosts never leave the page."
+msgstr "Τα αιτήματα τρίτων προς τους καταχωρισμένους κεντρικούς υπολογιστές δεν εγκαταλείπουν ποτέ τη σελίδα."
+
+#. Settings > Bookmarks pane.
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks"
+msgstr "Σελιδοδείκτες"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks unavailable"
+msgstr "Οι σελιδοδείκτες δεν είναι διαθέσιμοι"
+
+msgctxt "Settings.Bookmarks"
+msgid "Bookmarks you add will be listed here."
+msgstr "Οι σελιδοδείκτες που προσθέτετε θα εμφανίζονται εδώ."
+
+msgctxt "Settings.Bookmarks"
+msgid "No bookmarks yet"
+msgstr "Δεν υπάρχουν ακόμη σελιδοδείκτες"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove All"
+msgstr "Κατάργηση όλων"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this bookmark"
+msgstr "Κατάργηση αυτού του σελιδοδείκτη"
+
+msgctxt "Settings.Bookmarks"
+msgid "Remove this folder and everything in it"
+msgstr "Κατάργηση αυτού του φακέλου και όλων των περιεχομένων του"
+
+msgctxt "Settings.Bookmarks"
+msgid "Show bookmarks bar"
+msgstr "Εμφάνιση γραμμής σελιδοδεικτών"
+
+#. Settings > Downloads pane.
+msgctxt "Settings.Downloads"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "Settings.Downloads"
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgctxt "Settings.Downloads"
+msgid "Clear everything"
+msgstr "Εκκαθάριση όλων"
+
+msgctxt "Settings.Downloads"
+msgid "Clear history"
+msgstr "Εκκαθάριση ιστορικού"
+
+msgctxt "Settings.Downloads"
+msgid "Download folder"
+msgstr "Φάκελος λήψεων"
+
+msgctxt "Settings.Downloads"
+msgid "Download history"
+msgstr "Ιστορικό λήψεων"
+
+msgctxt "Settings.Downloads"
+msgid "Every download lands here. Filenames de-duplicate automatically, so nothing is ever overwritten."
+msgstr "Κάθε λήψη αποθηκεύεται εδώ. Τα ονόματα αρχείων αποδιπλασιάζονται αυτόματα, ώστε να μην αντικαθίσταται ποτέ τίποτα."
+
+msgctxt "Settings.Downloads"
+msgid "Forget all download rows."
+msgstr "Διαγραφή όλων των εγγραφών λήψης."
+
+msgctxt "Settings.Downloads"
+msgid "Forget every download row?"
+msgstr "Διαγραφή κάθε εγγραφής λήψης;"
+
+msgctxt "Settings.Downloads"
+msgid "History rows point at files on disk. Clearing forgets the rows; files stay where they are."
+msgstr "Οι εγγραφές ιστορικού παραπέμπουν σε αρχεία στον δίσκο. Η εκκαθάριση διαγράφει τις εγγραφές· τα αρχεία παραμένουν στη θέση τους."
+
+msgctxt "Settings.Downloads"
+msgid "Location"
+msgstr "Τοποθεσία"
+
+msgctxt "Settings.Downloads"
+msgid "No downloads yet"
+msgstr "Δεν υπάρχουν ακόμη λήψεις"
+
+msgctxt "Settings.Downloads"
+msgid "Reveal"
+msgstr "Εμφάνιση"
+
+msgctxt "Settings.Downloads"
+msgid "Storage"
+msgstr "Αποθήκευση"
+
+#. Settings > RSS & Feeds pane.
+msgctxt "Settings.Feeds"
+msgid "1–2 characters shown between headlines."
+msgstr "Εμφανίζονται 1–2 χαρακτήρες μεταξύ των τίτλων."
+
+msgctxt "Settings.Feeds"
+msgid "Apply"
+msgstr "Εφαρμογή"
+
+msgctxt "Settings.Feeds"
+msgid "Apply retention"
+msgstr "Εφαρμογή διατήρησης"
+
+msgctxt "Settings.Feeds"
+msgid "Articles per feed"
+msgstr "Άρθρα ανά ροή"
+
+msgctxt "Settings.Feeds"
+msgid "Automatic"
+msgstr "Αυτόματα"
+
+msgctxt "Settings.Feeds"
+msgid "Background opacity"
+msgstr "Αδιαφάνεια φόντου"
+
+msgctxt "Settings.Feeds"
+msgid "Bar height"
+msgstr "Ύψος γραμμής"
+
+#. Crawl bar row: the strip at the bottom or the top.
+msgctxt "Settings.Feeds"
+msgid "Bar position"
+msgstr "Θέση γραμμής"
+
+#. Crawl bar position option: below the tab strip.
+msgctxt "Settings.Feeds"
+msgid "Bottom"
+msgstr "Κάτω"
+
+#. Crawl bar position option: above the page before the tabs.
+msgctxt "Settings.Feeds"
+msgid "Top"
+msgstr "Πάνω"
+
+msgctxt "Settings.Feeds"
+msgid "Cached content"
+msgstr "Αποθηκευμένο περιεχόμενο"
+
+msgctxt "Settings.Feeds"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "Settings.Feeds"
+msgid "Corner Radius"
+msgstr "Ακτίνα γωνίας"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl direction"
+msgstr "Κατεύθυνση κύλισης"
+
+msgctxt "Settings.Feeds"
+msgid "Crawl speed"
+msgstr "Ταχύτητα κύλισης"
+
+msgctxt "Settings.Feeds"
+msgid "Delete all subscriptions and cached feeds."
+msgstr "Διαγραφή όλων των συνδρομών και των αποθηκευμένων ροών."
+
+msgctxt "Settings.Feeds"
+msgid "Discovery only advertises feeds. Nothing is downloaded or saved until a feed is subscribed or refreshed."
+msgstr "Η ανίχνευση ανακοινώνει μόνο ροές. Δεν λαμβάνεται ούτε αποθηκεύεται τίποτα έως ότου γίνει συνδρομή ή ανανέωση ροής."
+
+msgctxt "Settings.Feeds"
+msgid "Download favicons"
+msgstr "Λήψη εικονιδίων ιστότοπου"
+
+msgctxt "Settings.Feeds"
+msgid "Enable Crawl"
+msgstr "Ενεργοποίηση κύλισης"
+
+msgctxt "Settings.Feeds"
+msgid "Enable RSS feeds"
+msgstr "Ενεργοποίηση ροών RSS"
+
+msgctxt "Settings.Feeds"
+msgid "Fetching"
+msgstr "Λήψη"
+
+msgctxt "Settings.Feeds"
+msgid "Font size"
+msgstr "Μέγεθος γραμματοσειράς"
+
+msgctxt "Settings.Feeds"
+msgid "Headline crawl"
+msgstr "Κυλιόμενοι τίτλοι"
+
+msgctxt "Settings.Feeds"
+msgid "Left to right"
+msgstr "Από αριστερά προς τα δεξιά"
+
+msgctxt "Settings.Feeds"
+msgid "Mark articles read on open"
+msgstr "Σήμανση άρθρων ως αναγνωσμένων κατά το άνοιγμα"
+
+msgctxt "Settings.Feeds"
+msgid "No subscribed sources."
+msgstr "Καμία εγγεγραμμένη πηγή."
+
+msgctxt "Settings.Feeds"
+msgid "No subscriptions"
+msgstr "Καμία συνδρομή"
+
+msgctxt "Settings.Feeds"
+msgid "Off"
+msgstr "Απενεργοποιημένο"
+
+msgctxt "Settings.Feeds"
+msgid "Opening an article clears its unread dot."
+msgstr "Το άνοιγμα ενός άρθρου καταργεί την ένδειξη μη αναγνωσμένου."
+
+msgctxt "Settings.Feeds"
+msgid "Parsing"
+msgstr "Ανάλυση"
+
+msgctxt "Settings.Feeds"
+msgid "Persist one validated site icon per subscription."
+msgstr "Αποθήκευση ενός επαληθευμένου εικονιδίου ιστότοπου ανά συνδρομή."
+
+msgctxt "Settings.Feeds"
+msgid "Prune every subscription to the limit above."
+msgstr "Περικοπή κάθε συνδρομής στο παραπάνω όριο."
+
+msgctxt "Settings.Feeds"
+msgid "Publisher images only"
+msgstr "Μόνο εικόνες εκδότη"
+
+msgctxt "Settings.Feeds"
+msgid "Reading"
+msgstr "Ανάγνωση"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh all"
+msgstr "Ανανέωση όλων"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh automatically"
+msgstr "Αυτόματη ανανέωση"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh interval"
+msgstr "Διάστημα ανανέωσης"
+
+msgctxt "Settings.Feeds"
+msgid "Refresh stale subscriptions when the reader loads them."
+msgstr "Ανανέωση των παρωχημένων συνδρομών κατά τη φόρτωσή τους από τον αναγνώστη."
+
+msgctxt "Settings.Feeds"
+msgid "Refresh this source now"
+msgstr "Ανανέωση αυτής της πηγής τώρα"
+
+msgctxt "Settings.Feeds"
+msgid "Refreshes use conditional requests when the publisher supports them. Private tabs never subscribe, refresh, or download."
+msgstr "Οι ανανεώσεις χρησιμοποιούν αιτήματα υπό συνθήκη όταν ο εκδότης τα υποστηρίζει. Οι ιδιωτικές καρτέλες δεν εγγράφονται, δεν ανανεώνουν ούτε λαμβάνουν ποτέ."
+
+msgctxt "Settings.Feeds"
+msgid "Refreshing…"
+msgstr "Ανανέωση…"
+
+msgctxt "Settings.Feeds"
+msgid "Refuse feeds that fail RSS or Atom validation instead of recovering them."
+msgstr "Απόρριψη ροών που αποτυγχάνουν στην επικύρωση RSS ή Atom αντί για αποκατάστασή τους."
+
+msgctxt "Settings.Feeds"
+msgid "Remove"
+msgstr "Κατάργηση"
+
+msgctxt "Settings.Feeds"
+msgid "Remove every subscription and all cached articles and images?"
+msgstr "Κατάργηση κάθε συνδρομής και όλων των αποθηκευμένων άρθρων και εικόνων;"
+
+msgctxt "Settings.Feeds"
+msgid "Remove everything"
+msgstr "Κατάργηση όλων"
+
+msgctxt "Settings.Feeds"
+msgid "Retention"
+msgstr "Διατήρηση"
+
+msgctxt "Settings.Feeds"
+msgid "Retention is applied after ingestion and whenever Apply is pressed. Read and saved marks never cause pruning on their own."
+msgstr "Η διατήρηση εφαρμόζεται μετά την εισαγωγή και κάθε φορά που πατιέται η Εφαρμογή. Οι σημάνσεις αναγνωσμένων και αποθηκευμένων δεν προκαλούν από μόνες τους περικοπή."
+
+msgctxt "Settings.Feeds"
+msgid "Right to left"
+msgstr "Από δεξιά προς τα αριστερά"
+
+msgctxt "Settings.Feeds"
+msgid "Separator"
+msgstr "Διαχωριστικό"
+
+msgctxt "Settings.Feeds"
+msgid "Show the toolbar control on pages that advertise a feed and allow new subscriptions."
+msgstr "Εμφάνιση του στοιχείου ελέγχου της γραμμής εργαλείων σε σελίδες που ανακοινώνουν ροή και επιτρέπουν νέες συνδρομές."
+
+msgctxt "Settings.Feeds"
+msgid "Shows a scrolling bar that displays headlines at the bottom."
+msgstr "Εμφανίζει μια κυλιόμενη γραμμή που προβάλλει τίτλους στο κάτω μέρος."
+
+msgctxt "Settings.Feeds"
+msgid "Storage"
+msgstr "Αποθήκευση"
+
+msgctxt "Settings.Feeds"
+msgid "Strict parsing rejects malformed feeds and RDF/RSS 1.0. Lenient parsing recovers usable titles, links, dates, and summaries whenever they can still be identified."
+msgstr "Η αυστηρή ανάλυση απορρίπτει κακοσχηματισμένες ροές και RDF/RSS 1.0. Η επιεικής ανάλυση ανακτά χρησιμοποιήσιμους τίτλους, συνδέσμους, ημερομηνίες και περιλήψεις όποτε μπορούν ακόμη να αναγνωριστούν."
+
+msgctxt "Settings.Feeds"
+msgid "Strict validation"
+msgstr "Αυστηρή επικύρωση"
+
+msgctxt "Settings.Feeds"
+msgid "Subscribed sources"
+msgstr "Εγγεγραμμένες πηγές"
+
+msgctxt "Settings.Feeds"
+msgid "Subscriptions, articles, favicons, and thumbnails live in the separate feeds database. Removing everything cannot be undone."
+msgstr "Οι συνδρομές, τα άρθρα, τα εικονίδια ιστότοπου και οι μικρογραφίες βρίσκονται στην ξεχωριστή βάση δεδομένων ροών. Η κατάργηση όλων δεν μπορεί να αναιρεθεί."
+
+msgctxt "Settings.Feeds"
+msgid "The crawl hides itself when there is nothing to show. Text always uses the system label color, so it follows Light and Dark Mode."
+msgstr "Η κύλιση αποκρύπτεται όταν δεν υπάρχει τίποτα προς εμφάνιση. Το κείμενο χρησιμοποιεί πάντα το χρώμα ετικέτας του συστήματος, ώστε να ακολουθεί τη Φωτεινή και τη Σκοτεινή λειτουργία."
+
+msgctxt "Settings.Feeds"
+msgid "Thumbnails"
+msgstr "Μικρογραφίες"
+
+msgctxt "Settings.Feeds"
+msgid "Turn RSS feeds on to manage subscriptions."
+msgstr "Ενεργοποιήστε τις ροές RSS για να διαχειριστείτε τις συνδρομές."
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribe from this source"
+msgstr "Κατάργηση συνδρομής από αυτήν την πηγή"
+
+msgctxt "Settings.Feeds"
+msgid "Unsubscribing removes the subscription, its cached articles, and its persisted images."
+msgstr "Η κατάργηση της συνδρομής αφαιρεί τη συνδρομή, τα αποθηκευμένα άρθρα της και τις αποθηκευμένες εικόνες της."
+
+#. Settings > History pane.
+msgctxt "Settings.History"
+msgid "Clear All"
+msgstr "Εκκαθάριση όλων"
+
+msgctxt "Settings.History"
+msgid "Collapse repeats within"
+msgstr "Σύμπτυξη επαναλήψεων εντός"
+
+msgctxt "Settings.History"
+msgid "Delete Older Than 30 Days"
+msgstr "Διαγραφή παλαιότερων των 30 ημερών"
+
+msgctxt "Settings.History"
+msgid "History"
+msgstr "Ιστορικό"
+
+msgctxt "Settings.History"
+msgid "No history yet"
+msgstr "Δεν υπάρχει ακόμη ιστορικό"
+
+msgctxt "Settings.History"
+msgid "Pages you visit show up here."
+msgstr "Οι σελίδες που επισκέπτεστε εμφανίζονται εδώ."
+
+msgctxt "Settings.History"
+msgid "Private tabs are never recorded, whatever this says."
+msgstr "Οι ιδιωτικές καρτέλες δεν καταγράφονται ποτέ, ανεξάρτητα από αυτήν τη ρύθμιση."
+
+msgctxt "Settings.History"
+msgid "Record visited pages"
+msgstr "Καταγραφή επισκεφθείσων σελίδων"
+
+msgctxt "Settings.History"
+msgid "Remove this entry"
+msgstr "Κατάργηση αυτής της εγγραφής"
+
+#. Settings sidebar and modal chrome.
+msgctxt "Settings.Nav"
+msgid "Appearance"
+msgstr "Εμφάνιση"
+
+msgctxt "Settings.Nav"
+msgid "Bookmarks"
+msgstr "Σελιδοδείκτες"
+
+msgctxt "Settings.Nav"
+msgid "Content Blocker"
+msgstr "Αποκλεισμός περιεχομένου"
+
+msgctxt "Settings.Nav"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "Settings.Nav"
+msgid "General"
+msgstr "Γενικά"
+
+msgctxt "Settings.Nav"
+msgid "History"
+msgstr "Ιστορικό"
+
+msgctxt "Settings.Nav"
+msgid "RSS & Feeds"
+msgstr "RSS και ροές"
+
+msgctxt "Settings.Nav"
+msgid "Search"
+msgstr "Αναζήτηση"
+
+msgctxt "Settings.Nav"
+msgid "Settings"
+msgstr "Ρυθμίσεις"
+
+msgctxt "Settings.Nav"
+msgid "Web"
+msgstr "Ιστός"
+
+#. Settings > Search pane.
+msgctxt "Settings.Search"
+msgid "Add an engine to search somewhere these do not go."
+msgstr "Προσθέστε μια μηχανή για αναζήτηση όπου αυτές δεν καλύπτουν."
+
+msgctxt "Settings.Search"
+msgid "Address"
+msgstr "Διεύθυνση"
+
+msgctxt "Settings.Search"
+msgid "An address, and the query parameter it takes."
+msgstr "Μια διεύθυνση και η παράμετρος ερωτήματος που δέχεται."
+
+msgctxt "Settings.Search"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "Settings.Search"
+msgid "Clean search result links"
+msgstr "Εκκαθάριση συνδέσμων αποτελεσμάτων αναζήτησης"
+
+msgctxt "Settings.Search"
+msgid "Clicks and copied links carry the destination."
+msgstr "Τα κλικ και οι αντιγραμμένοι σύνδεσμοι φέρουν τον προορισμό."
+
+msgctxt "Settings.Search"
+msgid "Default Engine"
+msgstr "Προεπιλεγμένη μηχανή"
+
+msgctxt "Settings.Search"
+msgid "Enter the query parameter, usually q."
+msgstr "Εισαγάγετε την παράμετρο ερωτήματος, συνήθως q."
+
+msgctxt "Settings.Search"
+msgid "Enter the search address."
+msgstr "Εισαγάγετε τη διεύθυνση αναζήτησης."
+
+msgctxt "Settings.Search"
+msgid "Give the engine a name."
+msgstr "Δώστε ένα όνομα στη μηχανή."
+
+msgctxt "Settings.Search"
+msgid "My search"
+msgstr "Η αναζήτησή μου"
+
+msgctxt "Settings.Search"
+msgid "Name"
+msgstr "Όνομα"
+
+msgctxt "Settings.Search"
+msgid "Query parameter"
+msgstr "Παράμετρος ερωτήματος"
+
+msgctxt "Settings.Search"
+msgid "Records what you search for"
+msgstr "Καταγράφει τι αναζητάτε"
+
+msgctxt "Settings.Search"
+msgid "Remove this engine"
+msgstr "Κατάργηση αυτής της μηχανής"
+
+msgctxt "Settings.Search"
+msgid "Result Links"
+msgstr "Σύνδεσμοι αποτελεσμάτων"
+
+msgctxt "Settings.Search"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "Settings.Search"
+msgid "Stops search engines swapping result links for tracker hops when you press them. Active on supported result pages only."
+msgstr "Εμποδίζει τις μηχανές αναζήτησης να αντικαθιστούν τους συνδέσμους αποτελεσμάτων με συνδέσμους παρακολούθησης όταν τους πατάτε. Ισχύει μόνο σε υποστηριζόμενες σελίδες αποτελεσμάτων."
+
+msgctxt "Settings.Search"
+msgid "That address is not valid."
+msgstr "Αυτή η διεύθυνση δεν είναι έγκυρη."
+
+msgctxt "Settings.Search"
+msgid "The address must start with http:// or https://"
+msgstr "Η διεύθυνση πρέπει να ξεκινά με http:// ή https://"
+
+msgctxt "Settings.Search"
+msgid "What the address field sends a search to. Anything that looks like a web address still loads directly."
+msgstr "Καθορίζει πού στέλνει το πεδίο διευθύνσεων μια αναζήτηση. Οτιδήποτε μοιάζει με διεύθυνση ιστού εξακολουθεί να φορτώνεται απευθείας."
+
+msgctxt "Settings.Search"
+msgid "Your Engines"
+msgstr "Οι μηχανές σας"
+
+#. Settings > Web pane.
+msgctxt "Settings.Web"
+msgid "After 1 hour"
+msgstr "Μετά από 1 ώρα"
+
+msgctxt "Settings.Web"
+msgid "After 15 minutes"
+msgstr "Μετά από 15 λεπτά"
+
+msgctxt "Settings.Web"
+msgid "After 30 minutes"
+msgstr "Μετά από 30 λεπτά"
+
+msgctxt "Settings.Web"
+msgid "After 5 minutes"
+msgstr "Μετά από 5 λεπτά"
+
+msgctxt "Settings.Web"
+msgid "Allow JavaScript"
+msgstr "Να επιτρέπεται η JavaScript"
+
+msgctxt "Settings.Web"
+msgid "Applies to open pages immediately."
+msgstr "Ισχύει άμεσα για τις ανοιχτές σελίδες."
+
+msgctxt "Settings.Web"
+msgid "Audio"
+msgstr "Ήχος"
+
+msgctxt "Settings.Web"
+msgid "Back/forward gestures"
+msgstr "Χειρονομίες πίσω/εμπρός"
+
+msgctxt "Settings.Web"
+msgid "Display"
+msgstr "Εμφάνιση"
+
+msgctxt "Settings.Web"
+msgid "Everything"
+msgstr "Τα πάντα"
+
+msgctxt "Settings.Web"
+msgid "Fraudulent website warnings"
+msgstr "Προειδοποιήσεις για παραπλανητικούς ιστότοπους"
+
+msgctxt "Settings.Web"
+msgid "Hidden tabs past this idle time lose their page and free its memory. Showing one reloads its address; displayed, pinned, sounding, and loading tabs never sleep."
+msgstr "Οι κρυφές καρτέλες μετά από αυτόν τον χρόνο αδράνειας χάνουν τη σελίδα τους και απελευθερώνουν τη μνήμη της. Η εμφάνισή τους επαναφορτώνει τη διεύθυνσή τους· οι εμφανιζόμενες, καρφιτσωμένες, καρτέλες με ήχο και οι καρτέλες που φορτώνονται δεν τίθενται ποτέ σε αναστολή."
+
+msgctxt "Settings.Web"
+msgid "Interaction"
+msgstr "Αλληλεπίδραση"
+
+msgctxt "Settings.Web"
+msgid "JavaScript may open windows"
+msgstr "Η JavaScript επιτρέπεται να ανοίγει παράθυρα"
+
+msgctxt "Settings.Web"
+msgid "Lets a page open a tab without a click. Popups land in this window."
+msgstr "Επιτρέπει σε μια σελίδα να ανοίγει καρτέλα χωρίς κλικ. Τα αναδυόμενα ανοίγουν σε αυτό το παράθυρο."
+
+msgctxt "Settings.Web"
+msgid "Link previews"
+msgstr "Προεπισκοπήσεις συνδέσμων"
+
+msgctxt "Settings.Web"
+msgid "Magnification"
+msgstr "Μεγέθυνση"
+
+msgctxt "Settings.Web"
+msgid "Media"
+msgstr "Πολυμέσα"
+
+msgctxt "Settings.Web"
+msgid "Minimum font size"
+msgstr "Ελάχιστο μέγεθος γραμματοσειράς"
+
+msgctxt "Settings.Web"
+msgid "Nothing"
+msgstr "Τίποτα"
+
+msgctxt "Settings.Web"
+msgid "Off"
+msgstr "Ανενεργό"
+
+msgctxt "Settings.Web"
+msgid "Off blocks scripts, which also stops most sites from working."
+msgstr "Η απενεργοποίηση αποκλείει τα σενάρια, γεγονός που εμποδίζει επίσης τη λειτουργία των περισσότερων ιστότοπων."
+
+msgctxt "Settings.Web"
+msgid "Page zoom"
+msgstr "Ζουμ σελίδας"
+
+msgctxt "Settings.Web"
+msgid "Pages"
+msgstr "Σελίδες"
+
+msgctxt "Settings.Web"
+msgid "Play without a click"
+msgstr "Αναπαραγωγή χωρίς κλικ"
+
+msgctxt "Settings.Web"
+msgid "Privacy"
+msgstr "Απόρρητο"
+
+msgctxt "Settings.Web"
+msgid "Read when a page is opened. Changes take effect on the next page."
+msgstr "Διαβάζεται κατά το άνοιγμα μιας σελίδας. Οι αλλαγές ισχύουν στην επόμενη σελίδα."
+
+msgctxt "Settings.Web"
+msgid "Site-specific quirks mode"
+msgstr "Λειτουργία συμβατότητας ανά ιστότοπο"
+
+msgctxt "Settings.Web"
+msgid "Sleep unused tabs"
+msgstr "Αναστολή αχρησιμοποίητων καρτελών"
+
+msgctxt "Settings.Web"
+msgid "Sleeping tabs"
+msgstr "Καρτέλες σε αναστολή"
+
+msgctxt "Settings.Web"
+msgid "Some of these take effect on the next page."
+msgstr "Ορισμένες από αυτές ισχύουν στην επόμενη σελίδα."
+
+msgctxt "Settings.Web"
+msgid "Tab focuses links"
+msgstr "Το Tab εστιάζει στους συνδέσμους"
+
+msgctxt "Settings.Web"
+msgid "Upgrade known hosts to HTTPS"
+msgstr "Αναβάθμιση γνωστών κεντρικών υπολογιστών σε HTTPS"
+
+msgctxt "Settings.Web"
+msgid "Video"
+msgstr "Βίντεο"
+
+msgctxt "Settings.Web"
+msgid "off"
+msgstr "ανενεργό"
+
+#. Site information card.
+msgctxt "SiteInfo"
+msgid "Certificate"
+msgstr "Πιστοποιητικό"
+
+msgctxt "SiteInfo"
+msgid "Certificate details are not available for this visit."
+msgstr "Τα στοιχεία του πιστοποιητικού δεν είναι διαθέσιμα για αυτήν την επίσκεψη."
+
+msgctxt "SiteInfo"
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgctxt "SiteInfo"
+msgid "Connection is not secure."
+msgstr "Η σύνδεση δεν είναι ασφαλής."
+
+msgctxt "SiteInfo"
+msgid "Connection is secure."
+msgstr "Η σύνδεση είναι ασφαλής."
+
+msgctxt "SiteInfo"
+msgid "Cookies and site data"
+msgstr "Cookies και δεδομένα ιστότοπου"
+
+msgctxt "SiteInfo"
+msgid "Expires"
+msgstr "Λήγει"
+
+msgctxt "SiteInfo"
+msgid "Fingerprint"
+msgstr "Αποτύπωμα"
+
+msgctxt "SiteInfo"
+msgid "Issued by"
+msgstr "Εκδόθηκε από"
+
+msgctxt "SiteInfo"
+msgid "Issued to"
+msgstr "Εκδόθηκε για"
+
+msgctxt "SiteInfo"
+msgid "Loading site data."
+msgstr "Φόρτωση δεδομένων ιστότοπου."
+
+msgctxt "SiteInfo"
+msgid "No stored data for this site."
+msgstr "Δεν υπάρχουν αποθηκευμένα δεδομένα για αυτόν τον ιστότοπο."
+
+msgctxt "SiteInfo"
+msgid "Open a website to inspect it here."
+msgstr "Ανοίξτε έναν ιστότοπο για να τον επιθεωρήσετε εδώ."
+
+msgctxt "SiteInfo"
+msgid "Site settings"
+msgstr "Ρυθμίσεις ιστότοπου"
+
+msgctxt "SiteInfo"
+msgid "This page"
+msgstr "Αυτή η σελίδα"
+
+msgctxt "SiteInfo"
+msgid "This page is not loaded over HTTPS, so there is no certificate to show."
+msgstr "Αυτή η σελίδα δεν φορτώνεται μέσω HTTPS, επομένως δεν υπάρχει πιστοποιητικό για εμφάνιση."
+
+msgctxt "SiteInfo"
+msgid "Unknown"
+msgstr "Άγνωστο"
+
+#. Tab strip VoiceOver names and tooltips.
+msgctxt "Tabs"
+msgid "Close Tab"
+msgstr "Κλείσιμο καρτέλας"
+
+msgctxt "Tabs"
+msgid "Close Tabs"
+msgstr "Κλείσιμο καρτελών"
+
+msgctxt "Tabs"
+msgid "Mute Tab"
+msgstr "Σίγαση καρτέλας"
+
+msgctxt "Tabs"
+msgid "New Tab"
+msgstr "Νέα καρτέλα"
+
+msgctxt "Tabs"
+msgid "Unmute Tab"
+msgstr "Κατάργηση σίγασης καρτέλας"
+
+#. Toolbar tooltips and VoiceOver names.
+msgctxt "Toolbar"
+msgid "Add Bookmark"
+msgstr "Προσθήκη σελιδοδείκτη"
+
+msgctxt "Toolbar"
+msgid "Available feed"
+msgstr "Διαθέσιμη ροή"
+
+msgctxt "Toolbar"
+msgid "Available feeds"
+msgstr "Διαθέσιμες ροές"
+
+msgctxt "Toolbar"
+msgid "Back"
+msgstr "Πίσω"
+
+msgctxt "Toolbar"
+msgid "Bookmarks"
+msgstr "Σελιδοδείκτες"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone in use — open capture controls"
+msgstr "Η κάμερα ή το μικρόφωνο χρησιμοποιείται — ανοίξτε τα στοιχεία ελέγχου λήψης"
+
+msgctxt "Toolbar"
+msgid "Camera or microphone requested — open capture controls"
+msgstr "Ζητήθηκε κάμερα ή μικρόφωνο — ανοίξτε τα στοιχεία ελέγχου λήψης"
+
+msgctxt "Toolbar"
+msgid "Capture controls"
+msgstr "Στοιχεία ελέγχου λήψης"
+
+msgctxt "Toolbar"
+msgid "Clear address"
+msgstr "Εκκαθάριση διεύθυνσης"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — active on this site"
+msgstr "Αποκλεισμός περιεχομένου — ενεργός σε αυτόν τον ιστότοπο"
+
+msgctxt "Toolbar"
+msgid "Content Blocker — paused on this site"
+msgstr "Αποκλεισμός περιεχομένου — σε παύση σε αυτόν τον ιστότοπο"
+
+msgctxt "Toolbar"
+msgid "Close floating player"
+msgstr "Κλείσιμο αιωρούμενου προγράμματος αναπαραγωγής"
+
+msgctxt "Toolbar"
+msgid "Content blocker active on this site"
+msgstr "Ο αποκλεισμός περιεχομένου είναι ενεργός σε αυτόν τον ιστότοπο"
+
+msgctxt "Toolbar"
+msgid "Content blocker paused on this site"
+msgstr "Ο αποκλεισμός περιεχομένου είναι σε παύση σε αυτόν τον ιστότοπο"
+
+msgctxt "Toolbar"
+msgid "Couldn't open Picture in Picture ({reason})"
+msgstr "Δεν ήταν δυνατό το άνοιγμα Εικόνας σε εικόνα ({reason})"
+
+msgctxt "Toolbar"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "Toolbar"
+msgid "Edit Bookmark"
+msgstr "Επεξεργασία σελιδοδείκτη"
+
+msgctxt "Toolbar"
+msgid "Exit Picture in Picture"
+msgstr "Έξοδος από Εικόνα σε εικόνα"
+
+msgctxt "Toolbar"
+msgid "Forward"
+msgstr "Εμπρός"
+
+msgctxt "Toolbar"
+msgid "Incognito"
+msgstr "Ανώνυμη περιήγηση"
+
+msgctxt "Toolbar"
+msgid "Not secure connection"
+msgstr "Μη ασφαλής σύνδεση"
+
+msgctxt "Toolbar"
+msgid "Password Manager"
+msgstr "Διαχείριση κωδικών πρόσβασης"
+
+msgctxt "Toolbar"
+msgid "Reload"
+msgstr "Ανανέωση"
+
+msgctxt "Toolbar"
+msgid "Search"
+msgstr "Αναζήτηση"
+
+msgctxt "Toolbar"
+msgid "Search on {name}"
+msgstr "Αναζήτηση στο {name}"
+
+msgctxt "Toolbar"
+msgid "Search or enter address"
+msgstr "Αναζητήστε ή εισαγάγετε διεύθυνση"
+
+msgctxt "Toolbar"
+msgid "Secure connection"
+msgstr "Ασφαλής σύνδεση"
+
+msgctxt "Toolbar"
+msgid "Settings"
+msgstr "Ρυθμίσεις"
+
+msgctxt "Toolbar"
+msgid "Site information"
+msgstr "Πληροφορίες ιστότοπου"
+
+msgctxt "Toolbar"
+msgid "Stop"
+msgstr "Διακοπή"
+
+msgctxt "Toolbar"
+msgid "This window is incognito: its tabs are not saved to history."
+msgstr "Αυτό το παράθυρο είναι ανώνυμο: οι καρτέλες του δεν αποθηκεύονται στο ιστορικό."
+
+msgctxt "Toolbar"
+msgid "Visit {address}"
+msgstr "Επίσκεψη στο {address}"
+
+msgctxt "Toolbar"
+msgid "Watch video in Picture in Picture"
+msgstr "Παρακολούθηση βίντεο σε Εικόνα σε εικόνα"
+
+#. Software update rows.
+msgctxt "Update"
+msgid "Asking GitHub for the latest release."
+msgstr "Ερώτηση στο GitHub για την πιο πρόσφατη έκδοση."
+
+msgctxt "Update"
+msgid "Checking for updates"
+msgstr "Έλεγχος για ενημερώσεις"
+
+msgctxt "Update"
+msgid "Could not check for updates"
+msgstr "Δεν ήταν δυνατός ο έλεγχος για ενημερώσεις"
+
+msgctxt "Update"
+msgid "Downloading Whatever {version}."
+msgstr "Λήψη του Whatever {version}."
+
+msgctxt "Update"
+msgid "Downloading update"
+msgstr "Λήψη ενημέρωσης"
+
+msgctxt "Update"
+msgid "GitHub answered unexpectedly. Try again later."
+msgstr "Το GitHub απάντησε απροσδόκητα. Δοκιμάστε ξανά αργότερα."
+
+msgctxt "Update"
+msgid "GitHub is rate-limiting update checks. Try again in a little while."
+msgstr "Το GitHub περιορίζει τους ελέγχους ενημερώσεων. Δοκιμάστε ξανά σε λίγο."
+
+msgctxt "Update"
+msgid "GitHub reports no releases yet. Try again later."
+msgstr "Το GitHub αναφέρει ότι δεν υπάρχουν ακόμη εκδόσεις. Δοκιμάστε ξανά αργότερα."
+
+msgctxt "Update"
+msgid "Software update"
+msgstr "Ενημέρωση λογισμικού"
+
+msgctxt "Update"
+msgid "The check failed. Check your connection and try again."
+msgstr "Ο έλεγχος απέτυχε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
+
+msgctxt "Update"
+msgid "The download failed. Check your connection and try again."
+msgstr "Η λήψη απέτυχε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
+
+msgctxt "Update"
+msgid "Update available"
+msgstr "Διαθέσιμη ενημέρωση"
+
+msgctxt "Update"
+msgid "Update downloaded"
+msgstr "Η ενημέρωση λήφθηκε"
+
+msgctxt "Update"
+msgid "Whatever is up to date"
+msgstr "Το Whatever είναι ενημερωμένο"
+
+msgctxt "Update"
+msgid "Whatever {version} is available — you have {current}."
+msgstr "Το Whatever {version} είναι διαθέσιμο — έχετε το {current}."
+
+msgctxt "Update"
+msgid "Whatever {version} is available, but it ships no disk image for this Mac."
+msgstr "Το Whatever {version} είναι διαθέσιμο, αλλά δεν περιλαμβάνει εικόνα δίσκου για αυτό το Mac."
+
+msgctxt "Update"
+msgid "Whatever {version} is in {file} — open it to update."
+msgstr "Το Whatever {version} βρίσκεται στο {file} — ανοίξτε το για ενημέρωση."
+
+msgctxt "Update"
+msgid "Whatever {version} is installed."
+msgstr "Το Whatever {version} είναι εγκατεστημένο."
+
+msgctxt "Update"
+msgid "Whatever {version} is the latest release."
+msgstr "Το Whatever {version} είναι η πιο πρόσφατη έκδοση."
+
+#. Window titles.
+msgctxt "Window"
+msgid "Failed to Load"
+msgstr "Αποτυχία φόρτωσης"
+
+msgctxt "Window"
+msgid "Loading…"
+msgstr "Φόρτωση…"
+
+msgctxt "Window"
+msgid "New Tab"
+msgstr "Νέα καρτέλα"
+
+msgctxt "Window"
+msgid "Reloading…"
+msgstr "Ανανέωση…"
+
+#. Window-size form.
+msgctxt "WindowSize"
+msgid "Apply"
+msgstr "Εφαρμογή"
+
+msgctxt "WindowSize"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "WindowSize"
+msgid "Enter positive numbers for both width and height."
+msgstr "Εισαγάγετε θετικούς αριθμούς για το πλάτος και το ύψος."
+
+msgctxt "WindowSize"
+msgid "Height"
+msgstr "Ύψος"
+
+msgctxt "WindowSize"
+msgid "Width"
+msgstr "Πλάτος"
+
+msgctxt "WindowSize"
+msgid "Window Size"
+msgstr "Μέγεθος παραθύρου"
+
