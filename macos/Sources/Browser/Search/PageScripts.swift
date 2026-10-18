@@ -20,8 +20,9 @@ import WebKit
 /// Rebuilds a page's user-script list from current settings.
 ///
 /// `WKUserContentController` has no remove-single-script, so every feature
-/// toggle rebuilds the whole list: the find bridge, the link capture, and
-/// the hover reporter always, then each opt-in script whose setting is on.
+/// toggle rebuilds the whole list: the find bridge, the link capture, the
+/// password form capture, and the hover reporter always, then each opt-in
+/// script whose setting is on.
 /// Message handlers are rebuilt the same way (`removeScriptMessageHandler`
 /// before `add` keeps re-adding idempotent). Future loads get exactly this
 /// set; each feature separately patches the document already on screen,
@@ -33,6 +34,7 @@ enum PageScripts {
         controller.removeAllUserScripts()
         controller.addUserScript(FindBridge.script)
         controller.addUserScript(PageLinkCapture.script)
+        controller.addUserScript(PasswordFormBridge.script)
         controller.addUserScript(LinkHover.script)
         controller.removeScriptMessageHandler(forName: LinkHover.handlerName)
         if let browserView = webView as? BrowserWebView {

@@ -40,6 +40,7 @@ final class BrowserPaneController: NSViewController {
     private var pageLeadingConstraint: NSLayoutConstraint?
     private var pageTrailingConstraint: NSLayoutConstraint?
     private var qrPopupPresenter: QRPopupPresenter?
+    private var suggestPresenter: PasswordSuggestPresenter?
     private var fileBrowserPresenter: FileBrowserPresenter?
     private var downloadsPresenter: DownloadsPresenter?
     private var findController: FindController?
@@ -373,6 +374,30 @@ final class BrowserPaneController: NSViewController {
                     self?.hideLinkHover()
                 }
             }
+            browserView.passwordMenuContextProvider = { [weak self] in
+                guard let self else {
+                    return PasswordMenuContext(isUnlocked: false, matches: [])
+                }
+                let store = PasswordStore.shared
+                let host = PasswordAutofill.normalizeHost(url: self.tab.displayURL)
+                guard !host.isEmpty else {
+                    return PasswordMenuContext(
+                        isUnlocked: store.lockState == .unlocked, matches: [])
+                }
+                return PasswordMenuContext(
+                    isUnlocked: store.lockState == .unlocked,
+                    matches: store.credentials(matchingHost: host)
+                )
+            }
+            browserView.onFillCredential = { [weak self] siteID, credentialID in
+                self?.fillCredential(siteID: siteID, credentialID: credentialID)
+            }
+            browserView.onSuggestPassword = { [weak self, weak browserView] in
+                self?.openSuggestPanel(anchorView: browserView)
+            }
+            browserView.onPresentPasswordManager = { [weak self] in
+                self?.presentPasswordManagerForMenu()
+            }
             // A new (or re-shown) page carries no hover: a stale bubble would
             // name a link nobody is pointing at.
             hideLinkHover()
@@ -687,6 +712,164 @@ final class BrowserPaneController: NSViewController {
     /// what is on screen.
     private func presentFullScreenCapture() {
         PageCapture.captureAndSave(webView: tab.webView, window: view.window)
+    }
+
+    // MARK: - Password autofill
+
+    /// Opens the password manager card on this window. Behind locked Fill
+    /// clicks and the Manage overflow row, so the modal is always owned by
+    /// the window the menu was opened over.
+    private func presentPasswordManagerForMenu() {
+        guard let window = view.window else {
+            SystemBeep.play()
+            return
+        }
+        BrowserCoordinator.shared.controller(for: window)?.presentPasswordManager()
+    }
+
+    /// Fills a vault credential into the page's login form. An explicit
+    /// menu click always fills, even over non-empty fields.
+    private func fillCredential(siteID: String, credentialID: String) {
+        let store = PasswordStore.shared
+        guard store.lockState == .unlocked,
+              let credential = store.site(siteID)?.credentials.first(where: { $0.id == credentialID }),
+              let webView = tab.webView
+        else {
+            SystemBeep.play()
+            return
+        }
+        let script = PasswordFormBridge.fillLoginScript(
+            username: credential.username, password: credential.password)
+        Task { @MainActor in
+            let raw = try? await webView.evaluateJavaScriptSafely(script)
+            if (raw as? String) != "ok" {
+                SystemBeep.play()
+            }
+        }
+    }
+
+    /// Opens the floating suggest panel anchored at the right-clicked
+    /// password field. The panel hosts the shared generator (characters or
+    /// diceware, with regenerate); Fill runs it into the page.
+    private func openSuggestPanel(anchorView: BrowserWebView?) {
+        guard let anchorView else {
+            NSLog("[Passwords] suggest: anchor view gone")
+            SystemBeep.play()
+            return
+        }
+        let anchor: NSRect
+        if let point = anchorView.passwordMenuPoint {
+            anchor = NSRect(x: point.x - 1, y: point.y - 22, width: 2, height: 22)
+        } else {
+            // Keyboard-opened menu with no press and no cursor over the
+            // view: center the panel on the visible page instead.
+            let visible = anchorView.visibleRect
+            anchor = NSRect(
+                x: visible.midX - 1, y: visible.midY - 11, width: 2, height: 22)
+        }
+        let presenter: PasswordSuggestPresenter
+        if let existing = suggestPresenter {
+            presenter = existing
+        } else {
+            let fresh = PasswordSuggestPresenter()
+            suggestPresenter = fresh
+            presenter = fresh
+        }
+        presenter.present(
+            anchorRect: anchor,
+            in: anchorView,
+            wordlist: PasswordGenerator.loadWordlist(),
+            vaultUnlocked: PasswordStore.shared.lockState == .unlocked,
+            onUse: { [weak self] password in
+                self?.suggestPresenter?.dismiss()
+                self?.useSuggestedPassword(password)
+            }
+        )
+    }
+
+    /// Fills a chosen suggested password into every visible password field
+    /// (login plus its confirm twin), copies it, and saves per the plan:
+    /// auto-create a site when unlocked and nothing matches, explicit
+    /// update confirm when exactly one credential matches, manager when
+    /// several match, nothing when locked or private.
+    private func useSuggestedPassword(_ suggested: String) {
+        guard !suggested.isEmpty else {
+            NSLog("[Passwords] suggest: empty password chosen")
+            SystemBeep.play()
+            return
+        }
+        guard let webView = tab.webView else {
+            NSLog("[Passwords] suggest: no web view")
+            SystemBeep.play()
+            return
+        }
+        let pageURL = tab.displayURL
+        let host = PasswordAutofill.normalizeHost(url: pageURL)
+        NSLog("[Passwords] suggest: page=%@ host=%@", pageURL.absoluteString, host)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let raw: Any?
+            do {
+                raw = try await webView.evaluateJavaScriptSafely(
+                    PasswordFormBridge.suggestFillScript(password: suggested))
+            } catch {
+                NSLog("[Passwords] suggest: evaluate threw: %@", String(describing: error))
+                SystemBeep.play()
+                return
+            }
+            NSLog("[Passwords] suggest: raw=%@", String(describing: raw))
+            let filled = Int((raw as? String) ?? "") ?? 0
+            guard filled > 0 else {
+                NSLog("[Passwords] suggest: filled=0")
+                SystemBeep.play()
+                return
+            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(suggested, forType: .string)
+            self.saveSuggestedPassword(suggested, host: host, pageURL: pageURL)
+        }
+    }
+
+    /// Saves a suggested password per the locked decisions. Regular tabs
+    /// only; private tabs never persist.
+    private func saveSuggestedPassword(_ suggested: String, host: String, pageURL: URL) {
+        guard tab.privacyMode == .regular,
+              ["http", "https"].contains(pageURL.scheme?.lowercased() ?? ""),
+              !host.isEmpty
+        else { return }
+        let store = PasswordStore.shared
+        guard store.lockState == .unlocked else { return }
+        let matches = store.credentials(matchingHost: host)
+        if matches.isEmpty {
+            let site = store.createSite(name: host, url: pageURL.absoluteString)
+            _ = store.addCredential(to: site.id, username: "", password: suggested)
+            return
+        }
+        guard matches.count == 1, let only = matches.first else {
+            // Several credentials: the menu is gone, so the manager is the
+            // explicit pick surface.
+            presentPasswordManagerForMenu()
+            return
+        }
+        guard let window = view.window else { return }
+        let alert = NSAlert()
+        alert.messageText = tr("Update saved password?", ctx: "Passwords")
+        let name = only.credential.username.isEmpty ? only.siteName : only.credential.username
+        alert.informativeText = tr(
+            "Replace the password for {name} on {host} with the suggested one?",
+            ctx: "Passwords",
+            args: ["name": name, "host": host]
+        )
+        alert.addButton(withTitle: tr("Update", ctx: "Passwords"))
+        alert.addButton(withTitle: tr("Cancel", ctx: "Dialogs"))
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            Task { @MainActor in
+                PasswordStore.shared.updateCredential(
+                    siteID: only.siteID, only.credential.id,
+                    username: only.credential.username, password: suggested)
+            }
+        }
     }
 
     private func updateBorder(activeID: UUID?, showsIndicator: Bool) {

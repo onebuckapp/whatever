@@ -596,6 +596,22 @@ msgctxt "Context.Page"
 msgid "Open in New Tab"
 msgstr ""
 
+msgctxt "Context.Page"
+msgid "Fill Login"
+msgstr ""
+
+msgctxt "Context.Page"
+msgid "Fill Login..."
+msgstr ""
+
+msgctxt "Context.Page"
+msgid "Suggest Password..."
+msgstr ""
+
+msgctxt "Context.Page"
+msgid "Manage Passwords..."
+msgstr ""
+
 #. Tab-strip right-click menus.
 msgctxt "Context.Tab"
 msgid "Close Other Tabs"
@@ -1409,6 +1425,30 @@ msgstr ""
 
 msgctxt "Passwords"
 msgid "this site"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Update saved password?"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Replace the password for {name} on {host} with the suggested one?"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Update"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Fill"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Suggest a password"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Unlock Passwords to save it."
 msgstr ""
 
 #. Print preview.

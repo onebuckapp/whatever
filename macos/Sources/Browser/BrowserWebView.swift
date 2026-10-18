@@ -30,6 +30,15 @@ final class BrowserWebView: WKWebView {
     static let fullScreenCaptureItemID = NSUserInterfaceItemIdentifier(
         rawValue: "com.onebuckapp.whatever.fullScreenCapture"
     )
+    static let fillLoginItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.fillLogin"
+    )
+    static let suggestPasswordItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.suggestPassword"
+    )
+    static let unlockVaultItemID = NSUserInterfaceItemIdentifier(
+        rawValue: "com.onebuckapp.whatever.unlockVault"
+    )
 
     /// Called when the injected page-menu item is chosen, with the
     /// right-clicked link's address when the menu was opened on a link, or
@@ -67,6 +76,24 @@ final class BrowserWebView: WKWebView {
     /// right-clicked image's address. Set by the hosting pane, which runs it
     /// through the download pipeline.
     var onDownloadImage: ((URL) -> Void)?
+
+    /// Called when a Fill Login submenu row is chosen, with the owning site
+    /// and credential IDs. Set by the hosting pane, which fills via the
+    /// form bridge.
+    var onFillCredential: ((String, String) -> Void)?
+
+    /// Called when Suggest Strong Password is chosen. Set by the hosting
+    /// pane, which generates, fills, copies, and saves per the plan.
+    var onSuggestPassword: (() -> Void)?
+
+    /// Called when the vault must be shown: locked Fill clicks and the
+    /// Manage overflow row. Set by the hosting pane, which owns the window
+    /// the card sheets over.
+    var onPresentPasswordManager: (() -> Void)?
+
+    /// Synchronous snapshot of vault state for the page on screen. Set by
+    /// the hosting pane; the view never touches the store directly.
+    var passwordMenuContextProvider: (() -> PasswordMenuContext)?
 
     /// WebKit's stable menu identifiers (locale-independent, unlike titles).
     ///
@@ -108,6 +135,20 @@ final class BrowserWebView: WKWebView {
     /// off-actor.
     nonisolated static var openImageInNewTabTitle: String { tr("Open in New Tab", ctx: "Context.Page") }
 
+    /// Password menu titles. Inserted by us, so ours to translate.
+    /// Kept short on purpose: the password rows are inserted
+    /// asynchronously after WebKit has already sized the open menu, and a
+    /// wider title would clip instead of widening it. "Full Screen Capture"
+    /// (19 chars) is the widest built-in row; these stay within it.
+    nonisolated static var fillLoginTitle: String { tr("Fill Login", ctx: "Context.Page") }
+    nonisolated static var fillLoginUnlockTitle: String { tr("Fill Login...", ctx: "Context.Page") }
+    nonisolated static var suggestPasswordTitle: String { tr("Suggest Password...", ctx: "Context.Page") }
+    nonisolated static var managePasswordsTitle: String { tr("Manage Passwords...", ctx: "Context.Page") }
+
+    /// Maximum credential rows in the Fill submenu before the Manage row.
+    /// Keeps long vaults from pushing page items off screen.
+    static let maxFillRows = 10
+
     /// The right-clicked link's address for the open menu, resolving while
     /// the menu opens and read when an item is chosen.
     ///
@@ -124,6 +165,16 @@ final class BrowserWebView: WKWebView {
     /// The right-clicked image's address for the open menu, resolved like
     /// the link above and read when an image item is chosen.
     private var imageMenuResolution: Task<URL?, Never>?
+    /// The right-clicked field kind for the open menu, resolved like the
+    /// link above and used to lay out the password items asynchronously.
+    private var passwordFieldResolution: Task<PasswordFormBridge.FieldKind, Never>?
+    /// Fill rows for the open menu, in submenu order. Rebuilt on every
+    /// layout; submenu tags index into it.
+    private var passwordFillEntries: [(siteID: String, credentialID: String)] = []
+    /// Where the password menu was opened, in view coordinates. Recorded
+    /// synchronously in `willOpenMenu` so the suggest popover can anchor at
+    /// the field even though the field-kind resolution answers later.
+    private(set) var passwordMenuPoint: NSPoint?
     /// WebKit's original target and action per taken-over item, so a click
     /// that cannot be resolved still does what WebKit would have done.
     /// Keyed by identifier: there is at most one of each per menu.
@@ -346,9 +397,14 @@ final class BrowserWebView: WKWebView {
 
         // WebKit can reuse a menu object across openings, so strip our
         // items first: every opening lays out fresh for this menu's kind.
-        for id in [Self.generateQRCodeItemID, Self.fullScreenCaptureItemID] {
+        for id in [
+            Self.generateQRCodeItemID, Self.fullScreenCaptureItemID,
+            Self.fillLoginItemID, Self.suggestPasswordItemID, Self.unlockVaultItemID,
+        ] {
             menu.items.filter({ $0.identifier == id }).forEach(menu.removeItem)
         }
+        passwordFillEntries = []
+        passwordMenuPoint = nil
         let qrItem = NSMenuItem(
             title: tr("Share as QR Code", ctx: "Context.Page"),
             action: #selector(handleGenerateQRCode(_:)),
@@ -385,6 +441,8 @@ final class BrowserWebView: WKWebView {
             }) ?? -1
             menu.insertItem(qrItem, at: anchor + 1)
         }
+
+        insertPasswordItems(in: menu)
     }
 
     @objc private func handleGenerateQRCode(_ sender: NSMenuItem?) {
@@ -400,6 +458,201 @@ final class BrowserWebView: WKWebView {
 
     @objc private func handleFullScreenCapture(_ sender: NSMenuItem?) {
         onFullScreenCapture?()
+    }
+
+    // MARK: - Password menu
+
+    /// Resolves the right-clicked field kind and lays out the password
+    /// items asynchronously. The menu is already open by then, so matching
+    /// rows appear at its lead just after it shows, before anyone picks.
+    /// Cancelled by the next opening, like the link and image resolutions.
+    private func insertPasswordItems(in menu: NSMenu) {
+        guard passwordMenuContextProvider != nil else { return }
+        passwordFieldResolution?.cancel()
+        let point = Self.menuResolutionPoint(
+            press: menuPressPoint?.point,
+            pressedAt: menuPressPoint?.at,
+            cursor: cursorPoint()
+        )
+        passwordMenuPoint = point
+        passwordFieldResolution = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled else { return .other }
+            let script = PasswordFormBridge.fieldResolutionScript(
+                viewX: point?.x,
+                viewY: point.map { self.bounds.height - $0.y }
+            )
+            let raw = try? await self.evaluateJavaScriptSafely(script)
+            guard !Task.isCancelled else { return .other }
+            let kind = PasswordFormBridge.kind(from: raw)
+            guard kind == .password || kind == .username else { return kind }
+            guard let context = self.passwordMenuContextProvider?() else { return kind }
+            guard !Task.isCancelled else { return kind }
+            self.layoutPasswordItems(kind: kind, context: context, in: menu)
+            return kind
+        }
+    }
+
+    /// Builds the Fill and Suggest rows for a form-field menu. Pure over
+    /// its inputs except for the menu mutation, so tests pin the row plan
+    /// via `passwordMenuPlan` without a web view.
+    struct PasswordMenuPlan: Equatable {
+        var showsFillSubmenu: Bool
+        var showsUnlockItem: Bool
+        var showsSuggestItem: Bool
+        var fillTitles: [String]
+        var showsManageRow: Bool
+    }
+
+    /// Row plan for a field kind and vault snapshot. Context-menu only
+    /// (plan decision): password fields offer Suggest plus Fill, username
+    /// fields offer Fill only, anything else offers nothing.
+    static func passwordMenuPlan(
+        kind: PasswordFormBridge.FieldKind,
+        context: PasswordMenuContext
+    ) -> PasswordMenuPlan {
+        guard kind == .password || kind == .username else {
+            return PasswordMenuPlan(
+                showsFillSubmenu: false, showsUnlockItem: false,
+                showsSuggestItem: false, fillTitles: [], showsManageRow: false
+            )
+        }
+        let showsSuggest = kind == .password
+        if !context.isUnlocked {
+            return PasswordMenuPlan(
+                showsFillSubmenu: false, showsUnlockItem: true,
+                showsSuggestItem: showsSuggest, fillTitles: [], showsManageRow: false
+            )
+        }
+        guard !context.matches.isEmpty else {
+            return PasswordMenuPlan(
+                showsFillSubmenu: false, showsUnlockItem: false,
+                showsSuggestItem: showsSuggest, fillTitles: [], showsManageRow: false
+            )
+        }
+        let rows = Array(context.matches.prefix(maxFillRows))
+        return PasswordMenuPlan(
+            showsFillSubmenu: true, showsUnlockItem: false,
+            showsSuggestItem: showsSuggest,
+            fillTitles: rows.map(PasswordAutofill.menuTitle),
+            showsManageRow: context.matches.count > maxFillRows
+        )
+    }
+
+    private func layoutPasswordItems(
+        kind: PasswordFormBridge.FieldKind,
+        context: PasswordMenuContext,
+        in menu: NSMenu
+    ) {
+        let plan = Self.passwordMenuPlan(kind: kind, context: context)
+        guard plan.showsFillSubmenu || plan.showsUnlockItem || plan.showsSuggestItem else { return }
+        // Do not stack on a late answer: a second resolution for a reused
+        // menu strips before it lays out, so anything here is this task's.
+        for id in [Self.fillLoginItemID, Self.suggestPasswordItemID, Self.unlockVaultItemID] {
+            menu.items.filter({ $0.identifier == id }).forEach(menu.removeItem)
+        }
+        var insertAt = 0
+        if plan.showsSuggestItem {
+            let suggest = NSMenuItem(
+                title: Self.suggestPasswordTitle,
+                action: #selector(handleSuggestPassword(_:)),
+                keyEquivalent: ""
+            )
+            suggest.identifier = Self.suggestPasswordItemID
+            suggest.target = self
+            suggest.isEnabled = true
+            menu.insertItem(suggest, at: insertAt)
+            insertAt += 1
+        }
+        if plan.showsFillSubmenu {
+            let rows = Array(context.matches.prefix(Self.maxFillRows))
+            passwordFillEntries = rows.map { ($0.siteID, $0.credential.id) }
+            let parent = NSMenuItem(
+                title: Self.fillLoginTitle,
+                action: nil,
+                keyEquivalent: ""
+            )
+            parent.identifier = Self.fillLoginItemID
+            parent.isEnabled = true
+            let submenu = NSMenu()
+            for (index, match) in rows.enumerated() {
+                let row = NSMenuItem(
+                    title: PasswordAutofill.menuTitle(for: match),
+                    action: #selector(handleFillCredential(_:)),
+                    keyEquivalent: ""
+                )
+                row.target = self
+                row.tag = index
+                row.isEnabled = true
+                // A bare username hides its site; a second line names it so
+                // two sites with `admin` stay distinguishable.
+                if rows.map(\.siteID).filter({ $0 == match.siteID }).count >= 1,
+                   Set(rows.map(\.siteID)).count > 1 {
+                    row.toolTip = match.siteName
+                }
+                submenu.addItem(row)
+            }
+            if plan.showsManageRow {
+                submenu.addItem(.separator())
+                let manage = NSMenuItem(
+                    title: Self.managePasswordsTitle,
+                    action: #selector(handlePresentPasswordManager(_:)),
+                    keyEquivalent: ""
+                )
+                manage.target = self
+                manage.isEnabled = true
+                submenu.addItem(manage)
+            }
+            parent.submenu = submenu
+            menu.insertItem(parent, at: insertAt)
+            insertAt += 1
+        } else if plan.showsUnlockItem {
+            let unlock = NSMenuItem(
+                title: Self.fillLoginUnlockTitle,
+                action: #selector(handlePresentPasswordManager(_:)),
+                keyEquivalent: ""
+            )
+            unlock.identifier = Self.unlockVaultItemID
+            unlock.target = self
+            unlock.isEnabled = true
+            menu.insertItem(unlock, at: insertAt)
+            insertAt += 1
+        }
+        if insertAt > 0, menu.items.count > insertAt {
+            menu.insertItem(.separator(), at: insertAt)
+        }
+    }
+
+    @objc private func handleFillCredential(_ sender: NSMenuItem) {
+        guard passwordFillEntries.indices.contains(sender.tag) else {
+            NSLog("[Passwords] fill: no entry for tag %ld", sender.tag)
+            SystemBeep.play()
+            return
+        }
+        let entry = passwordFillEntries[sender.tag]
+        guard onFillCredential != nil else {
+            NSLog("[Passwords] fill: no handler wired")
+            SystemBeep.play()
+            return
+        }
+        onFillCredential?(entry.siteID, entry.credentialID)
+    }
+
+    @objc private func handleSuggestPassword(_ sender: NSMenuItem?) {
+        guard onSuggestPassword != nil else {
+            NSLog("[Passwords] suggest: no handler wired")
+            SystemBeep.play()
+            return
+        }
+        onSuggestPassword?()
+    }
+
+    @objc private func handlePresentPasswordManager(_ sender: NSMenuItem?) {
+        guard onPresentPasswordManager != nil else {
+            NSLog("[Passwords] manager: no handler wired")
+            SystemBeep.play()
+            return
+        }
+        onPresentPasswordManager?()
     }
 
     /// Picks the point the menu resolves its link from.

@@ -185,6 +185,17 @@ final class PasswordStore: ObservableObject {
         vault.sites.first { $0.id == id }
     }
 
+    /// Sites for `host`: exact host first, then base-domain fallback (see
+    /// `PasswordAutofill`). Empty for addressless hosts.
+    func sites(matchingHost host: String) -> [VaultSite] {
+        PasswordAutofill.sites(matchingHost: host, from: vault.sites)
+    }
+
+    /// Every credential of every matching site, in site order.
+    func credentials(matchingHost host: String) -> [PasswordAutofill.Match] {
+        PasswordAutofill.credentials(matchingHost: host, from: vault.sites)
+    }
+
     // MARK: - Mutations
 
     @discardableResult
