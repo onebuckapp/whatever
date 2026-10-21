@@ -60,7 +60,13 @@ struct ToolbarGlyphTests {
         #expect(chevronLeft?.size == NSSize(width: 20, height: 20))
         let chevronRight = BrowserToolbarButton.bundledGlyphImage(named: "TablerChevronRight", inkRatio: 0.725)
         #expect(chevronRight?.size == NSSize(width: 20, height: 20))
-        for image in [rss, check, cross, fingerprint, panelBookmark, downloads, settings, star, starFilled, reload, chevronLeft, chevronRight] {
+        // The PiP toggle, both states sharing one box so the toggle never
+        // moves the glyph.
+        let pipOn = BrowserToolbarButton.bundledGlyphImage(named: "TablerPictureInPictureOn", inkRatio: 0.75)
+        #expect(pipOn?.size == NSSize(width: 19, height: 19))
+        let pipOff = BrowserToolbarButton.bundledGlyphImage(named: "TablerPictureInPictureOff", inkRatio: 0.75)
+        #expect(pipOff?.size == NSSize(width: 19, height: 19))
+        for image in [rss, check, cross, fingerprint, panelBookmark, downloads, settings, star, starFilled, reload, chevronLeft, chevronRight, pipOn, pipOff] {
             #expect(image?.isTemplate == true)
         }
     }

@@ -34,6 +34,9 @@ final class BrowserToolbarController: NSObject {
     private let addressContainer = NSView()
     private let centerStack = NSStackView()
     private let feedButton = BrowserToolbarButton()
+    /// Picture-in-Picture offer for the selected tab. Hidden unless a
+    /// video is currently playing; enters PiP on the best candidate.
+    private let pipButton = BrowserToolbarButton()
     /// Camera/mic indicator for the selected tab. Hidden unless the
     /// page asked for or holds a capture; opens the capture popup.
     private let webrtcButton = BrowserToolbarButton()
@@ -273,6 +276,23 @@ final class BrowserToolbarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncFeedButton() }
             .store(in: &cancellables)
+        // A play or pause anywhere in the page moves the PiP button; the
+        // detector pushes the whole set on every change. PiP open and
+        // close flip it between enter and exit the same way.
+        tab.tabController.$videoCandidates
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncPipButton() }
+            .store(in: &cancellables)
+        tab.tabController.$isPipActive
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncPipButton() }
+            .store(in: &cancellables)
+        // The fallback box opens and closes without touching the system
+        // session, so its flag moves the button on its own publisher.
+        tab.tabController.$isFloating
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncPipButton() }
+            .store(in: &cancellables)
         // Capture grants and pending requests light the toolbar button
         // until the page goes away; the popup answers the pending ones.
         tab.tabController.$captureState
@@ -326,6 +346,7 @@ final class BrowserToolbarController: NSObject {
             spotlight.updateClearButton()
             spotlight.isSecure = true
             syncFeedButton()
+            syncPipButton()
             syncAdBlockButton()
             syncBookmarkButton()
             syncMediaCaptureButton()
@@ -370,6 +391,7 @@ final class BrowserToolbarController: NSObject {
             spotlightController.fieldDidEndEditing()
         }
         syncFeedButton()
+        syncPipButton()
         syncAdBlockButton()
         syncBookmarkButton()
         syncMediaCaptureButton()
@@ -560,6 +582,53 @@ final class BrowserToolbarController: NSObject {
         onFeed?(candidates)
     }
 
+    /// The PiP button's action: exit when the page holds a PiP window,
+    /// restore when our fallback box holds the video, enter on the best
+    /// candidate otherwise. Like the feed button this needs no window
+    /// chrome of ours, so it asks the tab's controller directly rather
+    /// than going through an `on...` closure. A failed entry names its
+    /// reason on the button (until the next state sync) instead of dying
+    /// silently — and the second consecutive failure floats the video in
+    /// its own page box, so the button always does *something*.
+    @objc private func togglePictureInPicture() {
+        guard let controller = tab?.tabController, controller.hasPipVideo || controller.isFloating else { return }
+        Task { [weak self, weak controller] in
+            if controller?.isPipActive == true {
+                await controller?.exitPictureInPicture()
+            } else if controller?.isFloating == true {
+                await controller?.unfloatPictureInPicture()
+            } else {
+                let verdict = await controller?.enterPictureInPicture() ?? "idle"
+                if verdict == "ok" || verdict == "pending" { return }
+                if controller?.shouldFloatAfterFailure == true {
+                    let floated = await controller?.floatPictureInPicture() ?? "failed"
+                    if floated == "ok" { return }
+                    self?.showPipFailure(floated)
+                } else {
+                    self?.showPipFailure(verdict)
+                }
+            }
+        }
+    }
+
+    /// Hover text for a dead PiP entry. Pure so the wording is pinnable
+    /// without a toolbar: `"ok"` and `"pending"` mean the press worked.
+    nonisolated static func pipFailureText(_ verdict: String) -> String? {
+        guard verdict != "ok" && verdict != "pending" else { return nil }
+        let reason = verdict.split(separator: "|", maxSplits: 1).first.map(String.init) ?? verdict
+        return tr(
+            "Couldn't open Picture in Picture ({reason})",
+            ctx: "Toolbar",
+            args: ["reason": reason])
+    }
+
+    @MainActor
+    private func showPipFailure(_ verdict: String) {
+        guard let text = Self.pipFailureText(verdict) else { return }
+        pipButton.toolTip = text
+        pipButton.image?.accessibilityDescription = text
+    }
+
     /// The star's action: edit the existing bookmark when the page is
     /// already saved, offer to add it otherwise. Prefilled from the page so
     /// the common case is one press plus Save.
@@ -610,6 +679,7 @@ final class BrowserToolbarController: NSObject {
         configure(bookmarkButton, symbol: "star", help: tr("Add Bookmark", ctx: "Toolbar"), action: #selector(toggleBookmark))
         syncBookmarkButton()
         configureFeedButton()
+        configurePipButton()
 
         configurePasswordButton()
         configureAdBlockButton()
@@ -656,6 +726,39 @@ final class BrowserToolbarController: NSObject {
         // removes its arranged space too, like the feed button.
         centerStack.addArrangedSubview(webrtcButton)
         centerStack.addArrangedSubview(feedButton)
+        centerStack.addArrangedSubview(pipButton)
+    }
+
+    /// Shows the PiP control exactly while the selected tab plays video
+    /// (or while our fallback box holds one, so it can be restored).
+    ///
+    /// The candidates are keyed to the page that reported them and cleared
+    /// on navigation, so the button follows the page rather than lingering
+    /// from the previous one. Open PiP flips the glyph to the off state
+    /// and the action to exit; both states share one box so the toggle
+    /// never moves the glyph.
+    private func syncPipButton() {
+        let controller = tab?.tabController
+        pipButton.isHidden = !((controller?.hasPipVideo ?? false) || (controller?.isFloating ?? false))
+        let active = controller?.isPipActive ?? false
+        let floating = controller?.isFloating ?? false
+        let image = BrowserToolbarButton.bundledGlyphImage(
+            named: (active || floating) ? "TablerPictureInPictureOff" : "TablerPictureInPictureOn",
+            inkRatio: Self.pipInkRatio
+        )
+        // Re-applied rather than set once, so a language switch re-renders
+        // it like every other stateful tooltip.
+        let help: String
+        if active {
+            help = tr("Exit Picture in Picture", ctx: "Toolbar")
+        } else if floating {
+            help = tr("Close floating player", ctx: "Toolbar")
+        } else {
+            help = tr("Watch video in Picture in Picture", ctx: "Toolbar")
+        }
+        image?.accessibilityDescription = help
+        pipButton.image = image
+        pipButton.toolTip = help
     }
 
     /// Shows the capture button exactly while the selected tab's page asked
@@ -725,6 +828,23 @@ final class BrowserToolbarController: NSObject {
         // Shown only for a page that advertises feeds; `syncFeedButton` owns
         // this from here on.
         feedButton.isHidden = true
+    }
+
+    /// Bundled Tabler vectors rather than a system glyph, like the feed
+    /// and shield buttons. Hidden until a playing video lights it;
+    /// `syncPipButton` owns the glyph, tooltip, and visibility from here
+    /// on, flipping between the on and off states.
+    private static let pipInkRatio = 0.75
+
+    private func configurePipButton() {
+        configureBundled(
+            pipButton,
+            asset: "TablerPictureInPictureOn",
+            inkRatio: Self.pipInkRatio,
+            help: tr("Watch video in Picture in Picture", ctx: "Toolbar"),
+            action: #selector(togglePictureInPicture)
+        )
+        pipButton.isHidden = true
     }
 
     private func configure(_ button: BrowserToolbarButton, symbol: String, help: String, action: Selector?) {

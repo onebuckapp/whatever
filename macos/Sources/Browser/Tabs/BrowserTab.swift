@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import Combine
+import PDFKit
 import WebKit
 
 /// Presentation flags a tab carries around independently of the window
@@ -338,6 +339,25 @@ final class BrowserTab: NSObject {
         webView?.url ?? currentURL
     }
 
+    /// Whether the pane should host the native PDF viewer rather than a web
+    /// view: a fetch is in flight or a document (or its error) is showing.
+    var isPDF: Bool {
+        tabController.isPDF
+    }
+
+    /// Whether the tab's current address wants the viewer: a local PDF file
+    /// or a remote `.pdf` path. Answered from the address alone, so a
+    /// restored or woken tab routes before any view exists.
+    var isPDFAddress: Bool {
+        let url = currentURL
+        return PDFSupport.isLocalPDFFile(url) || PDFSupport.isRemotePDFURL(url)
+    }
+
+    /// In-flight PDF fetch, if any. Cancelled whenever a newer navigation
+    /// takes over, so a slow fetch cannot land over the page that replaced
+    /// it.
+    private var pdfTask: Task<Void, Never>?
+
     /// Takes the page out of, or back into, mouse interaction.
     ///
     /// The modal shield already stops presses from landing on the page, but it
@@ -544,6 +564,7 @@ final class BrowserTab: NSObject {
     /// nothing here can take a committed page. Also arms the replace veto
     /// for the coming finish (see `consumeServerRedirectFlag`).
     func noteServerRedirect() {
+        NSLog("[TRIAGE] redirect queue=%@", unfinishedQueue.map(\.absoluteString).description)
         sawServerRedirect = true
         while let front = unfinishedQueue.first {
             unfinishedQueue.removeFirst()
@@ -619,11 +640,129 @@ final class BrowserTab: NSObject {
         // previous flight's fold cannot repeat onto it (see `lastFoldedURL`).
         sawAppInitiatedNavigation = true
         lastFoldedURL = nil
+        // PDFs never reach WebKit: the viewer fetches the bytes itself, so
+        // the built-in PDF toolbar never appears.
+        if PDFSupport.isLocalPDFFile(url) || PDFSupport.isRemotePDFURL(url) {
+            loadPDFContent(url)
+            return
+        }
+        tabController.clearPDF()
+        pdfTask?.cancel()
+        pdfTask = nil
         guard let webView, SiteIdentity.isSameSite(previous, url) else {
             replaceWebView()
             return
         }
         webView.load(URLRequest(url: url))
+    }
+
+    /// Shows the viewer for a PDF WebKit was about to render: a response
+    /// whose MIME type names PDF bytes but whose address gave no hint (no
+    /// `.pdf` path), so `load` let it through. Main frame only — the caller
+    /// checks `isMainFrameFlight` so embedded documents keep rendering in
+    /// place. The commit is logged first: no web view will ever commit this
+    /// address, so without it history would disagree with what is on screen.
+    func openPDFFromResponse(url: URL) {
+        noteCommitted(url: url)
+        loadPDFContent(url)
+    }
+
+    /// Ensures a PDF address has content loading or showing: the wake path
+    /// for restored and slept tabs, which hold an address but no view and no
+    /// state. No-op for web addresses and for PDFs already under way.
+    func ensurePDFContent() {
+        guard isPDFAddress else { return }
+        if let source = tabController.pdfState.sourceURL,
+           source.hasSameAddress(as: currentURL) {
+            return
+        }
+        loadPDFContent(currentURL)
+    }
+
+    /// Retries the showing fetch, if the viewer holds one to retry.
+    func retryPDF() {
+        guard let url = tabController.pdfState.sourceURL else { return }
+        loadPDFContent(url)
+    }
+
+    /// Reloads whatever the tab shows: refetches a PDF, reloads a page.
+    func reload() {
+        if isPDF {
+            loadPDFContent(currentURL)
+        } else {
+            tabController.reload()
+        }
+    }
+
+    /// Whether `url` is a began main-frame flight of this tab. The response
+    /// policy consults it so only main-frame PDFs route to the viewer.
+    func isMainFrameFlight(url: URL) -> Bool {
+        unfinishedQueue.contains { $0.hasSameAddress(as: url) }
+    }
+
+    /// Tracks a began main-frame navigation the tab did not start itself:
+    /// form submissions, scripted moves, and drops WebKit performs in
+    /// place. Without this the response policy cannot tell those apart from
+    /// subframe loads, and a scripted navigation to a PDF would render in
+    /// WebKit instead of the viewer. Deduped like the rest of the queue,
+    /// and drained the same way.
+    func markUnfinishedFlight(url: URL) {
+        NSLog("[TRIAGE] mark action %@ queue=%@", url.absoluteString, unfinishedQueue.map(\.absoluteString).description)
+        markUnfinished(url)
+    }
+
+    /// Retires a PDF flight. WebKit never finishes it, so without this the
+    /// replace fold and the redirect tracker would treat the next finish as
+    /// belonging to it.
+    private func notePDFSettled(url: URL) {
+        unfinishedQueue.removeAll(where: { url.hasSameAddress(as: $0) })
+        pendingBackListCount = nil
+    }
+
+    /// Fetches `url` into the viewer, replacing any web view. A fetch
+    /// overtaken by a newer navigation is dropped: the tab checks the
+    /// address is still wanted before publishing, and every new flight
+    /// cancels the previous task first.
+    private func loadPDFContent(_ url: URL) {
+        markUnfinished(url)
+        if webView != nil {
+            discardWebView()
+        }
+        tabController.showPDFLoading(url: url)
+        tabController.setPlaceholderTitle(PDFSupport.displayName(for: url))
+        pdfTask?.cancel()
+        pdfTask = Task { [weak self] in
+            guard let self else { return }
+            let loaded: PDFDocumentLoader.LoadedPDF?
+            do {
+                loaded = try await PDFDocumentLoader.load(from: url, dataStore: dataStore)
+            } catch {
+                loaded = nil
+            }
+            guard !Task.isCancelled else { return }
+            guard currentURL.hasSameAddress(as: url)
+                || tabController.pdfState.sourceURL?.hasSameAddress(as: url) == true
+            else {
+                return
+            }
+            guard let loaded, let document = PDFDocument(data: loaded.data) else {
+                tabController.showPDFError(
+                    url: url,
+                    message: tr("Could not open this PDF.", ctx: "PDF")
+                )
+                notePDFSettled(url: url)
+                return
+            }
+            tabController.showPDF(
+                document: document,
+                data: loaded.data,
+                url: url,
+                filename: loaded.filename
+            )
+            tabController.setPlaceholderTitle(loaded.filename)
+            navigationController.recordPDFVisit(url: url, title: loaded.filename)
+            notePDFSettled(url: url)
+        }
     }
 
     private func replaceWebView() {

@@ -161,6 +161,16 @@ extension NavigationController: WKNavigationDelegate {
         completionHandler(.performDefaultHandling, nil)
     }
 
+    /// Records a PDF visit the viewer committed to. WebKit never finishes a
+    /// viewer load, so without this the visit would reach neither history
+    /// nor the tab's own back list bookkeeping. Privacy-checked like every
+    /// other commit: private tabs never record.
+    @MainActor
+    func recordPDFVisit(url: URL, title: String?) {
+        guard let owner, owner.shouldRecordHistory else { return }
+        history.record(url: url, title: title)
+    }
+
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationResponse: WKNavigationResponse,
@@ -173,6 +183,21 @@ extension NavigationController: WKNavigationDelegate {
         // like Unsplash force-save otherwise viewable images. Renderable
         // responses flow through untouched, including file:// listings the
         // file browser already handles.
+        //
+        // PDFs take a third path: an attachment still downloads (the server
+        // said save), but a viewable PDF renders in the app's own viewer
+        // rather than WebKit's, so its built-in toolbar never appears. Main
+        // frame only — an embedded document keeps rendering in place — and
+        // only when the address gave no hint: `.pdf` paths never reach here
+        // because the tab routes them before loading.
+        if let owner, let url = navigationResponse.response.url,
+           PDFSupport.isPDFMIMEType(navigationResponse.response.mimeType),
+           !Self.servesAttachment(navigationResponse.response),
+           owner.isMainFrameFlight(url: url) {
+            owner.openPDFFromResponse(url: url)
+            decisionHandler(.cancel)
+            return
+        }
         guard !navigationResponse.canShowMIMEType
             || Self.servesAttachment(navigationResponse.response)
         else {
@@ -281,6 +306,16 @@ extension NavigationController: WKNavigationDelegate {
             let owner
         {
             owner.noteAppInitiatedNavigation()
+        }
+        // Marks began main-frame flights the tab did not start: forms,
+        // scripted moves, and drops WebKit performs in place never pass
+        // through the tab's own `load`, so without this the response policy
+        // cannot tell them apart from subframe loads. Frameless actions stay
+        // out: the ones that stay go through `navigate` (marked there), and
+        // the ones that open popups belong to the new tab, not this one.
+        if navigationAction.targetFrame?.isMainFrame == true,
+           let url = navigationAction.request.url {
+            owner?.markUnfinishedFlight(url: url)
         }
         // A link with no target frame asked for a new window: `target="_blank"`,
         // a scripted `window.open`, or an explicit new-tab click (⌘/⇧ held).

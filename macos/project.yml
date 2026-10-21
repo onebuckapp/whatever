@@ -17,6 +17,9 @@ packages:
   MijickPopups:
     url: https://github.com/Mijick/Popups
     from: 4.0.5
+  Highlighter:
+    url: https://github.com/smittytone/HighlighterSwift
+    from: 3.1.0
 
 settings:
   base:
@@ -36,6 +39,7 @@ targets:
     bundleId: com.onebuckapp.whatever
     dependencies:
       - package: MijickPopups
+      - package: Highlighter
       - target: WhateverStore
         embed: true
     sources:
@@ -91,6 +95,12 @@ targets:
             CFBundleTypeRole: Viewer
             LSItemContentTypes:
               - public.xhtml
+          # PDF documents open in the tab's own viewer (see `PDFSupport`),
+          # never in WebKit: Viewer, not Editor, like HTML above.
+          - CFBundleTypeName: PDF Document
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - com.adobe.pdf
         # Declares the bundled XPC service to launchd. Without it the service is
         # present on disk but unregistered, and an NSXPCConnection to it fails
         # with "failed at lookup with error 3 - No such process".
@@ -178,6 +188,7 @@ targets:
     dependencies:
       - target: Whatever
       - package: MijickPopups
+      - package: Highlighter
     settings:
       base:
         PRODUCT_NAME: WhateverTests

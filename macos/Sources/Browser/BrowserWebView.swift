@@ -54,6 +54,18 @@ final class BrowserWebView: WKWebView {
     /// pointer leaves links. Set by the hosting pane, which owns the bubble.
     var onLinkHover: ((URL?) -> Void)?
 
+    /// Called when the page's video report changes, with its eligible
+    /// `<video>` elements and whether it holds a PiP window. Set by the
+    /// hosting pane, which forwards it to the tab controller for the
+    /// toolbar PiP button.
+    var onVideoReport: ((VideoReport) -> Void)?
+
+    /// The relay this page's configuration posts video reports to. Held
+    /// strongly: the content controller retains its handlers, and the relay
+    /// holds this view weakly, so neither direction leaks. Replaced on every
+    /// script-list rebuild, one per page.
+    var videoRelay: VideoReportRelay?
+
     /// The relay this page's configuration posts hover messages to. Held
     /// strongly: the content controller retains its handlers, and the relay
     /// holds this view weakly, so neither direction leaks. Replaced on every

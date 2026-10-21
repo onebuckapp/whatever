@@ -228,6 +228,11 @@ msgctxt "Menu.File"
 msgid "New Incognito Window"
 msgstr ""
 
+#. File menu > file picker.
+msgctxt "Menu.File"
+msgid "Open…"
+msgstr ""
+
 #. File menu > print preview.
 msgctxt "Menu.File"
 msgid "Print…"
@@ -273,9 +278,74 @@ msgctxt "Menu.View"
 msgid "Reload From Origin"
 msgstr ""
 
+#. View menu > steps the page or PDF zoom in.
+msgctxt "Menu.View"
+msgid "Zoom In"
+msgstr ""
+
+#. View menu > steps the page or PDF zoom out.
+msgctxt "Menu.View"
+msgid "Zoom Out"
+msgstr ""
+
+#. View menu > returns the page or PDF zoom to actual size.
+msgctxt "Menu.View"
+msgid "Actual Size"
+msgstr ""
+
 #. View menu > bookmark bar toggle.
 msgctxt "Menu.View"
 msgid "Show Bookmarks Bar"
+msgstr ""
+
+#. PDF viewer toolbar > zooms the document out.
+msgctxt "PDF"
+msgid "Zoom Out"
+msgstr ""
+
+#. PDF viewer toolbar > zooms the document in.
+msgctxt "PDF"
+msgid "Zoom In"
+msgstr ""
+
+#. PDF viewer toolbar > scales the document to the window.
+msgctxt "PDF"
+msgid "Fit to Window"
+msgstr ""
+
+#. PDF viewer toolbar > goes to the previous page.
+msgctxt "PDF"
+msgid "Previous Page"
+msgstr ""
+
+#. PDF viewer toolbar > goes to the next page.
+msgctxt "PDF"
+msgid "Next Page"
+msgstr ""
+
+#. PDF viewer toolbar > prints the document.
+msgctxt "PDF"
+msgid "Print"
+msgstr ""
+
+#. PDF viewer toolbar > saves the document.
+msgctxt "PDF"
+msgid "Save…"
+msgstr ""
+
+#. PDF viewer > retries a failed load.
+msgctxt "PDF"
+msgid "Retry"
+msgstr ""
+
+#. PDF viewer > shown when the document cannot be fetched or parsed.
+msgctxt "PDF"
+msgid "Could not open this PDF."
+msgstr ""
+
+#. PDF viewer toolbar > current page within the document.
+msgctxt "PDF"
+msgid "Page {current} of {total}"
 msgstr ""
 
 #. Top-level Tab menu.
@@ -1531,7 +1601,7 @@ msgid "A film-grain texture over the whole window. Every change applies as you m
 msgstr ""
 
 msgctxt "Settings.Appearance"
-msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live."
+msgid "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live. Fold a rule with its chevron."
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -1844,10 +1914,6 @@ msgstr ""
 
 msgctxt "Settings.Appearance"
 msgid "Look"
-msgstr ""
-
-msgctxt "Settings.Appearance"
-msgid "Managed — regenerated from the controls above"
 msgstr ""
 
 msgctxt "Settings.Appearance"
@@ -3043,6 +3109,10 @@ msgid "Content Blocker — paused on this site"
 msgstr ""
 
 msgctxt "Toolbar"
+msgid "Close floating player"
+msgstr ""
+
+msgctxt "Toolbar"
 msgid "Content blocker active on this site"
 msgstr ""
 
@@ -3051,11 +3121,19 @@ msgid "Content blocker paused on this site"
 msgstr ""
 
 msgctxt "Toolbar"
+msgid "Couldn't open Picture in Picture ({reason})"
+msgstr ""
+
+msgctxt "Toolbar"
 msgid "Downloads"
 msgstr ""
 
 msgctxt "Toolbar"
 msgid "Edit Bookmark"
+msgstr ""
+
+msgctxt "Toolbar"
+msgid "Exit Picture in Picture"
 msgstr ""
 
 msgctxt "Toolbar"
@@ -3112,6 +3190,10 @@ msgstr ""
 
 msgctxt "Toolbar"
 msgid "Visit {address}"
+msgstr ""
+
+msgctxt "Toolbar"
+msgid "Watch video in Picture in Picture"
 msgstr ""
 
 #. Software update rows.

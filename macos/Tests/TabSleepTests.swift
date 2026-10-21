@@ -32,6 +32,7 @@ struct TabSleepTests {
         isDisplayed: Bool = false,
         isPinned: Bool = false,
         isProducingAudio: Bool = false,
+        hasPipVideo: Bool = false,
         isLoading: Bool = false
     ) -> Bool {
         TabSleeper.shouldSleep(
@@ -40,6 +41,7 @@ struct TabSleepTests {
             isDisplayed: isDisplayed,
             isPinned: isPinned,
             isProducingAudio: isProducingAudio,
+            hasPipVideo: hasPipVideo,
             isLoading: isLoading,
             cutoff: Date().addingTimeInterval(-thresholdMinutes * 60)
         )
@@ -88,11 +90,12 @@ struct TabSleepTests {
         #expect(!decision(hasView: false, idleMinutes: 600))
     }
 
-    @Test("displayed, pinned, sounding, and loading tabs never sleep")
+    @Test("displayed, pinned, sounding, PiP-feeding, and loading tabs never sleep")
     func exemptions() {
         #expect(!decision(idleMinutes: 600, isDisplayed: true))
         #expect(!decision(idleMinutes: 600, isPinned: true))
         #expect(!decision(idleMinutes: 600, isProducingAudio: true))
+        #expect(!decision(idleMinutes: 600, hasPipVideo: true))
         #expect(!decision(idleMinutes: 600, isLoading: true))
     }
 }

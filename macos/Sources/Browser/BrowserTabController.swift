@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import Combine
+import PDFKit
 import Security
 import WebKit
 
@@ -62,6 +63,64 @@ final class BrowserTabController: ObservableObject {
     /// order. Empty when the page advertises none, has not finished loading,
     /// or has no committed HTTP(S) address yet.
     @Published private(set) var feedCandidates: [FeedCandidate] = []
+
+    /// The current page's `<video>` elements, in document order, pushed by
+    /// the detector script whenever the set changes. Empty when the page
+    /// has no eligible video or its view is gone.
+    @Published private(set) var videoCandidates: [VideoCandidate] = []
+
+    /// Whether the page currently holds a PiP window. Pushed by the
+    /// detector's PiP events, so closing the window from the window itself
+    /// flips the toolbar button back without a poll.
+    @Published private(set) var isPipActive = false
+
+    /// Whether our in-page fallback box currently owns a video. Pushed by
+    /// the detector with the same report, so its close button flips the
+    /// toolbar back the same way a system window close does.
+    @Published private(set) var isFloating = false
+
+    /// Consecutive failed native entries. Two in a row floats the video
+    /// instead of failing silently a third time; any success resets.
+    private(set) var consecutivePipFailures = 0
+
+    /// Whether the toolbar offers Picture in Picture: exactly when a video
+    /// is currently playing.
+    var hasPipVideo: Bool {
+        VideoDetector.pickBestVideo(from: videoCandidates) != nil
+    }
+
+    /// What the tab's native PDF viewer is showing. `.none` means the tab
+    /// is a web page; anything else means the pane hosts the viewer instead
+    /// of a web view, so WebKit's built-in PDF toolbar never appears.
+    @Published private(set) var pdfState = PDFViewerState.none
+
+    /// Whether the pane should host the PDF viewer rather than a web view.
+    var isPDF: Bool {
+        pdfState != .none
+    }
+
+    /// Marks a PDF fetch in flight. The viewer shows its spinner.
+    func showPDFLoading(url: URL) {
+        pdfState = .loading(url)
+    }
+
+    /// Shows fetched bytes. A viewer showing an older document for the same
+    /// address keeps it until a newer one lands: generations are ordered by
+    /// the tab, so this is always the latest.
+    func showPDF(document: PDFDocument, data: Data, url: URL, filename: String) {
+        pdfState = .ready(document: document, data: data, url: url, filename: filename)
+    }
+
+    /// Shows a fetch failure with a retry affordance. The source address is
+    /// kept so retry knows where to go.
+    func showPDFError(url: URL, message: String) {
+        pdfState = .failed(url: url, message: message)
+    }
+
+    /// Drops the viewer state, e.g. when navigating back to a web page.
+    func clearPDF() {
+        pdfState = .none
+    }
 
     /// What the page is doing with the camera and microphone.
     /// Published from the hosting pane's permission delegate rather than
@@ -169,6 +228,12 @@ final class BrowserTabController: ObservableObject {
     /// swaps views for a new page.
     func retarget(to newWebView: WKWebView) {
         webView = newWebView
+        // The new page has reported nothing yet: the old page's videos
+        // would otherwise offer PiP into a document that is gone.
+        videoCandidates = []
+        isPipActive = false
+        isFloating = false
+        consecutivePipFailures = 0
         observe(newWebView)
         syncAll()
     }
@@ -191,6 +256,12 @@ final class BrowserTabController: ObservableObject {
         // And for its captures: a view that is gone holds no microphone.
         captureHost = nil
         captureState = MediaCaptureState()
+        // And for its videos: candidates belong to the reported document,
+        // and a view that is gone reports nothing.
+        videoCandidates = []
+        isPipActive = false
+        isFloating = false
+        consecutivePipFailures = 0
         // And for its certificate: the chain belonged to that page's handshake.
         siteCertificate = nil
         // Clears the audio flag and drops the poll. The mute stays: it belongs to
@@ -261,6 +332,97 @@ final class BrowserTabController: ObservableObject {
     /// Notes a denied request: answered, and gone.
     func noteCaptureDenied(_ kind: AppSettings.MediaCaptureKind) {
         captureState.noteDenied(kind)
+    }
+
+    /// Replaces the page's video report. Pushed by the detector script
+    /// whenever the set changes, so play and pause move the toolbar button
+    /// without polling.
+    func noteVideoReport(_ report: VideoReport) {
+        videoCandidates = report.candidates
+        isPipActive = report.pipActive
+        isFloating = report.floating
+    }
+
+    /// Moves the currently playing video into a system PiP window.
+    ///
+    /// Asks the page's own element, so DRM and adaptive streams work where
+    /// an extracted URL would not. Each frame enters its own best video
+    /// and the traversal takes the first win, so a re-rendered page and an
+    /// embedded player are both covered without trusting a stale index.
+    ///
+    /// Answers the page's verdict (`"ok"`, `"pending"`, a reason with
+    /// element facts, …) so the caller can say why a dead button died
+    /// instead of swallowing it. Success resets the failure count; any
+    /// other answer raises it toward the floating fallback.
+    func enterPictureInPicture() async -> String {
+        guard let webView, hasPipVideo else { return "idle" }
+        do {
+            let answer = try await webView.evaluateJavaScriptSafely(
+                VideoDetector.enterPictureInPictureSource()
+            )
+            let verdict = (answer as? String) ?? "failed"
+            if verdict == "ok" || verdict == "pending" {
+                consecutivePipFailures = 0
+            } else {
+                consecutivePipFailures += 1
+                NSLog("[PiP] enter failed: %@", verdict)
+            }
+            return verdict
+        } catch {
+            consecutivePipFailures += 1
+            NSLog("[PiP] enter threw: %@", String(describing: error))
+            return "failed"
+        }
+    }
+
+    /// Whether the next failed entry should float instead of failing
+    /// again: two strikes, and the button must do *something*. Never
+    /// while already floating.
+    var shouldFloatAfterFailure: Bool {
+        consecutivePipFailures >= 2 && !isFloating
+    }
+
+    /// Moves the best video into the page's own floating box (see
+    /// `floatPictureInPictureSource`). Success resets the failure count,
+    /// so a recovered page goes back to trying the system first.
+    func floatPictureInPicture() async -> String {
+        guard let webView, hasPipVideo else { return "idle" }
+        do {
+            let answer = try await webView.evaluateJavaScriptSafely(
+                VideoDetector.floatPictureInPictureSource()
+            )
+            let verdict = (answer as? String) ?? "failed"
+            if verdict == "ok" {
+                consecutivePipFailures = 0
+            } else {
+                NSLog("[PiP] float failed: %@", verdict)
+            }
+            return verdict
+        } catch {
+            NSLog("[PiP] float threw: %@", String(describing: error))
+            return "failed"
+        }
+    }
+
+    /// Returns the floated video to its page slot. Closing the fallback
+    /// is a deliberate act, so the failure count resets with it: the next
+    /// press tries the system again rather than re-floating blindly.
+    func unfloatPictureInPicture() async {
+        consecutivePipFailures = 0
+        guard let webView, isFloating else { return }
+        _ = try? await webView.evaluateJavaScriptSafely(
+            VideoDetector.unfloatPictureInPictureSource
+        )
+    }
+
+    /// Closes the page's PiP window, however it was opened. Answers from
+    /// the page, so a window the user already closed from the window
+    /// itself settles as idle rather than an error.
+    func exitPictureInPicture() async {
+        guard let webView, isPipActive else { return }
+        _ = try? await webView.evaluateJavaScriptSafely(
+            VideoDetector.exitPictureInPictureSource
+        )
     }
 
     /// Snapshots the server's certificate for the site-information card.

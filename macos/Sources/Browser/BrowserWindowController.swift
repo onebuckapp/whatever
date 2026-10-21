@@ -17,6 +17,7 @@
 
 import AppKit
 import Combine
+import PDFKit
 import WebKit
 
 /// One browser window. A window owns an ordered list of tabs (a tab
@@ -560,6 +561,9 @@ final class BrowserWindowController: NSWindowController {
             guard let self else { return }
             BrowserCoordinator.shared.moveTabs(pair, to: self.tabs.count, in: self)
         }
+        contentController.onFilesDropped = { [weak self] urls in
+            self?.openDroppedFiles(urls)
+        }
         toolbarController.onAddressSubmitted = { [weak self] url in
             self?.openAddress(url)
         }
@@ -746,16 +750,18 @@ final class BrowserWindowController: NSWindowController {
         // its video while looking at another tab). Focus anywhere else
         // (address field, find bar, cards, buttons) stays put.
         if Self.focusWasInPageContent(window?.firstResponder) {
-            window?.makeFirstResponder(tab.ensureWebView())
+            pane(for: tab).focusContent()
         }
         sessionDidChange()
     }
 
     /// Whether keyboard focus sits in a page: only then does a tab switch
     /// move it to the new tab's view. Static so the rule is testable
-    /// without a window.
+    /// without a window. The native PDF viewer counts as page content too:
+    /// a parked viewer keeps first responder the same way a parked web view
+    /// does.
     static func focusWasInPageContent(_ firstResponder: NSResponder?) -> Bool {
-        firstResponder is WKWebView
+        firstResponder is WKWebView || firstResponder is PDFView
     }
 
     /// The sticky group, only when both members are still tabs of this
@@ -1248,9 +1254,10 @@ final class BrowserWindowController: NSWindowController {
         }
         let next = visible[(index + step + visible.count) % visible.count]
         selectTab(next)
-        // The pane is on screen by now, so this is already realized; asking the
-        // tab for it directly keeps the call honest if that ever stops being true.
-        window?.makeFirstResponder(next.ensureWebView())
+        // The pane is on screen by now, so this is already realized; focusing
+        // through the pane keeps PDFs on their viewer instead of building a
+        // web view nobody will host.
+        pane(for: next).focusContent()
     }
 
     // MARK: - Drop handling
@@ -1349,7 +1356,10 @@ final class BrowserWindowController: NSWindowController {
 
     /// Shows the QR card for `tab`'s page over that tab's pane.
     func presentQRCode(for tab: BrowserTab) {
-        guard let url = tab.webView?.url, !url.isAddresslessPage else {
+        // A PDF has no web view, so its address comes from the tab itself;
+        // anything else reads the live page as before.
+        guard let url = tab.webView?.url ?? (tab.isPDF ? tab.currentURL : nil),
+              !url.isAddresslessPage else {
             SystemBeep.play()
             return
         }
@@ -1431,6 +1441,48 @@ final class BrowserWindowController: NSWindowController {
         tab.navigate(to: url)
     }
 
+    /// Opens the file picker (⌘O): any file, each in its own new tab, with
+    /// directories browsing in the file popup instead. PDFs land in the
+    /// native viewer through the tab's own routing; everything else renders
+    /// like a clicked file link.
+    func openFilePanel() {
+        guard let window else {
+            SystemBeep.play()
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.canCreateDirectories = false
+        panel.prompt = tr("Open", ctx: "Dialogs")
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK else { return }
+            self?.openDroppedFiles(panel.urls)
+        }
+    }
+
+    /// Opens files dropped on the page area (or picked above): one new tab
+    /// per file, directories in the file browser. Non-file addresses pass
+    /// through too, so a dragged link opens where it is dropped.
+    func openDroppedFiles(_ urls: [URL]) {
+        var browsedDirectory = false
+        for url in urls {
+            if Self.isFileDirectory(url) {
+                // One browser per drop: five folders are still one gesture,
+                // and each would otherwise cover the last.
+                guard !browsedDirectory, let tab = selectedTab else { continue }
+                browsedDirectory = true
+                pane(for: tab).presentFileBrowser(url: url)
+            } else if url.isFileURL {
+                guard Self.allowsContentFileLink(url) else { continue }
+                BrowserCoordinator.shared.newTab(url: url, in: self, focusesAddressBar: false)
+            } else if ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+                BrowserCoordinator.shared.newTab(url: url, in: self, focusesAddressBar: false)
+            }
+        }
+    }
+
     /// Closes every open file browser, used when the layout or selection
     /// changes out from under one. Mirrors the QR dismissal: popups belong
     /// to the pane layout showing them.
@@ -1495,7 +1547,7 @@ final class BrowserWindowController: NSWindowController {
 
     /// Reloads the selected tab, or refreshes its file listing when that is
     /// what is open. A loading page stops instead, matching the toolbar
-    /// button's toggle.
+    /// button's toggle. A PDF refetches from its source address.
     func reloadPage() {
         guard let tab = selectedTab else {
             SystemBeep.play()
@@ -1508,6 +1560,10 @@ final class BrowserWindowController: NSWindowController {
         if pane.refreshDownloads() {
             return
         }
+        if tab.isPDF {
+            tab.reload()
+            return
+        }
         if tab.tabController.isLoading {
             tab.tabController.stopLoading()
         } else {
@@ -1516,7 +1572,8 @@ final class BrowserWindowController: NSWindowController {
     }
 
     /// Reloads ignoring caches. A file listing has no cache to bypass, so it
-    /// refreshes like a plain reload.
+    /// refreshes like a plain reload — and so does a PDF, which has no
+    /// cached layer of its own.
     func reloadPageFromOrigin() {
         guard let tab = selectedTab else {
             SystemBeep.play()
@@ -1526,7 +1583,61 @@ final class BrowserWindowController: NSWindowController {
         if pane.refreshFileBrowser() {
             return
         }
+        if tab.isPDF {
+            tab.reload()
+            return
+        }
         tab.tabController.reloadFromOrigin()
+    }
+
+    // MARK: - Zoom
+
+    /// Steps the selected tab's zoom in: the viewer's scale for a PDF, the
+    /// page zoom for a web page. Page zoom is the shared setting, so it
+    /// lands on every open page and persists like the slider's.
+    func zoomIn() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        if tab.isPDF {
+            pane(for: tab).pdfZoomIn()
+            return
+        }
+        SettingsStore.shared.update {
+            $0.web.pageZoom = ZoomSupport.stepped($0.web.pageZoom, direction: 1)
+        }
+    }
+
+    /// Steps the selected tab's zoom out. See `zoomIn`.
+    func zoomOut() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        if tab.isPDF {
+            pane(for: tab).pdfZoomOut()
+            return
+        }
+        SettingsStore.shared.update {
+            $0.web.pageZoom = ZoomSupport.stepped($0.web.pageZoom, direction: -1)
+        }
+    }
+
+    /// Returns to actual size: 100% scale in the viewer, a page zoom of one
+    /// on web pages.
+    func resetZoom() {
+        guard let tab = selectedTab else {
+            SystemBeep.play()
+            return
+        }
+        if tab.isPDF {
+            pane(for: tab).pdfResetZoom()
+            return
+        }
+        SettingsStore.shared.update {
+            $0.web.pageZoom = 1.0
+        }
     }
 
     /// Opens the settings modal on this window.

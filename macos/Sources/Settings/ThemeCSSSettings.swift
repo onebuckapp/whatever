@@ -18,19 +18,18 @@
 import Combine
 import SwiftUI
 
-/// The Custom CSS group in Appearance: a read-only managed preview, the
-/// hand-written user block with highlighting and policy underlines, and
-/// Apply/Revert. Lives inside Appearance alongside the other groups and
-/// emits groups rather than a pane.
+/// The Custom CSS group in Appearance: one editor with token colors,
+/// fold chevrons, and policy underlines, plus Apply/Revert. Lives
+/// inside Appearance alongside the other groups and emits groups rather
+/// than a pane.
 ///
 /// The two-way contract, in one place: controls regenerate the managed
-/// block (previewed, never edited); Apply parses the user block, maps what
-/// has a control counterpart back into settings, and stores the whole block
-/// as `customCSS` in the same update. What remains applies as a CSS-only
+/// block; Apply parses the editor text, maps what has a control
+/// counterpart back into settings, and stores the whole block as
+/// `customCSS` in the same update. What remains applies as a CSS-only
 /// override through the cascade and still repaints live.
 struct ThemeCSSSettingsGroups: View {
     @ObservedObject private var store = SettingsStore.shared
-    @ObservedObject private var engine = ThemeEngine.shared
 
     /// Draft of the user block. Seeded once on appear: the card keeps panes
     /// mounted, so a blind reseed would clobber typing on every return.
@@ -67,10 +66,9 @@ struct ThemeCSSSettingsGroups: View {
         SettingsGroup(
             title: tr("Custom CSS", ctx: "Settings.Appearance"),
             footnote: tr(
-                "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live.",
+                "A stylesheet for the browser chrome, GTK-style. Rules that match a control update it; the rest applies as an override and still repaints live. Fold a rule with its chevron.",
                 ctx: "Settings.Appearance")
         ) {
-            managedPreview
             ThemeCSSTextView(text: $draft, diagnostics: diagnostics)
                 .frame(minHeight: 180)
                 .onChange(of: draft) { scheduleCheck() }
@@ -86,31 +84,6 @@ struct ThemeCSSSettingsGroups: View {
             if helpText == nil {
                 Task { @MainActor in helpText = await Self.loadHelp() }
             }
-        }
-    }
-
-    // MARK: - Managed preview
-
-    private var managedPreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(tr("Managed — regenerated from the controls above", ctx: "Settings.Appearance"))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-            ScrollView {
-                Text(engine.managedCSS.isEmpty
-                    ? tr("Nothing yet — still generating.", ctx: "Settings.Appearance")
-                    : engine.managedCSS)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
-            .frame(height: 110)
-            .background(Color(nsColor: .textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color(nsColor: .separatorColor), lineWidth: 1))
         }
     }
 

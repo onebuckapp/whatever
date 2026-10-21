@@ -45,6 +45,10 @@ final class BrowserPaneController: NSViewController {
     private var downloadsPresenter: DownloadsPresenter?
     private var findController: FindController?
     private var linkHoverBubble: LinkHoverBubble?
+    private var pdfController: PDFViewerController?
+    /// Follows the tab's viewer state, so a PDF finishing loading (or
+    /// failing) re-hosts without anyone asking.
+    private var pdfCancellable: AnyCancellable?
     private var clickMonitor: Any?
     /// A verdict awaiting the user. One instance can sit under two kinds (a
     /// combined camera+mic request answers both with one decision), so
@@ -156,6 +160,9 @@ final class BrowserPaneController: NSViewController {
         // tab to realize itself here is what builds the page. A restored tab
         // arrives without one.
         hostPage()
+        pdfCancellable = tab.tabController.$pdfState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.hostPage() }
         // Held rather than anonymous: the find bar deactivates this while it
         // is open and reactivates it on close, so the page holder yields its
         // bottom edge to the bar instead of overlapping it.
@@ -327,13 +334,15 @@ final class BrowserPaneController: NSViewController {
     private func focusIfClicked(_ event: NSEvent) {
         guard let window = view.window,
               event.window === window,
-              let webView = tab.webView,
               let contentView = window.contentView
         else { return }
         let point = contentView.convert(event.locationInWindow, from: nil)
-        guard let hit = contentView.hitTest(point),
-              hit === webView || hit.isDescendant(of: webView)
-        else { return }
+        guard let hit = contentView.hitTest(point) else { return }
+        // The viewer counts as page content too: clicking a PDF in a split
+        // focuses its tab like clicking a page does.
+        let inWebView = tab.webView.map { hit === $0 || hit.isDescendant(of: $0) } ?? false
+        let inPDF = (pdfController?.view).map { hit === $0 || hit.isDescendant(of: $0) } ?? false
+        guard inWebView || inPDF else { return }
         guard let controller = BrowserCoordinator.shared.controller(for: window),
               controller.selectedTabID != tab.id
         else { return }
@@ -346,8 +355,19 @@ final class BrowserPaneController: NSViewController {
     /// rebuilds it here and loads its address anew. No-op when the hosted
     /// view is current. Only called for displayed tabs — calling it for a
     /// hidden tab would realize a page nobody is looking at.
+    ///
+    /// A tab showing (or wanting) a PDF hosts the native viewer instead of
+    /// a web view: WebKit never renders the document, so its built-in PDF
+    /// toolbar never appears.
     func hostPage() {
         guard let pageContainer else { return }
+        if tab.isPDF || tab.isPDFAddress {
+            hostPDF()
+            return
+        }
+        if pdfController?.view.superview != nil {
+            pdfController?.view.removeFromSuperview()
+        }
         let webView = tab.ensureWebView()
         // The menu items live on the view, so a rebuilt view needs rewiring;
         // reassigning the same closures onto the hosted view is harmless.
@@ -373,6 +393,11 @@ final class BrowserPaneController: NSViewController {
                 } else {
                     self?.hideLinkHover()
                 }
+            }
+            // Video reports belong to the tab, not the pane: the toolbar's
+            // PiP button follows the tab controller's candidates.
+            browserView.onVideoReport = { [weak self] report in
+                self?.tab.tabController.noteVideoReport(report)
             }
             browserView.passwordMenuContextProvider = { [weak self] in
                 guard let self else {
@@ -419,6 +444,83 @@ final class BrowserPaneController: NSViewController {
             webView.trailingAnchor.constraint(equalTo: pageContainer.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: pageContainer.bottomAnchor),
         ])
+    }
+
+    // MARK: - PDF viewer
+
+    /// Whether this pane is showing the native viewer rather than a page.
+    var isShowingPDF: Bool {
+        tab.isPDF
+    }
+
+    /// Embeds the native viewer for the tab's PDF, starting its fetch when
+    /// the address has no content yet (a restored or woken tab). Idempotent:
+    /// re-hosting the same state only re-renders, keeping zoom and scroll.
+    private func hostPDF() {
+        guard let pageContainer else { return }
+        tab.ensurePDFContent()
+        let controller: PDFViewerController
+        if let existing = pdfController {
+            controller = existing
+        } else {
+            let fresh = PDFViewerController()
+            fresh.onRetry = { [weak self] in self?.tab.retryPDF() }
+            pdfController = fresh
+            controller = fresh
+        }
+        // Touches `viewDidLoad` before the first render.
+        _ = controller.view
+        controller.render(pdfContent())
+        guard controller.view.superview !== pageContainer else { return }
+        tab.webView?.removeFromSuperview()
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        pageContainer.addSubview(controller.view)
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: pageContainer.topAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: pageContainer.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: pageContainer.trailingAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: pageContainer.bottomAnchor),
+        ])
+    }
+
+    /// The viewer's content for the tab's current viewer state. A tab whose
+    /// address wants the viewer but has no state yet (restored, woken)
+    /// reads as loading: the fetch `hostPDF` started fills it in.
+    private func pdfContent() -> PDFViewerController.Content {
+        switch tab.tabController.pdfState {
+        case .none:
+            return .loading(tab.currentURL)
+        case .loading(let url):
+            return .loading(url)
+        case .ready(let document, let data, _, let filename):
+            return .ready(document: document, data: data, filename: filename)
+        case .failed(let url, let message):
+            return .failed(url: url, message: message)
+        }
+    }
+
+    /// Moves keyboard focus into whatever this pane shows: the viewer for a
+    /// PDF tab, a (built if needed) web view otherwise. Unlike calling
+    /// `ensureWebView` directly, this never builds a web view for a PDF.
+    func focusContent() {
+        if tab.isPDF || tab.isPDFAddress {
+            hostPDF()
+            view.window?.makeFirstResponder(pdfController?.focusView)
+        } else if let window = view.window {
+            window.makeFirstResponder(tab.ensureWebView())
+        }
+    }
+
+    func pdfZoomIn() {
+        pdfController?.zoomIn()
+    }
+
+    func pdfZoomOut() {
+        pdfController?.zoomOut()
+    }
+
+    func pdfResetZoom() {
+        pdfController?.resetZoom()
     }
 
     // MARK: - QR code
@@ -640,8 +742,13 @@ final class BrowserPaneController: NSViewController {
 
     /// Opens this pane's find bar, creating it on first use. The controller
     /// persists with the pane, so each tab keeps its own query while its pane
-    /// sits in the window's cache.
+    /// sits in the window's cache. PDFs have no page to search: the bar is
+    /// web-only, so it beeps there instead of opening onto nothing.
     func showFindBar() {
+        guard !tab.isPDF else {
+            SystemBeep.play()
+            return
+        }
         guard let pageContainer, let pageBottomConstraint else { return }
         if findController == nil {
             findController = FindController(

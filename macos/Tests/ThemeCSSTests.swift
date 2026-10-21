@@ -17,10 +17,11 @@
 
 import AppKit
 import Foundation
+import Highlighter
 import Testing
 @testable import Whatever
 
-/// Theme value parsing and the highlighter scanner: pure functions over
+/// Theme value parsing and the editor layer: pure functions over
 /// canonical core output and raw text, so no store, engine, or view.
 struct ThemeCSSValueTests {
     @Test("six and eight digit hex parse to sRGB")
@@ -97,36 +98,128 @@ struct ThemeCSSValueTests {
     }
 }
 
-/// The scanner behind the editor: token colors and diagnostic underlines
-/// over raw text, with no text view involved.
+/// Highlighting and folding behind the editor: the Highlight.js wrapper
+/// and the brace matcher, with no text view involved.
 struct ThemeCSSHighlighterTests {
-    private func color(
-        _ marks: [(NSRange, NSColor)], at location: Int
-    ) -> NSColor? {
-        marks.first { NSLocationInRange(location, $0.0) }?.1
+    private func distinctColors(in attributed: NSAttributedString) -> Set<NSColor> {
+        var colors = Set<NSColor>()
+        attributed.enumerateAttribute(
+            .foregroundColor, in: NSRange(location: 0, length: attributed.length),
+            options: []
+        ) { value, _, _ in
+            if let color = value as? NSColor {
+                colors.insert(color)
+            }
+        }
+        return colors
     }
 
-    @Test("selectors, properties, and values colorize by kind")
-    func tokenKinds() {
-        let text = ".tab:active { color: #fff; opacity: 0.5 !important; }"
-        let marks = ThemeCSSScanner.colorize(text)
-        // `.tab` class, `:active` pseudo, `color` property, `#fff` value,
-        // `0.5` number, `!important` flag each carry a color.
-        #expect(color(marks, at: 0) == NSColor.systemOrange)
-        #expect(color(marks, at: 4) == NSColor.systemPurple)
-        #expect(color(marks, at: 14) == NSColor.systemRed)
-        #expect(color(marks, at: 21) != nil)
-        #expect(color(marks, at: 36) == NSColor.systemBlue)
-        #expect(color(marks, at: 40) == NSColor.systemPink)
+    @Test("highlighting preserves the text and colors more than one kind")
+    func highlightSmoke() {
+        guard let highlighter = Highlighter() else {
+            Issue.record("Highlighter engine missing (Highlight.min.js or theme)")
+            return
+        }
+        highlighter.setTheme("atom-one-dark")
+        let text = ".tab:active {\n  background-color: #1e4fca;\n  opacity: 0.5 !important;\n}"
+        guard let highlighted = highlighter.highlight(text, as: "css") else {
+            Issue.record("highlight returned nil for CSS")
+            return
+        }
+        #expect(highlighted.string == text)
+        #expect(distinctColors(in: highlighted).count >= 2)
     }
 
-    @Test("comments and strings win over structure")
-    func commentsAndStrings() {
-        let text = "/* .tab { */ .tab { color: \"red;\"; }"
-        let marks = ThemeCSSScanner.colorize(text)
-        #expect(color(marks, at: 3) == NSColor.secondaryLabelColor)
-        #expect(color(marks, at: 14) == NSColor.systemOrange)
-        #expect(color(marks, at: 28) == NSColor.systemBrown)
+    @Test("editor highlighting keeps prior colors when the engine is gone")
+    func highlightNilSafety() {
+        // ThemeHighlighter.attributed returns nil (never a mismatched
+        // string) when the engine cannot answer; the coordinator only
+        // applies non-nil results.
+        let text = ".tab { color: white; }"
+        if let highlighted = ThemeHighlighter.attributed(text) {
+            #expect(highlighted.string == text)
+        }
+    }
+
+    @Test("braces pair into one fold per multi-line rule")
+    func foldPairing() {
+        let text = "#tabs {\n  color: white;\n}\n.tab {\n  color: black;\n}"
+        let folds = CSSFoldScanner.compute(in: text)
+        #expect(folds.count == 2)
+        #expect(folds[0].startLine == 1)
+        #expect(folds[0].endLine == 3)
+        #expect(folds[1].startLine == 4)
+        #expect(folds[1].endLine == 6)
+        // The hidden interior keeps both braces visible.
+        #expect((text as NSString).substring(
+            with: NSRange(location: folds[0].startOffset, length: 1)) == "{")
+        #expect((text as NSString).substring(
+            with: NSRange(location: folds[0].endOffset - 1, length: 1)) == "}")
+    }
+
+    @Test("braces in strings and comments never fold")
+    func foldSkipsLiterals() {
+        let text = "/* { */\n.tab::before {\n  content: \"}\";\n}"
+        let folds = CSSFoldScanner.compute(in: text)
+        #expect(folds.count == 1)
+        #expect(folds[0].startLine == 2)
+        #expect(folds[0].endLine == 4)
+    }
+
+    @Test("single-line rules do not fold")
+    func foldSingleLine() {
+        #expect(CSSFoldScanner.compute(in: ".tab { color: white; }").isEmpty)
+        #expect(CSSFoldScanner.compute(in: "").isEmpty)
+    }
+
+    @Test("collapsed folds hide the rule interior only")
+    func foldHiddenRanges() {
+        var state = CSSFoldState(folds: CSSFoldScanner.compute(
+            in: "#a {\n  color: white;\n}"))
+        #expect(state.hiddenRanges().isEmpty)
+        state.toggle(startOffset: 3)
+        // `{` at 3 and `}` at 21 stay visible; 4..<21 hides.
+        #expect(state.hiddenRanges() == [NSRange(location: 4, length: 17)])
+        #expect(state.markers.map(\.line) == [1])
+    }
+
+    @Test("nested folds hide with a collapsed outer")
+    func nestedMarkers() {
+        var state = CSSFoldState(folds: [
+            CSSFold(startOffset: 3, endOffset: 40, startLine: 1, endLine: 5),
+            CSSFold(startOffset: 10, endOffset: 30, startLine: 2, endLine: 4),
+        ])
+        #expect(state.markers.map(\.line) == [1, 2])
+        state.toggle(startOffset: 3)
+        #expect(state.markers.map(\.line) == [1])
+        state.toggle(startOffset: 3)
+        #expect(state.markers.map(\.line) == [1, 2])
+    }
+
+    @Test("retargeting drops vanished folds")
+    func foldRetarget() {
+        var state = CSSFoldState(folds: [
+            CSSFold(startOffset: 3, endOffset: 13, startLine: 1, endLine: 2),
+            CSSFold(startOffset: 30, endOffset: 40, startLine: 4, endLine: 5),
+        ])
+        state.toggle(startOffset: 3)
+        state.toggle(startOffset: 99)
+        state.retarget(to: [
+            CSSFold(startOffset: 3, endOffset: 13, startLine: 1, endLine: 2),
+        ])
+        #expect(state.collapsed == [3])
+    }
+
+    @Test("typing into a fold unfolds it")
+    func foldUnfoldOnType() {
+        var state = CSSFoldState(folds: CSSFoldScanner.compute(
+            in: "#a {\n  color: white;\n}"))
+        state.toggle(startOffset: 3)
+        state.unfoldContaining(NSRange(location: 10, length: 0))
+        #expect(state.collapsed.isEmpty)
+        state.toggle(startOffset: 3)
+        state.unfoldContaining(NSRange(location: 0, length: 1))
+        #expect(state.collapsed == [3])
     }
 
     @Test("declaration diagnostics underline the property in its block")
@@ -135,7 +228,7 @@ struct ThemeCSSHighlighterTests {
         let diagnostics = [ThemeCSSDiagnostic(
             selector: "#tabs", property: "tab-shine",
             message: "Unsupported", severity: "warning", line: 0, col: 0)]
-        let ranges = ThemeCSSScanner.diagnosticRanges(
+        let ranges = ThemeCSSDiagnosticRanges.ranges(
             text, diagnostics: diagnostics)
         #expect(ranges.count == 1)
         #expect((text as NSString).substring(with: ranges[0].0) == "tab-shine")
@@ -148,7 +241,7 @@ struct ThemeCSSHighlighterTests {
         let diagnostics = [ThemeCSSDiagnostic(
             selector: "", property: "",
             message: "Invalid", severity: "error", line: 2, col: 8)]
-        let ranges = ThemeCSSScanner.diagnosticRanges(
+        let ranges = ThemeCSSDiagnosticRanges.ranges(
             text, diagnostics: diagnostics)
         #expect(ranges.count == 1)
         #expect((text as NSString).substring(with: ranges[0].0) == "  color: ")
@@ -157,7 +250,7 @@ struct ThemeCSSHighlighterTests {
 
     @Test("unknown selectors fall back to no range")
     func missingMapping() {
-        let ranges = ThemeCSSScanner.diagnosticRanges(
+        let ranges = ThemeCSSDiagnosticRanges.ranges(
             ".tab { color: white; }",
             diagnostics: [ThemeCSSDiagnostic(
                 selector: "#nope", property: "color",

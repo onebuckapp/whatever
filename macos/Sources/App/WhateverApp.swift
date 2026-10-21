@@ -100,6 +100,11 @@ struct WhateverApp: App {
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 Divider()
+                Button(tr("Open…", ctx: "Menu.File")) {
+                    BrowserCoordinator.shared.keyController?.openFilePanel()
+                }
+                .keyboardShortcut("o", modifiers: .command)
+                Divider()
                 Button(tr("Print…", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.keyController?.presentPrintPreview()
                 }
@@ -131,6 +136,19 @@ struct WhateverApp: App {
                     BrowserCoordinator.shared.keyController?.reloadPageFromOrigin()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
+                Divider()
+                Button(tr("Zoom In", ctx: "Menu.View")) {
+                    BrowserCoordinator.shared.keyController?.zoomIn()
+                }
+                .keyboardShortcut("+", modifiers: .command)
+                Button(tr("Zoom Out", ctx: "Menu.View")) {
+                    BrowserCoordinator.shared.keyController?.zoomOut()
+                }
+                .keyboardShortcut("-", modifiers: .command)
+                Button(tr("Actual Size", ctx: "Menu.View")) {
+                    BrowserCoordinator.shared.keyController?.resetZoom()
+                }
+                .keyboardShortcut("0", modifiers: .command)
                 Divider()
                 Toggle(
                     tr("Show Bookmarks Bar", ctx: "Menu.View"),

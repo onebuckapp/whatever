@@ -9,3 +9,6 @@ clue.lock
 press/
 # Compiled gettext catalogs: generated from locale/*.po by `make core`.
 *.mo
+
+# Local plans, scratch probes, and notes. Never committed.
+plans/

@@ -28,10 +28,11 @@ import Foundation
 /// back/forward cache do not survive the sleep.
 ///
 /// Never sleeps a tab that is displayed (both split panes count), pinned,
-/// making sound, or still loading: those are either visible, explicitly
-/// kept, or doing work. Everything else with a view past the setting's
-/// idle threshold goes. Off disables sweeping entirely; slept tabs stay
-/// viewless until shown again rather than being rebuilt eagerly.
+/// making sound, feeding Picture in Picture, or still loading: those are
+/// either visible, explicitly kept, or doing work. Everything else with a
+/// view past the setting's idle threshold goes. Off disables sweeping
+/// entirely; slept tabs stay viewless until shown again rather than being
+/// rebuilt eagerly.
 @MainActor
 final class TabSleeper {
     static let shared = TabSleeper()
@@ -73,6 +74,7 @@ final class TabSleeper {
                     isDisplayed: displayed.contains(tab.id),
                     isPinned: tab.presentation.isPinned,
                     isProducingAudio: tab.tabController.isProducingAudio,
+                    hasPipVideo: tab.tabController.hasPipVideo,
                     isLoading: tab.tabController.isLoading,
                     cutoff: cutoff
                 ) else { continue }
@@ -89,12 +91,13 @@ final class TabSleeper {
         isDisplayed: Bool,
         isPinned: Bool,
         isProducingAudio: Bool,
+        hasPipVideo: Bool,
         isLoading: Bool,
         cutoff: Date
     ) -> Bool {
         guard hasView else { return false }
         guard lastActiveAt < cutoff else { return false }
-        guard !isDisplayed, !isPinned, !isProducingAudio, !isLoading else { return false }
+        guard !isDisplayed, !isPinned, !isProducingAudio, !hasPipVideo, !isLoading else { return false }
         return true
     }
 }

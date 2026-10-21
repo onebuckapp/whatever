@@ -75,6 +75,10 @@ final class BrowserWindowContentViewController: NSViewController {
     /// and re-form there. The zone is advisory only — two tabs cannot fill
     /// one pane, so the pair lands as its own split.
     var onTabGroupDropped: (([BrowserTab]) -> Void)?
+    /// Files (or links) dropped on the page area: Finder files, each opening
+    /// in its own new tab. Separate from the tab payloads above, which split
+    /// the window instead.
+    var onFilesDropped: (([URL]) -> Void)?
     /// Reports the shield going in (`true`) or coming out (`false`).
     ///
     /// The window controller uses it to take its pages out of mouse interaction for
@@ -803,8 +807,9 @@ final class BrowserWindowContentViewController: NSViewController {
         // AppKit walks up from the WKWebView, which is not registered,
         // so drops over the page land here without needing an overlay
         // for hit-testing. The tab bar is registered too and sits
-        // deeper, so drops on the bar never reach this.
-        view.registerForDraggedTypes([TabDragPayload.type])
+        // deeper, so drops on the bar never reach this. File URLs ride
+        // alongside the tab payload: tabs split, files open.
+        view.registerForDraggedTypes([TabDragPayload.type, .fileURL])
 
         progressBar.wantsLayer = true
         progressBar.layer?.backgroundColor = NSColor.clear.cgColor
@@ -1311,13 +1316,16 @@ extension BrowserWindowContentViewController: NSDraggingDestination {
     }
 
     func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard !TabDragPayload.tabs(from: sender).isEmpty,
-              let zone = dropZone(for: sender)
-        else {
-            return []
+        if !TabDragPayload.tabs(from: sender).isEmpty,
+           let zone = dropZone(for: sender) {
+            onDropZoneChanged?(zone)
+            return .move
         }
-        onDropZoneChanged?(zone)
-        return .move
+        // Files copy in: no split preview, since nothing splits.
+        if !Self.droppedURLs(from: sender).isEmpty, dropZone(for: sender) != nil {
+            return .copy
+        }
+        return []
     }
 
     func draggingExited(_ sender: NSDraggingInfo?) {
@@ -1329,25 +1337,58 @@ extension BrowserWindowContentViewController: NSDraggingDestination {
     }
 
     func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        !TabDragPayload.tabs(from: sender).isEmpty && dropZone(for: sender) != nil
+        if !TabDragPayload.tabs(from: sender).isEmpty {
+            return dropZone(for: sender) != nil
+        }
+        return !Self.droppedURLs(from: sender).isEmpty && dropZone(for: sender) != nil
     }
 
     func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        defer { onDropZoneChanged?(nil) }
         let dragged = TabDragPayload.tabs(from: sender)
-        guard !dragged.isEmpty,
-              dropZone(for: sender) != nil
-        else {
+        if !dragged.isEmpty {
+            defer { onDropZoneChanged?(nil) }
+            guard dropZone(for: sender) != nil else {
+                return false
+            }
+            if dragged.count == 2 {
+                onTabGroupDropped?(dragged)
+            } else if let tab = dragged.first, let zone = dropZone(for: sender) {
+                onTabDropped?(tab, zone)
+            } else {
+                return false
+            }
+            return true
+        }
+        let urls = Self.droppedURLs(from: sender)
+        guard !urls.isEmpty, dropZone(for: sender) != nil else {
             return false
         }
-        if dragged.count == 2 {
-            onTabGroupDropped?(dragged)
-        } else if let tab = dragged.first, let zone = dropZone(for: sender) {
-            onTabDropped?(tab, zone)
-        } else {
-            return false
-        }
+        onFilesDropped?(urls)
         return true
+    }
+
+    /// File and link addresses on the dragging pasteboard: Finder files
+    /// first, then a dragged link or text URL when no files ride along.
+    /// Static so the shape is testable without a drag session.
+    static func droppedURLs(from sender: NSDraggingInfo) -> [URL] {
+        droppedURLs(from: sender.draggingPasteboard)
+    }
+
+    static func droppedURLs(from pasteboard: NSPasteboard) -> [URL] {
+        if let files = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL], !files.isEmpty {
+            return files
+        }
+        guard let string = pasteboard.string(forType: .string)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            let url = URL(string: string),
+            ["http", "https", "file"].contains(url.scheme?.lowercased() ?? "")
+        else {
+            return []
+        }
+        return [url]
     }
 
     /// Drop zone under the drag, or nil when the pointer is outside the
