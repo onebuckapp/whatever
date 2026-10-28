@@ -6,6 +6,11 @@
 
 <img src="https://github.com/onebuckapp/whatever/blob/main/.github/screenshots/2026-10-10-1-1506PM.png" width="100%"><br>
 
+### About
+**Whatever is the perfect app for browsing the dead internet**. Popular browsers sell your data: feeds full of ads, trackers on every click, your tabs and history synced to somebody's cloud. Whatever goes the other way. Pages render on WebKit behind a blocker that compiles 13,000+ rules on your own machine. Your tabs come back where you left them. Your bookmarks, feeds, history, and downloads live in on-device databases — no accounts, no sync servers, ever.
+
+It also happens to be beautiful and weird: a start page and window you theme yourself, a headline crawl for your RSS, film grain over the whole web if you want it, and a Spotlight-grade address bar that keeps up with you.
+
 ## 😍 Key Features
 
 **Browsing**
@@ -65,12 +70,6 @@
 - Searchable History
 - Written in Nim language and Swift
 - Open Source | `GPLv3` License
-
-### About
-**Whatever is the browser for the dead internet**. Popular browsers sell your data: feeds full of ads, trackers on every click, your tabs and history synced to somebody's cloud. Whatever goes the other way. Pages render on WebKit behind a blocker that compiles 13,000+ rules on your own machine. Your tabs come back where you left them. Your bookmarks, feeds, history, and downloads live in on-device databases — no accounts, no sync servers, ever.
-
-It also happens to be beautiful and weird: a start page and window you theme yourself, a headline crawl for your RSS, film grain over the whole web if you want it, and a Spotlight-grade address bar that keeps up with you.
-
 
 ### Previews
 
