@@ -107,6 +107,20 @@ final class BrowserWebView: WKWebView {
     /// the hosting pane; the view never touches the store directly.
     var passwordMenuContextProvider: (() -> PasswordMenuContext)?
 
+    /// Called when a login field gains focus, with the field kind and an
+    /// anchor rect in view coordinates for the credential picker. Set by
+    /// the hosting pane, which shows matching vault credentials.
+    var onLoginFieldFocus: ((PasswordFormBridge.FieldKind, NSRect) -> Void)?
+
+    /// Called when a login form is submitted, with the entered username and
+    /// password. Set by the hosting pane, which arms the save prompt for
+    /// the next committed navigation.
+    var onLoginSubmitted: ((String, String) -> Void)?
+
+    /// The relay this page's configuration posts login-form focus and
+    /// submit reports to. Held strongly, like the hover and video relays.
+    var passwordRelay: PasswordAutofillRelay?
+
     /// WebKit's stable menu identifiers (locale-independent, unlike titles).
     ///
     /// The `WKMenuItemIdentifier*` constants are private API, so the raw
@@ -665,6 +679,41 @@ final class BrowserWebView: WKWebView {
             return
         }
         onPresentPasswordManager?()
+    }
+
+    // MARK: - Login form events
+
+    /// Forwards a focused login field to the pane with a view-coordinates
+    /// anchor for the credential picker. A missing or degenerate rect falls
+    /// back to the focused point, so the picker still appears.
+    func noteLoginFieldFocus(
+        kind: PasswordFormBridge.FieldKind,
+        viewport: PasswordFormBridge.ViewportRect?
+    ) {
+        let anchor: NSRect
+        if let viewport,
+           let rect = Self.anchorRect(viewport: viewport, boundsHeight: bounds.height) {
+            anchor = rect
+        } else if let point = Self.menuResolutionPoint(
+            press: menuPressPoint?.point,
+            pressedAt: menuPressPoint?.at,
+            cursor: cursorPoint()
+        ) {
+            anchor = NSRect(x: point.x - 1, y: point.y - 22, width: 2, height: 22)
+        } else {
+            let visible = visibleRect
+            anchor = NSRect(x: visible.midX - 1, y: visible.midY - 11, width: 2, height: 22)
+        }
+        onLoginFieldFocus?(kind, anchor)
+    }
+
+    /// Anchors a posted viewport rect onto this view. Pure so tests pin the
+    /// flip without a web view.
+    static func anchorRect(
+        viewport: PasswordFormBridge.ViewportRect,
+        boundsHeight: CGFloat
+    ) -> NSRect? {
+        PasswordFormBridge.anchorRect(viewport: viewport, boundsHeight: boundsHeight)
     }
 
     /// Picks the point the menu resolves its link from.

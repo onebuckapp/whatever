@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import AppKit
 import Foundation
 import Testing
 @testable import Whatever
@@ -75,5 +76,65 @@ struct PasswordFormBridgeTests {
         #expect(script.contains("a\\\"b\\\\c"))
         #expect(script.contains("p\\nq"))
         #expect(!script.contains("\"\"a"))
+    }
+
+    @Test("the source reports focus and submit through the handler")
+    func formReporters() {
+        #expect(PasswordFormBridge.source.contains("focusin"))
+        #expect(PasswordFormBridge.source.contains("\"submit\"") || PasswordFormBridge.source.contains("'submit'"))
+        #expect(PasswordFormBridge.source.contains(PasswordFormBridge.handlerName))
+        #expect(PasswordFormBridge.source.contains("getBoundingClientRect"))
+    }
+
+    @Test("focus events decode with kind and rect")
+    func focusDecode() {
+        let event = PasswordFormBridge.LoginFormEvent.decode([
+            "t": "focus",
+            "kind": "password",
+            "rect": ["x": 10.0, "y": 20.0, "w": 100.0, "h": 30.0, "zoom": 2.0],
+        ])
+        #expect(event?.kind == .focus)
+        #expect(event?.fieldKind == .password)
+        #expect(event?.rect == PasswordFormBridge.ViewportRect(x: 10, y: 20, width: 100, height: 30, zoom: 2))
+    }
+
+    @Test("submit events decode only with a non-empty password")
+    func submitDecode() {
+        #expect(
+            PasswordFormBridge.LoginFormEvent.decode(
+                ["t": "submit", "username": "u", "password": "p"])?.password == "p"
+        )
+        #expect(
+            PasswordFormBridge.LoginFormEvent.decode(
+                ["t": "submit", "username": "u", "password": ""]) == nil
+        )
+        #expect(PasswordFormBridge.LoginFormEvent.decode(["t": "focus", "kind": "other"]) == nil)
+        #expect(PasswordFormBridge.LoginFormEvent.decode(["nope": 1]) == nil)
+        #expect(PasswordFormBridge.LoginFormEvent.decode("focus") == nil)
+    }
+
+    @Test("degenerate rects decode as nil")
+    func rectGating() {
+        #expect(
+            PasswordFormBridge.ViewportRect.decode(["x": 1.0, "y": 1.0, "w": 0.0, "h": 5.0]) == nil
+        )
+        #expect(
+            PasswordFormBridge.ViewportRect.decode(["x": 1.0, "y": 1.0]) == nil
+        )
+    }
+
+    @Test("anchors scale by zoom and flip to the view origin")
+    func anchorFlip() {
+        let rect = BrowserWebView.anchorRect(
+            viewport: PasswordFormBridge.ViewportRect(x: 10, y: 20, width: 100, height: 30, zoom: 2),
+            boundsHeight: 600
+        )
+        #expect(rect == NSRect(x: 20, y: 500, width: 200, height: 60))
+        #expect(
+            BrowserWebView.anchorRect(
+                viewport: PasswordFormBridge.ViewportRect(x: 0, y: 0, width: 0, height: 10, zoom: 1),
+                boundsHeight: 600
+            ) == nil
+        )
     }
 }

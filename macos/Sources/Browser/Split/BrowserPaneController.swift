@@ -95,6 +95,20 @@ final class BrowserPaneController: NSViewController {
     private var lastCaptureHost: String?
     private var captureCancellable: AnyCancellable?
 
+    /// A submitted login awaiting its verdict: the form's address plus the
+    /// entered pair. Retired by the next committed navigation, which prompts
+    /// a save when the landing left the form behind. Never persisted, never
+    /// kept past one navigation.
+    private struct PendingLogin {
+        var formURL: URL
+        var username: String
+        var password: String
+    }
+
+    private var pendingLogin: PendingLogin?
+    private var loginCancellable: AnyCancellable?
+    private var credentialPicker: PasswordCredentialPickerPresenter?
+
     /// Where this pane sits: alone, or flush against its sibling in a split.
     ///
     /// A split reads as one grouped surface — `[ tab 1 | tab 2 ]` rather than
@@ -209,6 +223,16 @@ final class BrowserPaneController: NSViewController {
                 }
             }
         lastCaptureHost = tab.tabController.url?.host?.lowercased()
+        // A submitted login belongs to the page that posted it: any
+        // committed navigation retires it, prompting a save only when the
+        // landing left the form behind (the success signal). The picker
+        // anchors to a field rect that a navigation equally strands.
+        loginCancellable = tab.tabController.$url
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] url in
+                self?.noteLoginCommit(url)
+            }
     }
 
     /// The page card's inset from the pane's bottom edge. Below the page the
@@ -423,6 +447,16 @@ final class BrowserPaneController: NSViewController {
             browserView.onPresentPasswordManager = { [weak self] in
                 self?.presentPasswordManagerForMenu()
             }
+            browserView.onLoginFieldFocus = { [weak self] kind, anchor in
+                self?.loginFieldFocused(kind: kind, anchor: anchor)
+            }
+            browserView.onLoginSubmitted = { [weak self] username, password in
+                self?.loginSubmitted(username: username, password: password)
+            }
+            // A re-hosted page carries no login state: a stale pending
+            // submit or picker would name a form nobody is looking at.
+            pendingLogin = nil
+            credentialPicker?.dismiss()
             // A new (or re-shown) page carries no hover: a stale bubble would
             // name a link nobody is pointing at.
             hideLinkHover()
@@ -825,13 +859,19 @@ final class BrowserPaneController: NSViewController {
 
     /// Opens the password manager card on this window. Behind locked Fill
     /// clicks and the Manage overflow row, so the modal is always owned by
-    /// the window the menu was opened over.
+    /// the window the menu was opened over. Prefills the manager's search
+    /// with the page's base domain, so it opens on that site's credentials.
+    /// The base domain (not the full host) is what matches both
+    /// `example.com` and `login.example.com` entries under the vault's
+    /// substring search.
     private func presentPasswordManagerForMenu() {
         guard let window = view.window else {
             SystemBeep.play()
             return
         }
-        BrowserCoordinator.shared.controller(for: window)?.presentPasswordManager()
+        let host = PasswordAutofill.normalizeHost(url: tab.displayURL)
+        let query = host.isEmpty ? "" : PasswordAutofill.baseDomain(of: host)
+        BrowserCoordinator.shared.controller(for: window)?.presentPasswordManager(search: query)
     }
 
     /// Fills a vault credential into the page's login form. An explicit
@@ -976,6 +1016,197 @@ final class BrowserPaneController: NSViewController {
                     siteID: only.siteID, only.credential.id,
                     username: only.credential.username, password: suggested)
             }
+        }
+    }
+
+    // MARK: - Inline autofill and login saving
+
+    /// Offers the vault's matching credentials under the focused login
+    /// field. Unlocked with matches shows the picker; locked shows the
+    /// unlock row; anything else stays quiet rather than nagging.
+    private func loginFieldFocused(kind: PasswordFormBridge.FieldKind, anchor: NSRect) {
+        guard kind == .password || kind == .username,
+              let webView = tab.webView as? BrowserWebView,
+              webView.window != nil
+        else { return }
+        let host = PasswordAutofill.normalizeHost(url: tab.displayURL)
+        guard !host.isEmpty else { return }
+        let store = PasswordStore.shared
+        switch store.lockState {
+        case .unlocked:
+            let matches = store.credentials(matchingHost: host)
+            guard !matches.isEmpty else { return }
+            presentCredentialPicker(anchor: anchor, in: webView, matches: matches)
+        case .locked, .unset:
+            presentCredentialUnlock(anchor: anchor, in: webView)
+        case .unknown:
+            break
+        }
+    }
+
+    private func presentCredentialPicker(
+        anchor: NSRect,
+        in view: NSView,
+        matches: [PasswordAutofill.Match]
+    ) {
+        let rows = Array(matches.prefix(BrowserWebView.maxFillRows))
+        let presenter: PasswordCredentialPickerPresenter
+        if let existing = credentialPicker {
+            presenter = existing
+        } else {
+            let fresh = PasswordCredentialPickerPresenter()
+            credentialPicker = fresh
+            presenter = fresh
+        }
+        presenter.present(
+            anchorRect: anchor,
+            in: view,
+            matches: rows,
+            showsManage: matches.count > BrowserWebView.maxFillRows,
+            onPick: { [weak self] match in
+                self?.credentialPicker?.dismiss()
+                self?.fillCredential(siteID: match.siteID, credentialID: match.credential.id)
+            },
+            onManage: { [weak self] in
+                self?.credentialPicker?.dismiss()
+                self?.presentPasswordManagerForMenu()
+            }
+        )
+    }
+
+    private func presentCredentialUnlock(anchor: NSRect, in view: NSView) {
+        let presenter: PasswordCredentialPickerPresenter
+        if let existing = credentialPicker {
+            presenter = existing
+        } else {
+            let fresh = PasswordCredentialPickerPresenter()
+            credentialPicker = fresh
+            presenter = fresh
+        }
+        presenter.presentLocked(
+            anchorRect: anchor,
+            in: view,
+            onUnlock: { [weak self] in
+                self?.credentialPicker?.dismiss()
+                self?.presentPasswordManagerForMenu()
+            }
+        )
+    }
+
+    /// Arms the save prompt with a submitted login. Regular tabs only;
+    /// the password must be non-empty (an empty submit is a failed typing,
+    /// not a credential), and the vault must be unlocked — a locked vault
+    /// cannot save, so there is nothing to arm.
+    private func loginSubmitted(username: String, password: String) {
+        guard tab.privacyMode == .regular,
+              ["http", "https"].contains(tab.displayURL.scheme?.lowercased() ?? ""),
+              !password.isEmpty,
+              PasswordStore.shared.lockState == .unlocked
+        else { return }
+        pendingLogin = PendingLogin(
+            formURL: tab.displayURL, username: username, password: password)
+    }
+
+    /// Retires a pending login on every committed navigation. A landing on
+    /// a different address than the form is the success signal and prompts
+    /// a save; a same-address commit (a re-rendered failure, a reload)
+    /// clears silently. The picker anchors to the old page either way, so
+    /// it goes too.
+    private func noteLoginCommit(_ url: URL?) {
+        credentialPicker?.dismiss()
+        guard let pending = pendingLogin, let url else {
+            pendingLogin = nil
+            return
+        }
+        pendingLogin = nil
+        guard !url.hasSameAddress(as: pending.formURL),
+              let host = URL(string: pending.formURL.absoluteString)?.host,
+              !PasswordAutofill.normalizeHost(host).isEmpty
+        else { return }
+        promptSaveLogin(pending, host: PasswordAutofill.normalizeHost(host))
+    }
+
+    /// Asks once whether to keep a successfully submitted login. One alert,
+    /// and the Save click is the confirmation: it creates, updates, or
+    /// extends the vault per `LoginSavePlan`, or opens the manager when
+    /// several sites share the host and the pick needs eyes.
+    private func promptSaveLogin(_ pending: PendingLogin, host: String) {
+        guard let window = view.window else { return }
+        let alert = NSAlert()
+        alert.messageText = tr("Save password for {host}?", ctx: "Passwords", args: ["host": host])
+        let name = pending.username.isEmpty ? host : pending.username
+        alert.informativeText = tr(
+            "Keep {name} in your passwords?",
+            ctx: "Passwords",
+            args: ["name": name]
+        )
+        alert.addButton(withTitle: tr("Save", ctx: "Passwords"))
+        alert.addButton(withTitle: tr("Not Now", ctx: "Passwords"))
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            Task { @MainActor in
+                Self.applyLoginSave(
+                    pending: pending,
+                    host: host,
+                    formURL: pending.formURL.absoluteString
+                )
+            }
+        }
+    }
+
+    /// What a confirmed save does, given the vault's current matches.
+    /// Static and pure over its inputs (aside from the store write) so
+    /// tests pin every branch.
+    enum LoginSaveAction: Equatable {
+        case createSite
+        case updateCredential(siteID: String, credentialID: String)
+        case addCredential(siteID: String)
+        case openManager
+    }
+
+    /// Picks the save action: a same-username credential gets its password
+    /// replaced; a new username joins the single matching site, or starts
+    /// one when nothing matches; several sites need the manager's eyes.
+    static func loginSaveAction(
+        matches: [PasswordAutofill.Match],
+        username: String
+    ) -> LoginSaveAction {
+        if let same = matches.first(where: { $0.credential.username == username }) {
+            return .updateCredential(siteID: same.siteID, credentialID: same.credential.id)
+        }
+        let siteIDs = Set(matches.map(\.siteID))
+        if matches.isEmpty {
+            return .createSite
+        }
+        if siteIDs.count == 1, let siteID = siteIDs.first {
+            return .addCredential(siteID: siteID)
+        }
+        return .openManager
+    }
+
+    private static func applyLoginSave(pending: PendingLogin, host: String, formURL: String) {
+        let store = PasswordStore.shared
+        guard store.lockState == .unlocked else { return }
+        switch loginSaveAction(
+            matches: store.credentials(matchingHost: host),
+            username: pending.username
+        ) {
+        case .createSite:
+            let site = store.createSite(name: host, url: formURL)
+            _ = store.addCredential(
+                to: site.id, username: pending.username, password: pending.password)
+        case .updateCredential(let siteID, let credentialID):
+            store.updateCredential(
+                siteID: siteID, credentialID,
+                username: pending.username, password: pending.password)
+        case .addCredential(let siteID):
+            _ = store.addCredential(
+                to: siteID, username: pending.username, password: pending.password)
+        case .openManager:
+            guard let window = NSApp.keyWindow,
+                  let controller = BrowserCoordinator.shared.controller(for: window)
+            else { return }
+            controller.presentPasswordManager()
         }
     }
 

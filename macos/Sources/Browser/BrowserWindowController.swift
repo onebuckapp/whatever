@@ -1653,8 +1653,8 @@ final class BrowserWindowController: NSWindowController {
     ///
     /// Behind the toolbar key button and the app menu's Passwords item, so
     /// the modal is always owned by the window it is opened over.
-    func presentPasswordManager() {
-        contentController.presentPasswordManager()
+    func presentPasswordManager(search query: String = "") {
+        contentController.presentPasswordManager(search: query)
     }
 
     /// Opens the per-site content-blocker card for the selected tab.

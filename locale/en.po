@@ -1521,6 +1521,22 @@ msgctxt "Passwords"
 msgid "Unlock Passwords to save it."
 msgstr ""
 
+msgctxt "Passwords"
+msgid "Unlock Passwords..."
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Save password for {host}?"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Keep {name} in your passwords?"
+msgstr ""
+
+msgctxt "Passwords"
+msgid "Not Now"
+msgstr ""
+
 #. Print preview.
 msgctxt "Print"
 msgid "Actual size"

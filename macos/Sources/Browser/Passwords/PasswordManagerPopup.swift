@@ -29,6 +29,9 @@ import SwiftUI
 struct PasswordManagerPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
+    /// Prefills the manager's search field, so an unlock from a login form
+    /// lands on that site's credentials. Empty for a plain open.
+    var initialQuery = ""
 
     func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
         config
@@ -45,7 +48,7 @@ struct PasswordManagerPopup: CenterPopup {
     }
 
     var body: some View {
-        PasswordManagerCard()
+        PasswordManagerCard(initialQuery: initialQuery)
             .frame(width: 720, height: 520)
             .background(Color(nsColor: .windowBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -75,10 +78,14 @@ private struct PasswordManagerCard: View {
     // reopening the manager.
     @ObservedObject private var localization = Localization.shared
     @State private var selectedID: String?
-    @State private var query = ""
+    @State private var query: String
     @State private var editingHint = false
     @State private var hintDraft = ""
     @FocusState private var searchFocused: Bool
+
+    init(initialQuery: String = "") {
+        _query = State(initialValue: initialQuery)
+    }
 
     private static let sidebarWidth: CGFloat = 220
     private static let rowInset: CGFloat = 10
@@ -984,6 +991,7 @@ private struct PasswordCredentialRow: View {
 struct PasswordManagerRootView: View {
     let stackID: PopupStackID
     let popupID: String
+    var initialQuery = ""
 
     var body: some View {
         Color.clear
@@ -997,7 +1005,7 @@ struct PasswordManagerRootView: View {
                 }
             }
             .task {
-                await PasswordManagerPopup(stackID: stackID, popupID: popupID)
+                await PasswordManagerPopup(stackID: stackID, popupID: popupID, initialQuery: initialQuery)
                     .present(popupStackID: stackID)
             }
     }
@@ -1053,13 +1061,14 @@ final class PasswordManagerPresenter {
     }
 
     /// Opens the manager, or does nothing if it is already open.
-    func present() {
+    /// `initialQuery` prefills the search field; empty opens unfiltered.
+    func present(initialQuery: String = "") {
         guard let container, container.window != nil, !isPresented else { return }
         resetForReuse()
 
         let stackID = PopupStackID(rawValue: "passwords-\(UUID().uuidString)")
         let popupID = "passwords"
-        let root = PasswordManagerRootView(stackID: stackID, popupID: popupID)
+        let root = PasswordManagerRootView(stackID: stackID, popupID: popupID, initialQuery: initialQuery)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)

@@ -124,4 +124,28 @@ struct PasswordAutofillTests {
         #expect(plan.fillTitles.count == BrowserWebView.maxFillRows)
         #expect(plan.showsManageRow)
     }
+
+    @Test("save picks update, add, create, or manager")
+    func saveAction() {
+        let match = PasswordAutofill.Match(
+            siteID: "s", siteName: "Example",
+            credential: VaultCredential(id: "c", username: "u", password: "old"))
+        #expect(
+            BrowserPaneController.loginSaveAction(matches: [match], username: "u")
+                == .updateCredential(siteID: "s", credentialID: "c"))
+        #expect(
+            BrowserPaneController.loginSaveAction(matches: [match], username: "new")
+                == .addCredential(siteID: "s"))
+        #expect(
+            BrowserPaneController.loginSaveAction(matches: [], username: "u") == .createSite)
+        let other = PasswordAutofill.Match(
+            siteID: "t", siteName: "Other",
+            credential: VaultCredential(id: "d", username: "v", password: "p"))
+        #expect(
+            BrowserPaneController.loginSaveAction(matches: [match, other], username: "new")
+                == .openManager)
+        #expect(
+            BrowserPaneController.loginSaveAction(matches: [match, other], username: "u")
+                == .updateCredential(siteID: "s", credentialID: "c"))
+    }
 }

@@ -582,7 +582,7 @@ final class BrowserWindowContentViewController: NSViewController {
     /// fields, so a selection drag that ends outside it must not dismiss it.
     /// Closing locks the vault: the teardown wipes the core session, so
     /// reopening always re-prompts.
-    func presentPasswordManager() {
+    func presentPasswordManager(search query: String = "") {
         guard isViewLoaded else { return }
         if passwordManagerPresenter != nil {
             dismissPasswordManager()
@@ -597,7 +597,7 @@ final class BrowserWindowContentViewController: NSViewController {
                 self?.dismissPasswordManager()
             }
         }
-        presenter.present()
+        presenter.present(initialQuery: query)
         if !presenter.isPresented {
             // The card never opened (a detached window): don't hold cover
             // for it, and don't leave a vault unlocked behind it.

@@ -39,6 +39,7 @@ enum PageScripts {
         controller.addUserScript(VideoDetector.script)
         controller.removeScriptMessageHandler(forName: LinkHover.handlerName)
         controller.removeScriptMessageHandler(forName: VideoDetector.handlerName)
+        controller.removeScriptMessageHandler(forName: PasswordFormBridge.handlerName)
         if let browserView = webView as? BrowserWebView {
             let relay = LinkHoverRelay()
             relay.view = browserView
@@ -48,6 +49,10 @@ enum PageScripts {
             videoRelay.view = browserView
             browserView.videoRelay = videoRelay
             controller.add(videoRelay, name: VideoDetector.handlerName)
+            let passwordRelay = PasswordAutofillRelay()
+            passwordRelay.view = browserView
+            browserView.passwordRelay = passwordRelay
+            controller.add(passwordRelay, name: PasswordFormBridge.handlerName)
         }
         let settings = SettingsStore.shared.settings
         let background = settings.appearance.background
