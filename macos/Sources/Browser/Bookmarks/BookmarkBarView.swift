@@ -47,7 +47,9 @@ final class BookmarkBarView: NSView {
     var store: BookmarkStore?
 
     private static let sideInset: CGFloat = 4
-    private static let itemSpacing: CGFloat = 2
+    /// Air between entries, so neighboring titles and hover fills read as
+    /// separate buttons rather than one crowded strip.
+    private static let itemSpacing: CGFloat = 6
     private static let itemHeight: CGFloat = 22
 
     /// Feather width of each edge fade, in points. Same as the tab strip.
