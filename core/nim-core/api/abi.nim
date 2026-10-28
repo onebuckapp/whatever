@@ -58,6 +58,22 @@ const
   ## rather than inside it.
   ErrPayloadTooLong* = 7'i32
 
+const
+  ## Cap on the pooled emit buffer below. Past it, a shrunken payload
+  ## releases the buffer instead of pinning it at a one-off peak.
+  EmitScratchCap = 1_048_576
+
+var emitScratch = ""
+  ## Pooled serialization buffer for `emitJson`. Keystroke-paced calls
+  ## (address-bar search, hints) serialize a fresh result document every time;
+  ## reusing one buffer turns that from an allocation per call into steady
+  ## state after the first few. Single-threaded by construction: every core
+  ## call runs on the service's one core thread.
+
+var emitScratchHigh = 0
+  ## Largest payload serialized since the last shrink, for the release policy
+  ## in `emitJson`.
+
 var lastErrorMessage = ""
 
 proc setError*(message: string) =
@@ -117,7 +133,23 @@ proc writeBuffer*(payload: string, buffer: ptr char, capacity: int32, needed: pt
 
 proc emitJson*(document: JsonNode, buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
   ## Serializes `document` and hands it to the two-phase buffer protocol.
-  writeBuffer($document, buffer, capacity, needed)
+  ##
+  ## Serialization appends into `emitScratch` via `toUgly` — the same routine
+  ## `$` delegates to, so the bytes are identical — instead of allocating a
+  ## fresh result string per call. `setLen(0)` keeps the buffer's capacity, so
+  ## after warm-up steady calls allocate nothing here. A payload far below a
+  ## huge high-water mark releases the buffer, so one giant response (a large
+  ## history listing, a full feed dump) does not pin a megabyte for the rest
+  ## of the process.
+  emitScratch.setLen(0)
+  toUgly(emitScratch, document)
+  let size = emitScratch.len
+  if size > emitScratchHigh:
+    emitScratchHigh = size
+  elif emitScratchHigh > EmitScratchCap and size * 4 < emitScratchHigh:
+    emitScratch = ""
+    emitScratchHigh = size
+  writeBuffer(emitScratch, buffer, capacity, needed)
 
 ## Guards against a store faulting out through the C boundary, turning a Nim
 ## exception into a status code plus a message.

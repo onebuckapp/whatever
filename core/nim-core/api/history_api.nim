@@ -89,6 +89,24 @@ type
     lastVisited: int64
     visitCount: int64
 
+var historyGen = 0'i64
+  ## Bumped on every mutation of the history table. The fuzzy candidate cache
+  ## keys off it, so a cached scan is never served past a write.
+
+var fuzzyCacheGen = -1'i64
+  ## The generation `fuzzyCache` was built from. Anything else means stale.
+
+var fuzzyCache: seq[Candidate] = @[]
+  ## One bounded table scan (see `thin`), shared read-only by every fuzzy
+  ## query until the next history write. An address-bar keystroke re-scores
+  ## the same rows the previous keystroke scored; rescanning the table per
+  ## keystroke is what made every keystroke cost megabytes of transient heap.
+
+proc noteHistoryMutated() =
+  ## Records a history-table write. Called on the mutation paths below — and
+  ## only there — so the cache survives reads and no-ops.
+  inc historyGen
+
 # MARK: - Reading rows
 
 proc cellOf(data: RowData, key: string, kind: DataType): Value =
@@ -328,9 +346,11 @@ proc historyRecord*(url, title: cstring, visitedAt: int64,
       db.history.insertRow(HistoryTable, pk,
         visitRow(target, pageTitle, host, bucket,
           intOf(data, "firstVisited"), visited, intOf(data, "visitCount") + 1))
+      noteHistoryMutated()
       return Ok
     discard db.history.insertRow(HistoryTable,
       visitRow(target, pageTitle, host, bucket, visited, visited, 1'i64))
+    noteHistoryMutated()
     Ok
 
 proc bcHistoryShouldRecord*(url: cstring): int32 {.exportc: "bc_history_should_record".} =
@@ -522,12 +542,17 @@ proc bestScoreFor(candidate: Candidate, query: string): ScoredMatch =
   best
 
 proc fuzzyCandidates(table: DbTable): seq[Candidate] =
-  ## Up to `FuzzyScanLimit` rows, spread across the whole table.
+  ## Up to `FuzzyScanLimit` rows, spread across the whole table. Served from
+  ## `fuzzyCache` when history has not changed since the last scan.
+  if fuzzyCacheGen == historyGen:
+    return fuzzyCache
   var kept: seq[Candidate] = @[]
   for row in table.allRows:
     kept.add(candidateOf(row[0], row[1]))
     if kept.len >= FuzzyScanLimit * 2:
       thin(kept, FuzzyScanLimit)
+  fuzzyCache = kept
+  fuzzyCacheGen = historyGen
   kept
 
 proc fuzzyEntryJson(candidate: Candidate, matched: ScoredMatch): JsonNode =
@@ -768,6 +793,7 @@ proc historyDelete*(id: cstring): int32 {.exportc: "bc_history_delete".} =
       ErrNotFound
     else:
       discard db.history.deleteRow(HistoryTable, target)
+      noteHistoryMutated()
       Ok
   status
 
@@ -787,6 +813,8 @@ proc historyDeleteBefore*(cutoff: int64, removed: ptr int32): int32 {.exportc: "
     for pk in doomed:
       discard db.history.deleteRow(HistoryTable, pk)
     count = int32(doomed.len)
+    if doomed.len > 0:
+      noteHistoryMutated()
     Ok
   if status != Ok: return status
   if not removed.isNil:
@@ -804,4 +832,6 @@ proc historyClear*(): int32 {.exportc: "bc_history_clear".} =
       doomed.add(row[0])
     for pk in doomed:
       discard db.history.deleteRow(HistoryTable, pk)
+    if doomed.len > 0:
+      noteHistoryMutated()
     Ok

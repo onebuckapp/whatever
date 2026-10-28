@@ -18,31 +18,40 @@
 import AppKit
 import Foundation
 
-/// Serves the store's XPC interface and owns the one queue every core call
+/// Serves the store's XPC interface and owns the one thread every core call
 /// goes through.
 ///
 /// The core's exports share module-level state (the error string and the store
-/// handles), so they need one caller thread at a time. XPC delivers an exported
+/// handles), so they need one caller at a time. XPC delivers an exported
 /// object's messages on a queue private to each *connection*, so two
-/// connections would be two threads; funnelling them all onto one queue is what
-/// makes the core see one caller at a time regardless of how many the app opens.
+/// connections would be two threads; funnelling them all onto one executor is
+/// what makes the core see one caller at a time regardless of how many the
+/// app opens.
+///
+/// That executor pins a dedicated OS thread rather than a GCD queue. A serial
+/// queue still hops threads between blocks, and Nim's ARC keeps thread-local
+/// allocator state: an object allocated on one worker and released on another
+/// never returns to either heap, which is how a service holding megabytes of
+/// data grows to gigabytes of resident memory over a long session. One thread
+/// means every free lands where its allocation came from.
 ///
 /// That queue also has to be told about Nim before use. Nim's allocator keeps
 /// per-thread state in thread-local storage that only exists on a thread that
 /// has registered itself, and an export reached from an unregistered thread does
 /// not fail cleanly: it faults inside `rawAlloc` (EXC_BAD_ACCESS at a small
 /// offset from nil) and takes the whole service down, along with the store
-/// handles it was holding. `bc_init` covers the main thread; `serve` covers
-/// everything that reaches the core queue.
+/// handles it was holding. `bc_init` covers the main thread; the executor
+/// registers its own thread before its first core call (see `serve`).
 ///
 /// One store, one owner: boogie holds an exclusive lock on the store path for
 /// its whole lifetime, so this process must be the only one opening them. If a
 /// second instance ever appears, the open fails with a lock error rather than
 /// blocking.
 final class StoreService: NSObject, NSXPCListenerDelegate {
-    /// Where every core call runs, so the core never sees two callers at once
-    /// and disk work stays off the service's main thread.
-    private static let coreQueue = DispatchQueue(label: "com.onebuckapp.whatever.store")
+    /// Where every core call runs, so the core never sees two callers at once,
+    /// always on the same thread, and disk work stays off the service's main
+    /// thread.
+    private static let coreExecutor = CoreExecutor(name: "com.onebuckapp.whatever.store")
     /// Mach service name the app connects to. Kept in step with
     /// `StoreClient.serviceName` and the service bundle identifier.
     static let serviceName = "com.onebuckapp.whatever.store"
@@ -94,7 +103,7 @@ final class StoreService: NSObject, NSXPCListenerDelegate {
         _: NSXPCListener,
         shouldAcceptNewConnection connection: NSXPCConnection
     ) -> Bool {
-        let handler = StoreServiceHandler(queue: Self.coreQueue)
+        let handler = StoreServiceHandler(executor: Self.coreExecutor)
         connection.exportedInterface = NSXPCInterface(with: WhateverStoreProtocol.self)
         connection.exportedObject = handler
         // Keyed by identifier rather than by the connection itself: the handler
@@ -125,10 +134,10 @@ final class StoreService: NSObject, NSXPCListenerDelegate {
     /// is a cheap checkpoint on the paths that do get to finish.
     ///
     /// The invalidation handler arrives on the connection's own queue, so the
-    /// bookkeeping and the flush hop to the core queue along with everything
+    /// bookkeeping and the flush hop to the core executor along with everything
     /// else. Reopening is free: the next call after a flush reopens the stores.
     private func connectionDidInvalidate(_ identifier: ObjectIdentifier) {
-        Self.coreQueue.async { [weak self] in
+        Self.coreExecutor.async { [weak self] in
             bc_register_thread()
             guard let self else { return }
             connections.removeValue(forKey: identifier)
@@ -139,30 +148,73 @@ final class StoreService: NSObject, NSXPCListenerDelegate {
     }
 }
 
+/// Runs closures serially on one dedicated OS thread.
+///
+/// A `DispatchQueue` cannot do this job: even a serial queue makes no promise
+/// about which thread runs a given block, and the core needs every call —
+/// allocation and release alike — on the same thread (see `StoreService`).
+final class CoreExecutor {
+    private let condition = NSCondition()
+    private var pending: [() -> Void] = []
+    private var thread: Thread?
+
+    init(name: String) {
+        let thread = Thread { [self] in self.run() }
+        thread.name = name
+        // The executor lives in a static, so the thread's strong capture of
+        // `self` is a process-lifetime retain, not a leak.
+        self.thread = thread
+        thread.start()
+    }
+
+    /// Enqueues `job` behind everything already waiting. Returns immediately;
+    /// the job runs alone on the core thread.
+    func async(_ job: @escaping () -> Void) {
+        condition.lock()
+        pending.append(job)
+        condition.signal()
+        condition.unlock()
+    }
+
+    private func run() {
+        bc_register_thread()
+        while true {
+            condition.lock()
+            while pending.isEmpty {
+                condition.wait()
+            }
+            let jobs = pending
+            pending.removeAll(keepingCapacity: true)
+            condition.unlock()
+            for job in jobs {
+                job()
+            }
+        }
+    }
+}
+
 /// Implements the exported object. Every method is a thin adapter: hop onto
-/// the core queue, unpack the arguments, make one core call, and translate
+/// the core executor, unpack the arguments, make one core call, and translate
 /// the status ordinal into either a value or an `NSError` carrying the core's
 /// message.
 final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
-    private let queue: DispatchQueue
+    private let executor: CoreExecutor
 
-    init(queue: DispatchQueue) {
-        self.queue = queue
+    init(executor: CoreExecutor) {
+        self.executor = executor
     }
 
-    /// Runs `body` on the core queue, so the core never sees two callers at
+    /// Runs `body` on the core thread, so the core never sees two callers at
     /// once and no disk work happens on the service's main thread.
     ///
-    /// The reply block is invoked from that queue too, which XPC allows and
+    /// The reply block is invoked from that thread too, which XPC allows and
     /// which keeps the core call and its reply together.
     ///
-    /// `bc_register_thread` first, because this queue is GCD: a serial queue
-    /// still makes no promise about which thread runs a given block, and an
-    /// unregistered thread does not get an error back from the core, it faults
-    /// inside Nim's allocator. After the first call on a thread this is a
-    /// thread-local read.
+    /// `bc_register_thread` first, because the executor is new in this
+    /// process's history even though it pins its thread: after the first call
+    /// this is a thread-local read.
     private func serve(_ reply: @escaping () -> Void) {
-        queue.async {
+        executor.async {
             bc_register_thread()
             reply()
         }

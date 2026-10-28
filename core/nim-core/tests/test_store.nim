@@ -304,6 +304,25 @@ suite "store c abi":
     check miss.kind == JArray
     check miss.len == 0
 
+  test "history fuzzy search sees rows recorded after an earlier search":
+    ## The candidate scan is cached across queries. The first search below
+    ## populates that cache; the record must invalidate it, so the second
+    ## identical search sees the new row instead of serving the stale scan.
+    let probe = "qlp-cache-probe"
+    let before = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch(probe.cstring, 50, buffer, capacity, needed))
+    let url = "https://fuzzy-cache-invalidation.example/qlp-cache-probe-page"
+    for entry in before.getElems:
+      check entry["url"].getStr != url
+    check historyRecord(url.cstring, "Qlp Cache Probe".cstring, 1_700_000_300, -1) == Ok
+    let after = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch(probe.cstring, 50, buffer, capacity, needed))
+    var found = false
+    for entry in after.getElems:
+      if entry["url"].getStr == url:
+        found = true
+    check found
+
   test "history fuzzy search reports positions as byte offsets, not character offsets":
     ## The positions are byte offsets into UTF-8, and the UI has to convert them
     ## before it can build ranges. This title is 17 characters but 19 bytes,
