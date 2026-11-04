@@ -457,6 +457,45 @@ proc hostKey(host: string): string =
   else:
     lower
 
+proc isWordByte(c: char): bool =
+  ## Whether `c` continues a word for match-tier purposes: ASCII letters,
+  ## digits and `_`, plus any non-ASCII byte so a multibyte character is
+  ## never split at a boundary.
+  c in {'a'..'z', 'A'..'Z', '0'..'9', '_'} or c >= '\x80'
+
+proc wordTier(text, query: string): int =
+  ## How `query` sits in `text`, both already lowercased: 1 for a whole
+  ## word, 2 for a word prefix, 3 for a contiguous run elsewhere, 4 when
+  ## the query never runs contiguously at all (a scattered subsequence).
+  ## The best occurrence wins, so a word-prefix occurrence outranks a
+  ## mid-word run in the same field.
+  var best = 4
+  var start = 0
+  while true:
+    let hit = text.find(query, start)
+    if hit < 0:
+      return best
+    let atStart = hit == 0 or not isWordByte(text[hit - 1])
+    let stop = hit + query.len
+    let atEnd = stop == text.len or not isWordByte(text[stop])
+    if atStart and atEnd:
+      return 1
+    if atStart:
+      best = 2
+    else:
+      best = min(best, 3)
+    start = hit + 1
+
+proc fieldTier(candidate: Candidate, query: string): int =
+  ## The candidate's best tier across its title and its noise-stripped
+  ## URL. An empty query tiers worst, leaving the old order (visits,
+  ## length, score) to decide.
+  if query.len == 0:
+    return 4
+  let (strippedUrl, _) = stripUrlNoise(candidate.url)
+  min(wordTier(candidate.title.toLowerAscii(), query),
+      wordTier(strippedUrl.toLowerAscii(), query))
+
 proc thin(kept: var seq[Candidate], cap: int) =
   ## Halves `kept` in place, keeping every second entry.
   ##
@@ -606,12 +645,13 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
   ## Every query character must appear in the row, in order but not necessarily
   ## contiguously, which is what `openparser/fuzzy` scores: consecutive runs,
   ## word-boundary hits and gap penalties. The matcher only decides what
-  ## matches; the ranking is a host-prefix match first, then visits, then URL
-  ## length, then score. The bar is navigation, not search: the page opened
-  ## every morning outranks a better-matching stranger — unless the query
-  ## names a visited host outright, in which case that destination wins — and
-  ## typing "github" puts github.com above github.com/anything because the
-  ## shorter URL wins among equals.
+  ## matches; the ranking is a host-prefix match first, then word tier (a
+  ## whole word, a word prefix, a contiguous run, a scattered subsequence),
+  ## then visits, then URL length, then score. The bar is navigation, not
+  ## search: the page opened every morning outranks a worse-matching stranger
+  ## of the same tier — unless the query names a visited host outright, in
+  ## which case that destination wins — and typing "github" puts github.com
+  ## above github.com/anything because the shorter URL wins among equals.
   ##
   ## Each row is scored three ways — its title, its URL, and the two joined — and
   ## keeps the best, so one row is one result however many fields matched and a
@@ -658,29 +698,35 @@ proc historyFuzzySearch*(query: cstring, limit: int32, buffer: ptr char, capacit
       # `texts` is the parallel index into `byText`, so the match and the row it
       # came from stay together through the sort — sorting `ScoredMatch` alone
       # would lose which candidate each score belonged to.
-      var ranked: seq[tuple[index: int, match: ScoredMatch]] = @[]
+      # Lowercased once for the host-prefix boost and the word tiers below;
+      # a query never carries case into a hostname comparison.
+      let needleKey = needle.strip().toLowerAscii()
+      var ranked: seq[tuple[index: int, match: ScoredMatch, tier: int]] = @[]
       for index, text in texts:
-        let best = bestScoreFor(byText[text], needle)
+        let candidate = byText[text]
+        let best = bestScoreFor(candidate, needle)
         # Below zero is the same bar `minScore = 0` drew when the library did the
         # ranking: scores are normalised by field length, so a gappy match across
         # a long field can land negative and barely matched at all.
         if best.score > 0.0'f32:
-          ranked.add((index, best))
-      # Lowercased once for the host-prefix boost below; a query never
-      # carries case into a hostname comparison.
-      let needleKey = needle.strip().toLowerAscii()
-      let order = proc(a, b: tuple[index: int, match: ScoredMatch]): int =
+          ranked.add((index, best, fieldTier(candidate, needleKey)))
+      let order = proc(a, b: tuple[index: int, match: ScoredMatch, tier: int]): int =
         # A host-prefix match is navigation, not a stranger: typing `reddit`
         # surfaces `reddit.com` above better-visited pages that merely mention
         # it, and typing `reddit.` does the same. The `www.` subdomain is
-        # noise and ignored for the comparison; visits, length and score keep
-        # their order inside each group.
+        # noise and ignored for the comparison; tier, visits, length and
+        # score keep their order inside each group.
         let keyA = hostKey(byText[texts[a.index]].host)
         let keyB = hostKey(byText[texts[b.index]].host)
         let boostA = keyA.startsWith(needleKey)
         let boostB = keyB.startsWith(needleKey)
         if boostA != boostB:
           if boostA: -1 else: 1
+        elif a.tier != b.tier:
+          # A whole (or almost whole) word always wins over a worse-formed
+          # match: typing `ceai` surfaces "Ceaiuri ..." above a scattered
+          # subsequence with any number of visits.
+          cmp(a.tier, b.tier)
         else:
           let visitA = byText[texts[a.index]].visitCount
           let visitB = byText[texts[b.index]].visitCount

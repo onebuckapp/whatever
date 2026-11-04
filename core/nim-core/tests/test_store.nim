@@ -304,6 +304,41 @@ suite "store c abi":
     check miss.kind == JArray
     check miss.len == 0
 
+  test "history fuzzy search ranks a word-prefix match above scattered visits":
+    ## Typing "ceai" must surface "Ceaiuri & ..." first even though a
+    ## scattered subsequence match has five times the visits: a whole (or
+    ## almost whole) word always wins over a gappy match, however often
+    ## the gappy page was opened.
+    let scatteredURL = "https://scattered-visits.example/archive"
+    for i in 0 ..< 5:
+      check historyRecord(scatteredURL.cstring, "Cured Meats And Italian".cstring,
+        1_700_003_000'i64 + int64(i), -1) == Ok
+    let wordURL = "https://heltii.example/collections/ceaiuri-infuzii"
+    check historyRecord(wordURL.cstring, "Ceaiuri & Infuzii din Plante".cstring,
+      1_700_003_010, -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("ceai".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 2
+    check hits[0]["url"].getStr == wordURL
+    check hits[0]["visitCount"].getInt == 1
+
+  test "history fuzzy search ranks a whole word above a word prefix":
+    ## "Ceai negru" holds the query as a full word; "Ceaiuri aromate" only
+    ## starts a word with it, with three times the visits. The whole word
+    ## still comes first.
+    let exactURL = "https://exact-tea.example/ceai"
+    check historyRecord(exactURL.cstring, "Ceai negru".cstring, 1_700_003_020, -1) == Ok
+    let prefixURL = "https://prefix-tea.example/ceaiuri"
+    for i in 0 ..< 3:
+      check historyRecord(prefixURL.cstring, "Ceaiuri aromate".cstring,
+        1_700_003_030'i64 + int64(i), -1) == Ok
+
+    let hits = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("ceai".cstring, 50, buffer, capacity, needed))
+    check hits.len >= 2
+    check hits[0]["url"].getStr == exactURL
+
   test "history fuzzy search sees rows recorded after an earlier search":
     ## The candidate scan is cached across queries. The first search below
     ## populates that cache; the record must invalidate it, so the second
