@@ -85,12 +85,23 @@ protocol HistoryRecording: AnyObject {
 /// in memory for no benefit.
 @MainActor
 final class StoreHistoryRecorder: HistoryRecording {
+    private let client: StoreClient
+    private let settings: SettingsStore
+
+    /// Both default to the shared instances when nil: spelled this way
+    /// rather than `= .shared` so the main-actor-isolated singletons are
+    /// only touched from inside the isolated init body.
+    init(client: StoreClient? = nil, settings: SettingsStore? = nil) {
+        self.client = client ?? .shared
+        self.settings = settings ?? .shared
+    }
+
     /// Whether visits are recorded at all, from General settings.
     ///
     /// Read per visit rather than captured, so turning recording off takes effect
     /// on the next page without anything having to be reconfigured.
     var isEnabled: Bool {
-        SettingsStore.shared.settings.general.recordsHistory
+        settings.settings.general.recordsHistory
     }
 
     /// Why the last visit did not reach the store.
@@ -106,11 +117,11 @@ final class StoreHistoryRecorder: HistoryRecording {
         let pageTitle = title ?? url.absoluteString
         Task {
             do {
-                try await StoreClient.shared.recordVisit(
+                try await client.recordVisit(
                     url: url.absoluteString,
                     title: pageTitle,
                     at: Date(timeIntervalSince1970: TimeInterval(visitedAt)),
-                    collapseWindow: SettingsStore.shared.settings.general.historyCollapseWindow
+                    collapseWindow: settings.settings.general.historyCollapseWindow
                 )
                 lastError = nil
             } catch {

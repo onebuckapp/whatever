@@ -401,6 +401,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         Task { @MainActor in
+            // Profiles first: this migrates a legacy single-store install
+            // into `Profiles/default/` inside the service and loads the
+            // registry, so every store call after — settings, session,
+            // bookmarks — resolves against a real profile.
+            await ProfileManager.shared.startup()
             // The core lives in the WhateverStore XPC service, which launchd
             // starts on this first connection. Loading settings warms it and
             // brings the user's saved values into the app. A failure here is

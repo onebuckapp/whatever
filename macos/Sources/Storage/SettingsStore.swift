@@ -758,6 +758,8 @@ struct AppSettings: Codable, Equatable {
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
 
+    private let client: StoreClient
+
     /// Current settings. Starts as the built-in defaults and is replaced once
     /// the store answers, so the UI is never blocked on the first read.
     @Published private(set) var settings = AppSettings()
@@ -793,7 +795,12 @@ final class SettingsStore: ObservableObject {
     /// slider drag, short enough that a crash loses nothing meaningful.
     private static let saveDebounce: Duration = .milliseconds(400)
 
-    private init() {}
+    /// `client` defaults to the shared client when nil: spelled this way
+    /// rather than `= .shared` so the main-actor-isolated singleton is only
+    /// touched from inside the isolated init body.
+    init(client: StoreClient? = nil) {
+        self.client = client ?? .shared
+    }
 
     // MARK: - Loading
 
@@ -804,7 +811,7 @@ final class SettingsStore: ObservableObject {
     func load() async {
         guard !isLoaded else { return }
         do {
-            let data = try await StoreClient.shared.settings()
+            let data = try await client.settings()
             let stored = try JSONDecoder().decode(AppSettings.self, from: data)
             if stored == AppSettings() {
                 // An empty object is what a fresh install reads back, so the
@@ -931,7 +938,7 @@ final class SettingsStore: ObservableObject {
             group.addTask {
                 do {
                     let data = try JSONEncoder().encode(snapshot)
-                    try await StoreClient.shared.setSettings(data)
+                    try await self.client.setSettings(data)
                     return true
                 } catch {
                     return false
