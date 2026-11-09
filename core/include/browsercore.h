@@ -105,6 +105,54 @@ const char *bc_version(void);
  * for `buffer` only queries the length. */
 int32_t bc_last_error(char *buffer, int32_t capacity);
 
+/* ---------------------------------------------------------------- profiles */
+
+/* A profile is a whole store directory: `<root>/Profiles/<id>/` holds the
+ * seven store directories, so history, bookmarks, passwords, sessions,
+ * feeds, downloads and settings are isolated by construction. The registry
+ * (`Profiles/registry.json`) maps ids to display names. Every store call
+ * serves the bound profile; the XPC service binds each connection once and
+ * selects before every job (see bc_profile_activate), so concurrent windows
+ * on different profiles never meet. Ids are caller-chosen and permanent —
+ * renames change the display name only — and may use ASCII letters, digits,
+ * `-` and `_`, at most 64 characters. Deleting the last profile is refused;
+ * deleting a profile removes its directory outright. */
+
+/* Migrates a legacy single-store install into `Profiles/default/` when
+ * needed, then returns the registry as
+ * `{"profiles": [{id, name, createdAt, lastUsedAt}]}` through the two-phase
+ * protocol. The app calls this once at startup. */
+int32_t bc_profiles_ensure(char *buffer, int32_t capacity, int32_t *needed);
+
+/* The registry, same shape as bc_profiles_ensure. Listing ensures first, so
+ * it also migrates. */
+int32_t bc_profiles_list(char *buffer, int32_t capacity, int32_t *needed);
+
+/* Adds a profile: validates, creates its directory, appends the registry
+ * entry. BC_ERR_BAD_INPUT when the id or name is malformed or the id is
+ * taken. */
+int32_t bc_profiles_create(const char *id, const char *name);
+
+/* Renames the display name; the directory is untouched. BC_ERR_NOT_FOUND
+ * for an unknown id. */
+int32_t bc_profiles_rename(const char *id, const char *name);
+
+/* Deletes a profile: unlists it, closes its stores, wipes its in-memory
+ * session, and removes its directory. BC_ERR_NOT_FOUND for an unknown id,
+ * BC_ERR_BAD_INPUT for the last profile. */
+int32_t bc_profiles_delete(const char *id);
+
+/* Binds this process to one profile for subsequent store calls and records
+ * the use. Called once per service connection, not per call.
+ * BC_ERR_NOT_FOUND for an unknown id. */
+int32_t bc_profile_use(const char *id);
+
+/* Selects the active profile without a registry write: the per-job half of
+ * the binding. NULL or empty selects nothing and succeeds, leaving the
+ * unbound fallback (most recently used) in place. Unknown ids fail closed
+ * rather than serving another profile's data. */
+int32_t bc_profile_activate(const char *id);
+
 /* ---------------------------------------------------------------- settings */
 
 /* Settings are one JSON object under a single key, so a schema bump is one

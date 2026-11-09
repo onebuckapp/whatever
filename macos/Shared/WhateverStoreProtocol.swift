@@ -41,6 +41,27 @@ import Foundation
     /// store, so it is the cheapest reachability probe.
     func version(reply: @escaping (String, Int32, NSError?) -> Void)
 
+    // MARK: Profiles
+
+    /// Binds this connection to one profile: every later store call on it
+    /// serves that profile's data. Called once after connecting, not per
+    /// call; unbound connections resolve the most recently used profile.
+    func useProfile(_ id: String, reply: @escaping (NSError?) -> Void)
+    /// Migrates a legacy install when needed, then returns the registry as
+    /// `{"profiles": [{id, name, createdAt, lastUsedAt}]}`. Called once at
+    /// startup, before listing or binding.
+    func profilesEnsure(reply: @escaping (Data?, NSError?) -> Void)
+    /// The registry, same shape as `profilesEnsure`. Listing ensures first,
+    /// so it also migrates.
+    func profilesList(reply: @escaping (Data?, NSError?) -> Void)
+    /// Adds a profile with a caller-chosen permanent id.
+    func profilesCreate(_ id: String, _ name: String, reply: @escaping (NSError?) -> Void)
+    /// Renames the display name; the directory is untouched.
+    func profilesRename(_ id: String, _ name: String, reply: @escaping (NSError?) -> Void)
+    /// Deletes a profile: unlists it, closes its stores, and removes its
+    /// directory. Refuses the last profile.
+    func profilesDelete(_ id: String, reply: @escaping (NSError?) -> Void)
+
     // MARK: Settings
 
     func settingsGet(reply: @escaping (Data?, NSError?) -> Void)

@@ -46,6 +46,7 @@ import valido/ip
 import ../storage/database
 import ../storage/schema
 import ./abi
+import ./profile_api
 import ./settings_api
 
 const
@@ -89,23 +90,39 @@ type
     lastVisited: int64
     visitCount: int64
 
-var historyGen = 0'i64
-  ## Bumped on every mutation of the history table. The fuzzy candidate cache
-  ## keys off it, so a cached scan is never served past a write.
+type
+  FuzzyProfileState = ref object
+    ## One profile's fuzzy-search generation and cached scan. A reference
+    ## so every access aliases the same state: a table lookup copies the
+    ## pointer, never the cache. The state is per profile because two
+    ## windows on different profiles alternate queries on the same thread:
+    ## a shared cache would serve one profile's rows to the other.
+    gen: int64
+    cacheGen: int64
+    cache: seq[Candidate]
 
-var fuzzyCacheGen = -1'i64
-  ## The generation `fuzzyCache` was built from. Anything else means stale.
+var fuzzyByProfile: Table[string, FuzzyProfileState]
 
-var fuzzyCache: seq[Candidate] = @[]
-  ## One bounded table scan (see `thin`), shared read-only by every fuzzy
-  ## query until the next history write. An address-bar keystroke re-scores
-  ## the same rows the previous keystroke scored; rescanning the table per
-  ## keystroke is what made every keystroke cost megabytes of transient heap.
+proc fuzzyState(): FuzzyProfileState =
+  ## The active profile's fuzzy state, creating an empty one on first use:
+  ## generation 0, cache built from nothing (`cacheGen = -1`).
+  let id = activeProfileId()
+  if not fuzzyByProfile.hasKey(id):
+    fuzzyByProfile[id] = FuzzyProfileState(cacheGen: -1)
+  fuzzyByProfile[id]
 
 proc noteHistoryMutated() =
   ## Records a history-table write. Called on the mutation paths below — and
   ## only there — so the cache survives reads and no-ops.
-  inc historyGen
+  ##
+  ## The generation lives on the active profile's state: a write in one
+  ## profile must not invalidate another's cached scan.
+  inc fuzzyState().gen
+
+proc dropProfileCaches*(id: string) =
+  ## Forgets one profile's fuzzy state. The profile-delete path calls this
+  ## so a removed profile's rows never surface again.
+  fuzzyByProfile.del(id)
 
 # MARK: - Reading rows
 
@@ -582,16 +599,17 @@ proc bestScoreFor(candidate: Candidate, query: string): ScoredMatch =
 
 proc fuzzyCandidates(table: DbTable): seq[Candidate] =
   ## Up to `FuzzyScanLimit` rows, spread across the whole table. Served from
-  ## `fuzzyCache` when history has not changed since the last scan.
-  if fuzzyCacheGen == historyGen:
-    return fuzzyCache
+  ## the active profile's cache when its history has not changed since the
+  ## last scan.
+  if fuzzyState().cacheGen == fuzzyState().gen:
+    return fuzzyState().cache
   var kept: seq[Candidate] = @[]
   for row in table.allRows:
     kept.add(candidateOf(row[0], row[1]))
     if kept.len >= FuzzyScanLimit * 2:
       thin(kept, FuzzyScanLimit)
-  fuzzyCache = kept
-  fuzzyCacheGen = historyGen
+  fuzzyState().cache = kept
+  fuzzyState().cacheGen = fuzzyState().gen
   kept
 
 proc fuzzyEntryJson(candidate: Candidate, matched: ScoredMatch): JsonNode =

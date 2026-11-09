@@ -29,7 +29,8 @@ import std/[envvars, options, os, sequtils, strutils, times, unittest]
 import openparser/json
 import boogie/stores/docstore
 
-import ../api/[abi, bookmark_api, history_api, password_api, session_api, settings_api]
+import ../api/[abi, bookmark_api, history_api, password_api, profile_api, session_api, settings_api]
+import ../browsercore
 
 type
   JsonCall = proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32
@@ -76,6 +77,11 @@ let scratchRoot = getTempDir() / "whatever-store-tests"
 removeDir(scratchRoot)
 createDir(scratchRoot)
 putEnv("WHATEVER_STORE_ROOT", scratchRoot)
+
+## Profiles own every store now: bind `default` before any store call.
+## `profileUse` ensures the registry on the way, so this also migrates a
+## legacy layout and creates the default profile on a fresh directory.
+doAssert profileUse("default".cstring) == Ok
 
 suite "store c abi":
   test "settings round trip through the two-phase buffer":
@@ -357,6 +363,99 @@ suite "store c abi":
       if entry["url"].getStr == url:
         found = true
     check found
+
+  test "profiles list carries the migrated default":
+    ## Setup bound `default` on a fresh scratch dir, which is the migration
+    ## path: no legacy stores, one default entry, first.
+    let registry = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      profilesList(buffer, capacity, needed))
+    check registry["profiles"].len == 1
+    check registry["profiles"][0]["id"].getStr == "default"
+    check registry["profiles"][0]["name"].getStr == "Default"
+
+  test "profiles refuse to delete the last one":
+    ## Only `default` exists at this point, so deleting it must fail and
+    ## leave the registry untouched.
+    check bcProfilesDelete("default".cstring) == ErrBadInput
+    let registry = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      profilesList(buffer, capacity, needed))
+    check registry["profiles"].len == 1
+
+  test "profiles create, rename and validate":
+    check profilesCreate("work".cstring, "Work".cstring) == Ok
+    check profilesCreate("work".cstring, "Duplicate".cstring) == ErrBadInput
+    check profilesCreate("has space".cstring, "X".cstring) == ErrBadInput
+    check profilesCreate("../escape".cstring, "X".cstring) == ErrBadInput
+    check profilesCreate("ok-id_2".cstring, "   ".cstring) == ErrBadInput
+    check profilesCreate("ok-id_2".cstring, "Second".cstring) == Ok
+    check bcProfilesDelete("ok-id_2".cstring) == Ok
+    check profilesRename("work".cstring, "Day Job".cstring) == Ok
+    check profilesRename("missing".cstring, "X".cstring) == ErrNotFound
+    check profileUse("missing".cstring) == ErrNotFound
+    check profileActivate("missing".cstring) == ErrNotFound
+    let registry = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      profilesList(buffer, capacity, needed))
+    check registry["profiles"].len == 2
+    var renamed = ""
+    for entry in registry["profiles"].getElems:
+      if entry["id"].getStr == "work":
+        renamed = entry["name"].getStr
+    check renamed == "Day Job"
+
+  test "profiles isolate history, settings and vaults":
+    ## The core promise: alternating two profiles on one thread never shows
+    ## one profile's data in the other, and unlocking one vault does not
+    ## unlock the other. Binds explicitly: the previous test leaves no
+    ## active profile behind (a failed bind clears the selection).
+    check profileUse("default".cstring) == Ok
+    let url = "https://profile-isolation.example/only-on-default"
+    check historyRecord(url.cstring, "Only On Default".cstring, 1_800_000_000, -1) == Ok
+    let beforeSettings = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      settingsGet(buffer, capacity, needed))
+    check profileUse("work".cstring) == Ok
+    let misses = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("profile-isolation".cstring, 50, buffer, capacity, needed))
+    check misses.len == 0
+    let workSettings = %*{"profile": "work"}
+    check settingsSet(($workSettings).cstring, nil) == Ok
+    let freshStatus = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check freshStatus["state"].getStr == "unset"
+    check passwordSetup("work-master-123".cstring, nil) == Ok
+    check profileUse("default".cstring) == Ok
+    let afterSettings = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      settingsGet(buffer, capacity, needed))
+    check afterSettings == beforeSettings
+    let found = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("profile-isolation".cstring, 50, buffer, capacity, needed))
+    check found.len >= 1
+    check found[0]["url"].getStr == url
+    ## Back to work: its vault is still unlocked and default's data is
+    ## still invisible — sessions survive alternation per profile.
+    check profileUse("work".cstring) == Ok
+    let workStatus = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      passwordStatus(buffer, capacity, needed))
+    check workStatus["state"].getStr == "unlocked"
+    let stillMissing = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      historyFuzzySearch("profile-isolation".cstring, 50, buffer, capacity, needed))
+    check stillMissing.len == 0
+    check profileUse("default".cstring) == Ok
+
+  test "profiles delete removes the directory and unlists":
+    check profilesCreate("temp".cstring, "Temp".cstring) == Ok
+    check profileUse("temp".cstring) == Ok
+    check historyRecord("https://temp-profile.example/x".cstring, "Temp".cstring,
+      1_800_000_100, -1) == Ok
+    check bcProfilesDelete("temp".cstring) == Ok
+    check profileUse("temp".cstring) == ErrNotFound
+    check not dirExists(scratchRoot / "Profiles" / "temp")
+    let registry = readJson(proc (buffer: ptr char, capacity: int32, needed: ptr int32): int32 =
+      profilesList(buffer, capacity, needed))
+    var ids: seq[string] = @[]
+    for entry in registry["profiles"].getElems:
+      ids.add(entry["id"].getStr)
+    check "temp" notin ids
+    check profileUse("default".cstring) == Ok
 
   test "history fuzzy search reports positions as byte offsets, not character offsets":
     ## The positions are byte offsets into UTF-8, and the UI has to convert them

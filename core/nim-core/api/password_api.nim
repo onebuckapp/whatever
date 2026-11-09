@@ -47,7 +47,7 @@
 # the other exports); they are still synchronous user actions, so that is
 # where the cost belongs.
 
-import std/[base64, options]
+import std/[base64, options, tables]
 import openparser/json
 import boogie/stores/docstore
 import nimcypher/password
@@ -57,6 +57,7 @@ import nimcypher/secret
 import blackpaper
 import ../storage/database
 import ./abi
+import ./profile_api
 import ./settings_api
 import ./password_common
 
@@ -68,15 +69,29 @@ const
   EmptyVault = """{"sites": []}"""
   MinMasterPasswordLen = 8
 
-var
-  ## Derived key, valid only while unlocked. A `Secret` wipes itself when it
-  ## goes out of scope, including on reassignment.
-  vaultSessionKey: Secret[Key32]
-  ## Salt the session key was derived with; needed to re-seal on save.
-  vaultSessionSalt: RandomBytes
-  vaultSessionOpen = false
-  ## Decrypted vault JSON while unlocked.
-  vaultSessionText = ""
+type
+  VaultSession = ref object
+    ## One profile's unlock state: the derived key, the salt it was
+    ## derived with, and the decrypted vault JSON. A reference so every
+    ## access aliases one object: a table lookup copies the pointer, and
+    ## the key material is never duplicated into a second object that no
+    ## wipe then reaches. Per profile because two windows on different
+    ## profiles alternate calls on the same thread — a shared session
+    ## would lock one profile when the other acts, or, worst case, serve
+    ## one profile's plaintext to the other.
+    key: Secret[Key32]
+    salt: RandomBytes
+    open: bool
+    text: string
+
+var vaultSessions: Table[string, VaultSession]
+
+proc session(): VaultSession =
+  ## The active profile's session, creating a locked one on first use.
+  let id = activeProfileId()
+  if not vaultSessions.hasKey(id):
+    vaultSessions[id] = VaultSession()
+  vaultSessions[id]
 
 proc wipeString(s: var string) =
   ## Best-effort scrub of a password or plaintext copy. The allocator may
@@ -85,14 +100,27 @@ proc wipeString(s: var string) =
     s[i] = '\x00'
   s.setLen(0)
 
+proc lockProfileVault*(id: string) =
+  ## Wipes one profile's session key and plaintext and drops the session,
+  ## so a deleted profile's key material leaves memory with its directory.
+  ## The profile-delete path calls this before removing the directory.
+  ## Field stores go through `mget` in place: copying a session out would
+  ## duplicate the key into a second object that no wipe then reaches.
+  if vaultSessions.hasKey(id):
+    let sess = vaultSessions[id]
+    if sess.open:
+      wipeSecret(sess.key)
+      sess.open = false
+    wipeString(sess.text)
+    sess.salt = default(RandomBytes)
+    vaultSessions.del(id)
+
 proc lockVault() =
-  ## Wipes the session key and plaintext. Idempotent: locking twice, or
-  ## locking without ever unlocking, is a no-op rather than an error.
-  if vaultSessionOpen:
-    wipeSecret(vaultSessionKey)
-    vaultSessionOpen = false
-  wipeString(vaultSessionText)
-  vaultSessionSalt = default(RandomBytes)
+  ## Wipes the active profile's session key and plaintext. Idempotent:
+  ## locking twice, or locking without ever unlocking, is a no-op rather
+  ## than an error. Other profiles' sessions are untouched.
+  if activeProfileId().len > 0:
+    lockProfileVault(activeProfileId())
 
 proc bytesToString(data: openArray[byte]): string =
   result = newString(data.len)
@@ -152,7 +180,7 @@ proc passwordStatus*(buffer: ptr char, capacity: int32, needed: ptr int32): int3
   var state = "unset"
   let status = catchingStore("read vault status"):
     var passwords = db.passwords
-    if vaultSessionOpen:
+    if session().open:
       state = "unlocked"
     elif passwords.hasKey(VaultDocKey):
       state = "locked"
@@ -184,10 +212,10 @@ proc passwordSetup*(master: cstring, hint: cstring): int32 {.exportc: "bc_passwo
     let key = deriveKeyFromPassword(pw, salt)
     wipeString(pw)
     passwords.upsert(VaultDocKey, sealForStore(EmptyVault, key.data, salt, hintText))
-    vaultSessionKey = key
-    vaultSessionSalt = salt
-    vaultSessionOpen = true
-    vaultSessionText = EmptyVault
+    session().key = key
+    session().salt = salt
+    session().open = true
+    session().text = EmptyVault
     Ok
   status
 
@@ -216,10 +244,10 @@ proc passwordUnlock*(master: cstring): int32 {.exportc: "bc_password_unlock".} =
     except ValueError:
       setError("wrong master password or a damaged vault")
       return ErrWrongPassword
-    vaultSessionKey = key
-    vaultSessionSalt = parts.salt
-    vaultSessionOpen = true
-    vaultSessionText = plain
+    session().key = key
+    session().salt = parts.salt
+    session().open = true
+    session().text = plain
     plain = ""
     Ok
   status
@@ -234,10 +262,10 @@ proc passwordVaultGet*(buffer: ptr char, capacity: int32, needed: ptr int32): in
   ## The decrypted vault JSON. `ErrLocked` while the vault is locked: the
   ## caller checks `bc_password_status` first, so reaching here locked is a
   ## programming error, not a state to recover from.
-  if not vaultSessionOpen:
+  if not session().open:
     setError("the vault is locked")
     return ErrLocked
-  writeBuffer(vaultSessionText, buffer, capacity, needed)
+  writeBuffer(session().text, buffer, capacity, needed)
 
 proc readStoredHint(passwords: var DocumentStore): string =
   ## The envelope's plaintext hint, or "" when absent. Never raises: a
@@ -254,7 +282,7 @@ proc readStoredHint(passwords: var DocumentStore): string =
 proc passwordVaultSet*(document: cstring): int32 {.exportc: "bc_password_vault_set".} =
   ## Replaces the vault with `document`, which must be a JSON object, and
   ## re-seals it under a fresh nonce. `ErrLocked` while locked.
-  if not vaultSessionOpen:
+  if not session().open:
     setError("the vault is locked")
     return ErrLocked
   if document.isNil:
@@ -269,8 +297,8 @@ proc passwordVaultSet*(document: cstring): int32 {.exportc: "bc_password_vault_s
   let status = catchingStore("write vault"):
     var passwords = db.passwords
     let hint = readStoredHint(passwords)
-    passwords.upsert(VaultDocKey, sealForStore(payload, vaultSessionKey.data, vaultSessionSalt, hint))
-    vaultSessionText = payload
+    passwords.upsert(VaultDocKey, sealForStore(payload, session().key.data, session().salt, hint))
+    session().text = payload
     Ok
   status
 
@@ -308,7 +336,7 @@ proc passwordHintSet*(hint: cstring): int32 {.exportc: "bc_password_hint_set".} 
   ## Requires the vault to be unlocked: a hint writable while locked would
   ## let anyone with store access plant a phishing hint. Empty (or NULL)
   ## clears it. `ErrLocked` while locked.
-  if not vaultSessionOpen:
+  if not session().open:
     setError("the vault is locked")
     return ErrLocked
   let hintText = if hint.isNil: "" else: $hint
@@ -317,7 +345,7 @@ proc passwordHintSet*(hint: cstring): int32 {.exportc: "bc_password_hint_set".} 
     var passwords = db.passwords
     passwords.upsert(
       VaultDocKey,
-      sealForStore(vaultSessionText, vaultSessionKey.data, vaultSessionSalt, hintText)
+      sealForStore(session().text, session().key.data, session().salt, hintText)
     )
     Ok
   status

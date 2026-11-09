@@ -34,6 +34,13 @@ import Foundation
 final class StoreClient {
     static let shared = StoreClient()
 
+    /// The profile this client serves, or nil for the shared client. One
+    /// connection per client means one connection per profile: the service
+    /// binds the profile to the connection on connect, and every later
+    /// call on it serves that profile's data. Nil stays unbound and
+    /// resolves the most recently used profile per call.
+    let profileId: String?
+
     /// Mach service name: the XPC service bundle's identifier, which is what
     /// launchd registers a bundled service under.
     private static let serviceName = "com.onebuckapp.whatever.store"
@@ -47,16 +54,18 @@ final class StoreClient {
     /// answered at least once.
     private(set) var lastConnectionError: Error?
 
-    private init() {}
+    init(profileId: String? = nil) {
+        self.profileId = profileId
+    }
 
     // MARK: Connection
 
     /// The live proxy, opening a connection if there is not one already.
-    private func store() throws -> WhateverStoreProtocol {
+    private func store() async throws -> WhateverStoreProtocol {
         if let proxy = existingProxy() {
             return proxy
         }
-        return try connect()
+        return try await connect()
     }
 
     /// The proxy for an already-open connection, or nil when there is none.
@@ -74,7 +83,7 @@ final class StoreClient {
         } as? WhateverStoreProtocol
     }
 
-    private func connect() throws -> WhateverStoreProtocol {
+    private func connect() async throws -> WhateverStoreProtocol {
         let connection = NSXPCConnection(serviceName: Self.serviceName)
         connection.remoteObjectInterface = NSXPCInterface(with: WhateverStoreProtocol.self)
         connection.interruptionHandler = { [weak self] in
@@ -92,6 +101,27 @@ final class StoreClient {
             throw StoreErrors.unavailable()
         }
         self.connection = connection
+        if let profileId {
+            // The binding lives on the connection server-side, so a fresh
+            // connection binds once here; reuses skip this. Idle eviction
+            // drops the connection (see the handlers above), and the next
+            // call reconnects and rebinds the same way.
+            do {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    proxy.useProfile(profileId) { error in
+                        if let error {
+                            continuation.resume(throwing: error)
+                            return
+                        }
+                        continuation.resume()
+                    }
+                }
+            } catch {
+                connection.invalidate()
+                self.connection = nil
+                throw error
+            }
+        }
         return proxy
     }
 
@@ -101,7 +131,7 @@ final class StoreClient {
     private func perform(
         _ call: (WhateverStoreProtocol, @escaping (NSError?) -> Void) -> Void
     ) async throws {
-        let proxy = try store()
+        let proxy = try await store()
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             call(proxy) { error in
                 if let error {
@@ -117,7 +147,7 @@ final class StoreClient {
     private func document(
         _ call: (WhateverStoreProtocol, @escaping (Data?, NSError?) -> Void) -> Void
     ) async throws -> Data {
-        let proxy = try store()
+        let proxy = try await store()
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
             call(proxy) { data, error in
                 if let error {
@@ -138,7 +168,7 @@ final class StoreClient {
     /// Asks the service for its version and expected schema version. Also the
     /// cheapest way to find out whether the service is alive.
     func version() async throws -> StoreVersion {
-        let proxy = try store()
+        let proxy = try await store()
         let resolved = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<StoreVersion, Error>) in
             proxy.version { version, schema, error in
                 if let error {
@@ -154,6 +184,46 @@ final class StoreClient {
         return resolved
     }
 
+    // MARK: Profiles
+
+    /// Migrates a legacy install when needed, then returns the registry as
+    /// `{"profiles": [{id, name, createdAt, lastUsedAt}]}`. Called once at
+    /// startup, before listing or binding a profile.
+    func profilesEnsure() async throws -> Data {
+        try await document { proxy, done in
+            proxy.profilesEnsure(reply: done)
+        }
+    }
+
+    /// The registry, same shape as `profilesEnsure`.
+    func profilesList() async throws -> Data {
+        try await document { proxy, done in
+            proxy.profilesList(reply: done)
+        }
+    }
+
+    /// Adds a profile with a caller-chosen permanent id.
+    func profilesCreate(id: String, name: String) async throws {
+        try await perform { proxy, done in
+            proxy.profilesCreate(id, name, reply: done)
+        }
+    }
+
+    /// Renames the display name; the directory is untouched.
+    func profilesRename(id: String, name: String) async throws {
+        try await perform { proxy, done in
+            proxy.profilesRename(id, name, reply: done)
+        }
+    }
+
+    /// Deletes a profile: unlists it, closes its stores, and removes its
+    /// directory. Refuses the last profile.
+    func profilesDelete(id: String) async throws {
+        try await perform { proxy, done in
+            proxy.profilesDelete(id, reply: done)
+        }
+    }
+
     // MARK: Settings
 
     func settings() async throws -> Data {
@@ -163,7 +233,7 @@ final class StoreClient {
     }
 
     func setSettings(_ document: Data) async throws {
-        let proxy = try store()
+        let proxy = try await store()
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             proxy.settingsSet(document) { _, error in
                 if let error {
@@ -375,7 +445,7 @@ final class StoreClient {
     /// Removes everything older than `date`, returning how many rows went.
     @discardableResult
     func deleteHistory(olderThan date: Date) async throws -> Int {
-        let proxy = try store()
+        let proxy = try await store()
         let cutoff = Int64(date.timeIntervalSince1970)
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, Error>) in
             proxy.historyDeleteBefore(cutoff) { count, error in
@@ -619,7 +689,7 @@ final class StoreClient {
         darkHex: String? = nil,
         lightHex: String? = nil
     ) async throws -> String {
-        let proxy = try store()
+        let proxy = try await store()
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             proxy.qrSVG(text, ec, scale, border, darkHex, lightHex) { document, error in
                 if let error {
@@ -680,7 +750,7 @@ final class StoreClient {
     /// click tracker. The caller records first and drops after, so the
     /// check never blocks navigation. Stateless.
     func historyShouldRecord(_ url: String) async throws -> Bool {
-        let proxy = try store()
+        let proxy = try await store()
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
             proxy.historyShouldRecord(url) { answer, error in
                 if let error {
@@ -712,7 +782,7 @@ final class StoreClient {
 
     /// The active language tag (`ro`, or `en` in English mode).
     func localeTag() async throws -> String {
-        let proxy = try store()
+        let proxy = try await store()
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             proxy.localeGet { tag, error in
                 if let error {

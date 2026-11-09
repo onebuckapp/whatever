@@ -36,7 +36,10 @@
 # compiled out. Because those handlers are gone, this module also owns
 # releasing the stores before the process goes away.
 
+import std/os
 import ./api/qr_api
+import ./api/abi
+import ./api/profile_api
 import ./api/settings_api
 import ./api/bookmark_api
 import ./api/password_api
@@ -49,6 +52,7 @@ import ./api/downloads_api
 import ./api/locale_api
 import ./api/theme_api
 export qr_api
+export profile_api
 export settings_api
 export bookmark_api
 export password_api
@@ -104,3 +108,31 @@ proc bcShutdown*() {.exportc: "bc_shutdown".} =
   ## Idempotent, and a no-op if nothing has been opened yet. Every export is
   ## still callable afterwards: the next one reopens the stores.
   shutdownStores()
+
+proc bcProfilesDelete*(id: cstring): int32 {.exportc: "bc_profiles_delete".} =
+  ## Deletes a profile: its directory and everything in it.
+  ##
+  ## Lives here rather than in profile_api because the teardown spans three
+  ## modules that cannot see each other — settings_api owns the open
+  ## handles, history_api the cached scans, password_api the in-memory
+  ## sessions — while all of them import profile_api, so none of them can
+  ## be imported back. Order matters: the registry entry goes first so a
+  ## failure later still leaves the profile unlisted, then handles close
+  ## (releasing the file locks), sessions wipe, and the directory is
+  ## removed last.
+  if id.isNil:
+    setError("profile id is required")
+    return ErrBadInput
+  let profileId = $id
+  if not validProfileId(profileId):
+    setError("profile id may only use letters, digits, - and _")
+    return ErrBadInput
+  let status = removeProfileFromRegistry(profileId)
+  if status != Ok:
+    return status
+  closeProfileStores(profileId)
+  dropProfileCaches(profileId)
+  lockProfileVault(profileId)
+  catchingStore("delete profile directory"):
+    removeDir(profileDir(profileId))
+    Ok

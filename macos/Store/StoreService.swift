@@ -199,6 +199,12 @@ final class CoreExecutor {
 /// message.
 final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
     private let executor: CoreExecutor
+    /// The profile this connection serves. Set once by `useProfile` on the
+    /// core thread; read by every later job on the same thread, so no lock
+    /// is needed — the executor's serial order is the synchronization.
+    /// Empty means unbound: the core resolves the most recently used
+    /// profile, which is what pre-profiles callers get.
+    private var profileId = ""
 
     init(executor: CoreExecutor) {
         self.executor = executor
@@ -213,9 +219,19 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
     /// `bc_register_thread` first, because the executor is new in this
     /// process's history even though it pins its thread: after the first call
     /// this is a thread-local read.
+    ///
+    /// A bound profile is selected before every job, so concurrent
+    /// connections on different profiles alternate set-then-use atomically
+    /// and can never interleave. Activation failure (the profile was
+    /// deleted mid-flight) clears the selection core-side rather than
+    /// serving a stale profile; that job then falls back like an unbound
+    /// caller instead of erroring halfway through a reply it cannot shape.
     private func serve(_ reply: @escaping () -> Void) {
-        executor.async {
+        executor.async { [self] in
             bc_register_thread()
+            if !profileId.isEmpty {
+                profileId.withCString { _ = bc_profile_activate($0) }
+            }
             reply()
         }
     }
@@ -230,6 +246,76 @@ final class StoreServiceHandler: NSObject, WhateverStoreProtocol {
                 return
             }
             reply(String(cString: bc_version()), schema, nil)
+        }
+    }
+
+    // MARK: Profiles
+
+    func useProfile(_ id: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = id.withCString { bc_profile_use($0) }
+            if status == StoreStatus.ok.rawValue {
+                self.profileId = id
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func profilesEnsure(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_profiles_ensure(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func profilesList(reply: @escaping (Data?, NSError?) -> Void) {
+        serve {
+            guard let payload = CoreBuffer.read({ buffer, capacity, needed in
+                bc_profiles_list(buffer, capacity, needed)
+            }) else {
+                reply(nil, StoreErrors.make(from: StoreStatus.storage.rawValue, message: coreLastError()))
+                return
+            }
+            reply(payload.data, nil)
+        }
+    }
+
+    func profilesCreate(_ id: String, _ name: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = id.withCString { key in
+                name.withCString { label in
+                    bc_profiles_create(key, label)
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func profilesRename(_ id: String, _ name: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = id.withCString { key in
+                name.withCString { label in
+                    bc_profiles_rename(key, label)
+                }
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
+        }
+    }
+
+    func profilesDelete(_ id: String, reply: @escaping (NSError?) -> Void) {
+        serve {
+            let status = id.withCString { bc_profiles_delete($0) }
+            if status == StoreStatus.ok.rawValue, self.profileId == id {
+                // A connection that deletes its own profile unbinds: later
+                // jobs fall back instead of activating a removed directory.
+                self.profileId = ""
+            }
+            reply(StoreErrors.check(status, message: coreLastError()))
         }
     }
 
