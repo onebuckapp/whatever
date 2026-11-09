@@ -56,12 +56,12 @@ const
   DefaultProfileName = "Default"
   MaxProfileIdLen = 64
   MaxProfileNameLen = 64
-  ## Store directories as opened by `openDatabase`, in the order they are
-  ## moved below. Kept in step with storage/database.nim by hand; a new
-  ## store added there belongs here too, or a legacy install would leave it
-  ## behind in the shared root on migration.
-  LegacyStoreDirs = ["settings", "bookmarks", "passwords", "history",
-                     "sessions", "feeds", "downloads"]
+  ## Store names as opened by `openDatabase`. Kept in step with
+  ## storage/database.nim by hand; a new store added there belongs here
+  ## too, or a legacy install would leave it behind in the shared root on
+  ## migration.
+  LegacyStoreNames = ["settings", "bookmarks", "passwords", "history",
+                      "sessions", "feeds", "downloads"]
 
 var
   activeProfile = ""
@@ -153,26 +153,57 @@ proc saveRegistry(doc: JsonNode): int32 =
 proc nowUnix(): int64 =
   getTime().toUnix
 
+proc legacyEntries(root: string): seq[string] =
+  ## Full paths at the root belonging to the pre-profiles layout: a store
+  ## directory itself (`bookmarks/`, `passwords/`), or any file starting
+  ## with `<store>.` (the `.db`, `.lock`, `.wal` triples boogie writes
+  ## beside the path it was given). Never `Profiles/` or the registry
+  ## itself, and never a previous migration's `.bak-` renames, which must
+  ## sit still once written.
+  result = @[]
+  for kind, path in walkDir(root):
+    let base = lastPathPart(path)
+    if base == ProfilesDirName or base == RegistryFileName:
+      continue
+    if ".bak-" in base:
+      continue
+    for name in LegacyStoreNames:
+      if base == name or base.startsWith(name & "."):
+        result.add(path)
+        break
+
 proc migrateLegacy(doc: JsonNode): JsonNode =
   ## Moves a pre-profiles install into `Profiles/default/`: every legacy
-  ## store directory is renamed into place, so the user's data follows
-  ## without a copy, and the registry gains its first entry. A fresh
-  ## install (no legacy directories) just gets the entry. Rename is atomic
-  ## within a volume, and the stores live on one volume by construction.
+  ## entry is renamed into place, so the user's data follows without a
+  ## copy, and the registry gains its first entry. A fresh install (no
+  ## legacy entries) just gets the entry. Renames are atomic within a
+  ## volume, and the stores live on one volume by construction.
+  ##
+  ## When the destination already holds an entry of the same name — a
+  ## half-migrated run, or a fresh profile created before the move — the
+  ## occupant is renamed aside to `<name>.bak-<timestamp>`, never deleted.
+  ## The legacy tree is always the user's real data (nothing writes the
+  ## legacy paths after migration exists); the occupant is at most a fresh
+  ## placeholder. Both survive; the real data wins the live path.
   result = doc
-  var moved = false
-  var madeDir = false
-  for name in LegacyStoreDirs:
-    let src = defaultRoot() / name
-    if dirExists(src):
-      # Renaming into a sibling needs the parent to exist; the stores
-      # themselves create the rest on open.
-      if not madeDir:
-        createDir(profileDir(DefaultProfileId))
-        madeDir = true
-      moveDir(src, profileDir(DefaultProfileId) / name)
-      moved = true
-  if moved or findProfile(result, DefaultProfileId).isNil:
+  let entries = legacyEntries(defaultRoot())
+  if entries.len > 0:
+    # Renaming into a sibling needs the parent to exist; the stores
+    # themselves create the rest on open.
+    createDir(profileDir(DefaultProfileId))
+    for src in entries:
+      let dest = profileDir(DefaultProfileId) / lastPathPart(src)
+      if fileExists(dest) or dirExists(dest):
+        let backup = dest & ".bak-" & $nowUnix()
+        if dirExists(dest):
+          moveDir(dest, backup)
+        else:
+          moveFile(dest, backup)
+      if dirExists(src):
+        moveDir(src, dest)
+      else:
+        moveFile(src, dest)
+  if entries.len > 0 or findProfile(result, DefaultProfileId).isNil:
     let stamp = nowUnix()
     # `result` may be a blank registry or one that lost its default entry;
     # either way the default goes first so MRU ties resolve to it.
@@ -190,10 +221,13 @@ proc migrateLegacy(doc: JsonNode): JsonNode =
 
 proc needsMigration(doc: JsonNode): bool =
   ## True for a fresh install, a legacy single-store layout, or a profiles
-  ## directory without bookkeeping: every case the migration repairs by
-  ## guaranteeing the default entry (moving legacy stores when present).
+  ## directory without bookkeeping — and whenever legacy entries still
+  ## linger at the root, so a half-migrated install heals itself on the
+  ## next launch. Every case is repaired by guaranteeing the default entry
+  ## (moving legacy entries when present).
   not dirExists(profilesRoot()) or
-    (findProfile(doc, DefaultProfileId).isNil and not fileExists(registryPath()))
+    (findProfile(doc, DefaultProfileId).isNil and not fileExists(registryPath())) or
+    legacyEntries(defaultRoot()).len > 0
 
 proc ensureRegistry*(): tuple[doc: JsonNode, status: int32] =
   ## Loads the registry into the cache, migrating a legacy install or
@@ -224,6 +258,12 @@ proc ensureRegistry*(): tuple[doc: JsonNode, status: int32] =
     return (doc, Ok)
   registryCache = doc
   (doc, Ok)
+
+proc resetRegistryCacheForTesting*() =
+  ## Drops the in-memory registry so the next call re-reads (and
+  ## re-migrates) from disk. Test-only: production code paths never call
+  ## this, and the worst a stray call costs is one file read.
+  registryCache = newJNull()
 
 proc mostRecentlyUsed(doc: JsonNode): string =
   ## The id with the newest `lastUsedAt`, default-first on ties. "" when

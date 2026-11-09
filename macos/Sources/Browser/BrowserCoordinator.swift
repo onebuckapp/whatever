@@ -400,6 +400,167 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         controller(for: NSApp.keyWindow) ?? windows.first { $0.window?.isKeyWindow == true }
     }
 
+    /// Windows on one profile, in opening order.
+    func windows(for profileID: String) -> [BrowserWindowController] {
+        windows.filter { $0.profileID == profileID }
+    }
+
+    /// Focuses the profile's window, opening one when it has none. The
+    /// switcher answers here rather than re-profiling a window: tabs never
+    /// change profile, so switching means going to (or opening) a window
+    /// that already belongs to the profile.
+    func focusOrOpenWindow(for profileID: String) {
+        if let existing = windows(for: profileID).first {
+            existing.window?.makeKeyAndOrderFront(nil)
+        } else {
+            newWindow(profileID: profileID)
+        }
+    }
+
+    /// Closes every window on a profile, for the delete flow. Closing
+    /// drives the usual teardown (session snapshot, emptied-profile save),
+    /// so by the time this returns the profile has no windows left.
+    func closeWindows(for profileID: String) {
+        for controller in windows(for: profileID) {
+            controller.close()
+        }
+    }
+
+    /// Deletes a profile and its windows: closes the windows, drops any
+    /// session write they scheduled, removes the profile, and opens a
+    /// default window when nothing is left. The scheduled-write drop
+    /// matters: a debounced save firing after the delete would resolve a
+    /// fallback profile and write the removed windows there.
+    func deleteProfileAndCloseWindows(_ id: String) async throws {
+        closeWindows(for: id)
+        await SessionStore.shared.discardPending()
+        try await ProfileManager.shared.deleteProfile(id: id)
+        if windows.isEmpty {
+            newWindow()
+        }
+    }
+
+    // MARK: - Profile flows
+
+    /// Prompts for a name and opens a window in a new profile. Sheets onto
+    /// the key window when there is one; app-modal otherwise.
+    func promptNewProfile() {
+        promptForProfileName(
+            title: tr("New Profile", ctx: "Profiles"),
+            initial: "",
+            confirm: tr("Create", ctx: "Profiles")
+        ) { name in
+            Task { @MainActor in
+                do {
+                    let profile = try await ProfileManager.shared.createProfile(name: name)
+                    self.focusOrOpenWindow(for: profile.id)
+                } catch {
+                    self.presentStoreError(error)
+                }
+            }
+        }
+    }
+
+    /// Renames the key window's profile.
+    func promptRenameProfile() {
+        guard let controller = keyController,
+              let profile = ProfileManager.shared.profile(withID: controller.profileID)
+        else { return }
+        promptForProfileName(
+            title: tr("Rename Profile", ctx: "Profiles"),
+            initial: profile.name,
+            confirm: tr("Rename", ctx: "Profiles")
+        ) { name in
+            Task { @MainActor in
+                do {
+                    try await ProfileManager.shared.renameProfile(id: profile.id, name: name)
+                } catch {
+                    self.presentStoreError(error)
+                }
+            }
+        }
+    }
+
+    /// Confirms and deletes the key window's profile with its windows.
+    /// Refuses the last profile, like the core does.
+    func confirmDeleteProfile() {
+        guard let controller = keyController,
+              let profile = ProfileManager.shared.profile(withID: controller.profileID)
+        else { return }
+        let alert = NSAlert()
+        alert.messageText = tr("Delete Profile “{name}”?", ctx: "Profiles", args: ["name": profile.name])
+        alert.informativeText = tr(
+            "This removes its history, bookmarks, passwords, and everything else stored in this profile. This cannot be undone.",
+            ctx: "Profiles"
+        )
+        alert.addButton(withTitle: tr("Delete", ctx: "Profiles"))
+        alert.addButton(withTitle: tr("Cancel", ctx: "Profiles"))
+        let delete = { [weak self] in
+            Task { @MainActor in
+                do {
+                    try await self?.deleteProfileAndCloseWindows(profile.id)
+                } catch {
+                    self?.presentStoreError(error)
+                }
+            }
+        }
+        if let window = controller.window {
+            alert.beginSheetModal(for: window) { response in
+                guard response == .alertFirstButtonReturn else { return }
+                delete()
+            }
+        } else if alert.runModal() == .alertFirstButtonReturn {
+            delete()
+        }
+    }
+
+    /// One text-field prompt for the profile flows above.
+    private func promptForProfileName(
+        title: String,
+        initial: String,
+        confirm: String,
+        onConfirm: @escaping (String) -> Void
+    ) {
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 22))
+        field.stringValue = initial
+        field.placeholderString = tr("Name", ctx: "Profiles")
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.accessoryView = field
+        alert.addButton(withTitle: confirm)
+        alert.addButton(withTitle: tr("Cancel", ctx: "Profiles"))
+        // Focus the field: a prompt that makes the user click into it first
+        // is a prompt half broken.
+        alert.window.initialFirstResponder = field
+        let commit = {
+            let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return }
+            onConfirm(name)
+        }
+        if let window = keyController?.window {
+            alert.beginSheetModal(for: window) { response in
+                guard response == .alertFirstButtonReturn else { return }
+                commit()
+            }
+        } else if alert.runModal() == .alertFirstButtonReturn {
+            commit()
+        }
+    }
+
+    /// Reports a store failure from the flows above. Rare — the core
+    /// validates input, and the last-profile refusal arrives here — but a
+    /// silent no-op would leave the user wondering why nothing happened.
+    private func presentStoreError(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = error.localizedDescription
+        alert.addButton(withTitle: tr("OK", ctx: "Profiles"))
+        if let window = keyController?.window {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
+    }
+
     func controller(for window: NSWindow?) -> BrowserWindowController? {
         guard let window else { return nil }
         return windows.first { $0.window === window }

@@ -58,6 +58,11 @@ struct WhateverApp: App {
     // submenu items (Services, Hide, standard Edit/Window) stay in the
     // system language — only our items, and the bar titles, translate.
     @StateObject private var localization = Localization.shared
+    // Observed so the profile submenu lists current names: every create,
+    // rename, and delete refreshes the manager, which rebuilds the menu.
+    // Data only — no key-window lookup here, which is fatal at menu-build
+    // time under XCTest (see the bookmarks toggle below, still shared).
+    @StateObject private var profiles = ProfileManager.shared
 
     var body: some Scene {
         // No `Settings` scene. Declaring one opens a blank window instead of
@@ -99,6 +104,18 @@ struct WhateverApp: App {
                     BrowserCoordinator.shared.newPrivateWindow()
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
+                Divider()
+                Menu(tr("New Window with Profile", ctx: "Menu.File")) {
+                    ForEach(profiles.profiles) { profile in
+                        Button(profile.name) {
+                            BrowserCoordinator.shared.newWindow(profileID: profile.id)
+                        }
+                    }
+                    Divider()
+                    Button(tr("New Profile…", ctx: "Menu.File")) {
+                        BrowserCoordinator.shared.promptNewProfile()
+                    }
+                }
                 Divider()
                 Button(tr("Open…", ctx: "Menu.File")) {
                     BrowserCoordinator.shared.keyController?.openFilePanel()

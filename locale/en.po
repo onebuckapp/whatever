@@ -228,6 +228,16 @@ msgctxt "Menu.File"
 msgid "New Incognito Window"
 msgstr ""
 
+#. File menu > profile picker.
+msgctxt "Menu.File"
+msgid "New Window with Profile"
+msgstr ""
+
+#. File menu > profile picker, and the profile pill menu.
+msgctxt "Menu.File"
+msgid "New Profile…"
+msgstr ""
+
 #. File menu > file picker.
 msgctxt "Menu.File"
 msgid "Open…"
@@ -1248,12 +1258,80 @@ msgctxt "Menu.Dock"
 msgid "New Window"
 msgstr ""
 
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Cancel"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Create"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Delete"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Delete Profile “{name}”?"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Delete {name}…"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Name"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "New Profile"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "New Profile…"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "OK"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Rename"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Rename Profile"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Rename {name}…"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "Switch to {name}"
+msgstr ""
+
+#. Profiles: switching, creation, and management.
+msgctxt "Profiles"
+msgid "This removes its history, bookmarks, passwords, and everything else stored in this profile. This cannot be undone."
+msgstr ""
+
 #. Password manager.
 msgctxt "Passwords"
 msgid "Add another credential"
 msgstr ""
-
-msgctxt "Passwords"
 msgid "Are you sure? This cannot be reverted."
 msgstr ""
 
@@ -3166,6 +3244,11 @@ msgstr ""
 
 msgctxt "Toolbar"
 msgid "Password Manager"
+msgstr ""
+
+#. Toolbar profile pill tooltip.
+msgctxt "Toolbar"
+msgid "Profile: {name}"
 msgstr ""
 
 msgctxt "Toolbar"

@@ -47,6 +47,16 @@ actor SessionStore {
     /// profile: the snapshot alone no longer says where it goes.
     private var pending: (snapshot: SessionSnapshot, client: StoreClient)?
 
+    /// Drops a waiting write without writing it. The profile-delete flow
+    /// calls this after closing the profile's windows: their debounced
+    /// saves must not fire into a fallback profile afterwards.
+    func discardPending() {
+        saveTask?.cancel()
+        saveTask = nil
+        pending = nil
+        hasPendingWrite = false
+    }
+
     /// Whether a change has not reached the store yet.
     ///
     /// The quit path reads this to decide whether it needs to delay termination

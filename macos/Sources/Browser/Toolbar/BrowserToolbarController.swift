@@ -49,6 +49,17 @@ final class BrowserToolbarController: NSObject {
     private let bookmarksButton = BrowserToolbarButton()
     private let passwordButton = BrowserToolbarButton()
     private let adblockButton = BrowserToolbarButton()
+    /// The window's profile as a pull-down: the name, with switch, create,
+    /// rename, and delete in its menu. Set at install — windows never
+    /// change profile — and rebuilt when the profile list changes, so a
+    /// rename elsewhere renames the pill too.
+    private let profileButton: NSPopUpButton = {
+        let button = NSPopUpButton(frame: .zero, pullsDown: true)
+        button.bezelStyle = .texturedRounded
+        button.controlSize = .small
+        button.font = .systemFont(ofSize: 12)
+        return button
+    }()
     private let backButton = BrowserToolbarButton()
     private let forwardButton = BrowserToolbarButton()
     private let reloadButton = BrowserToolbarButton()
@@ -147,12 +158,13 @@ final class BrowserToolbarController: NSObject {
                 ? [Self.makeIncognitoBadge(), backButton, forwardButton, reloadButton, bookmarkButton]
                 : [backButton, forwardButton, reloadButton, bookmarkButton],
             center: centerStack,
-            trailing: [adblockButton, passwordButton, bookmarksButton, downloadsButton, settingsButton]
+            trailing: [adblockButton, passwordButton, bookmarksButton, downloadsButton, settingsButton, profileButton]
         )
         self.toolbarView = toolbar
         super.init()
 
         configureButtons()
+        configureProfileButton()
         configureCenterStack()
         configureAddressField()
         configureSpotlight()
@@ -346,6 +358,7 @@ final class BrowserToolbarController: NSObject {
         downloadsButton.image?.accessibilityDescription = tr("Downloads", ctx: "Toolbar")
         settingsButton.toolTip = tr("Settings", ctx: "Toolbar")
         settingsButton.image?.accessibilityDescription = tr("Settings", ctx: "Toolbar")
+        rebuildProfileMenu()
         syncControls()
     }
 
@@ -803,6 +816,84 @@ final class BrowserToolbarController: NSObject {
         passwordButton.toolTip = tr("Password Manager", ctx: "Toolbar")
         passwordButton.target = self
         passwordButton.action = #selector(togglePasswords)
+    }
+
+    /// The profile pill: the window's name, with switch, create, rename,
+    /// and delete in its pull-down menu. Rebuilt from the manager list, so
+    /// a rename or a new profile lands without reopening the window.
+    private func configureProfileButton() {
+        rebuildProfileMenu()
+        ProfileManager.shared.$profiles
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rebuildProfileMenu() }
+            .store(in: &chromeCancellables)
+    }
+
+    private func rebuildProfileMenu() {
+        let manager = ProfileManager.shared
+        let currentID = controller?.profileID ?? manager.defaultProfile.id
+        let current = manager.profile(withID: currentID)?.name ?? currentID
+        profileButton.title = current
+        profileButton.toolTip = tr("Profile: {name}", ctx: "Toolbar", args: ["name": current])
+        let menu = NSMenu()
+        let heading = NSMenuItem(title: current, action: nil, keyEquivalent: "")
+        heading.isEnabled = false
+        menu.addItem(heading)
+        menu.addItem(.separator())
+        for profile in manager.profiles {
+            let item = NSMenuItem(
+                title: tr("Switch to {name}", ctx: "Profiles", args: ["name": profile.name]),
+                action: #selector(switchProfile(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = profile.id
+            item.state = profile.id == currentID ? .on : .off
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        let newItem = NSMenuItem(
+            title: tr("New Profile…", ctx: "Profiles"),
+            action: #selector(newProfile),
+            keyEquivalent: ""
+        )
+        newItem.target = self
+        menu.addItem(newItem)
+        let renameItem = NSMenuItem(
+            title: tr("Rename {name}…", ctx: "Profiles", args: ["name": current]),
+            action: #selector(renameProfile),
+            keyEquivalent: ""
+        )
+        renameItem.target = self
+        menu.addItem(renameItem)
+        let deleteItem = NSMenuItem(
+            title: tr("Delete {name}…", ctx: "Profiles", args: ["name": current]),
+            action: #selector(deleteProfile),
+            keyEquivalent: ""
+        )
+        deleteItem.target = self
+        // The core refuses the last profile; disabling says so up front
+        // instead of failing after a confirmation.
+        deleteItem.isEnabled = manager.profiles.count > 1
+        menu.addItem(deleteItem)
+        profileButton.menu = menu
+    }
+
+    @objc private func switchProfile(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        BrowserCoordinator.shared.focusOrOpenWindow(for: id)
+    }
+
+    @objc private func newProfile() {
+        BrowserCoordinator.shared.promptNewProfile()
+    }
+
+    @objc private func renameProfile() {
+        BrowserCoordinator.shared.promptRenameProfile()
+    }
+
+    @objc private func deleteProfile() {
+        BrowserCoordinator.shared.confirmDeleteProfile()
     }
 
     private func configureAdBlockButton() {
