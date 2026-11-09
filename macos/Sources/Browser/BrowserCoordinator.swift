@@ -186,14 +186,17 @@ final class BrowserCoordinator: NSObject, ObservableObject {
 
     // MARK: - Session
 
-    /// Builds the document that describes every open window.
+    /// Builds the document that describes every open window on one profile.
     ///
     /// Private tabs are left out here rather than marked in the document: a
     /// private tab is not the user's to reopen later, so it should not survive
     /// in a file either. The address is the tab's own rather than its loaded
     /// page's, so a tab that never got a view still records where it was.
-    func sessionSnapshot() -> SessionSnapshot {
-        let records = windows.compactMap { controller -> SessionSnapshot.WindowSnapshot? in
+    ///
+    /// One document per profile: each profile's store holds only its own
+    /// windows, so restoring one profile never resurrects another's.
+    func sessionSnapshot(for profileID: String) -> SessionSnapshot {
+        let records = windows.filter({ $0.profileID == profileID }).compactMap { controller -> SessionSnapshot.WindowSnapshot? in
             guard let window = controller.window else { return nil }
             let tabs = controller.tabs.compactMap { tab -> SessionSnapshot.TabSnapshot? in
                 guard tab.privacyMode != .privateBrowsing else { return nil }
@@ -239,24 +242,34 @@ final class BrowserCoordinator: NSObject, ObservableObject {
                 tabs: tabs,
                 selectedTabID: controller.selectedTabID.flatMap { kept.contains($0) ? $0 : nil },
                 layout: layout,
-                splitGroup: splitGroup
+                splitGroup: splitGroup,
+                profileID: controller.profileID
             )
         }
         return SessionSnapshot(windows: records)
     }
 
-    /// Reopens a stored session.
+    /// Reopens one profile's stored session.
     ///
     /// Returns how many windows came back, so the caller can open a fresh one
-    /// when there was nothing to restore.
+    /// when there was nothing to restore. Records without a profile id are
+    /// pre-profiles documents and restore into the default profile; a record
+    /// naming another profile never appears here because each profile loads
+    /// only its own document.
     @discardableResult
-    func restore(from snapshot: SessionSnapshot?) -> Int {
+    func restore(from snapshot: SessionSnapshot?, profileID: String) -> Int {
         guard let snapshot, snapshot.isRestorable else { return 0 }
         isRestoringSession = true
         defer { isRestoringSession = false }
+        let context = ProfileManager.shared.context(forID: profileID)
         var restored = 0
         for record in snapshot.windows where !record.tabs.isEmpty {
-            let controller = BrowserWindowController(restoring: record, history: history)
+            let controller = BrowserWindowController(
+                restoring: record,
+                profileID: profileID,
+                history: context.history,
+                dataStore: context.dataStore
+            )
             windows.append(controller)
             controller.showWindow(nil)
             controller.window?.makeKeyAndOrderFront(nil)
@@ -269,16 +282,31 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     ///
     /// The single entry point for every change worth recording, so a new kind of
     /// mutation cannot quietly skip persistence by being added somewhere that
-    /// forgets to call this.
+    /// forgets to call this. Writes one document per profile with windows
+    /// open; a profile with none is handled where its last window closes.
     func sessionDidChange() {
         guard !isRestoringSession else { return }
-        let snapshot = sessionSnapshot()
-        Task { await SessionStore.shared.scheduleSave(snapshot) }
+        let manager = ProfileManager.shared
+        let ids = Set(windows.map(\.profileID))
+        Task {
+            for id in ids {
+                await SessionStore.shared.scheduleSave(
+                    sessionSnapshot(for: id),
+                    using: manager.client(for: id)
+                )
+            }
+        }
     }
 
     /// Writes the session immediately, for the quit and window-close paths.
     func saveSessionNow() async {
-        await SessionStore.shared.saveNow(sessionSnapshot())
+        let manager = ProfileManager.shared
+        for id in Set(windows.map(\.profileID)) {
+            await SessionStore.shared.saveNow(
+                sessionSnapshot(for: id),
+                using: manager.client(for: id)
+            )
+        }
     }
 
     /// Whether a session write has not reached the store yet.
@@ -292,11 +320,23 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     // MARK: - Windows
 
     @discardableResult
-    func newWindow(url: URL? = nil, privacyMode: BrowserPrivacyMode = .regular) -> BrowserWindowController {
+    func newWindow(
+        url: URL? = nil,
+        privacyMode: BrowserPrivacyMode = .regular,
+        profileID: String? = nil
+    ) -> BrowserWindowController {
+        // A new window opens into the key window's profile, so a Work user
+        // pressing ⌘N stays in Work; with no windows open it is the default
+        // profile. An explicit id always wins (restore, profile switching).
+        let manager = ProfileManager.shared
+        let resolvedID = profileID ?? keyController?.profileID ?? manager.defaultProfile.id
+        let context = manager.context(forID: resolvedID)
         let controller = BrowserWindowController(
             initialURL: url,
             privacyMode: privacyMode,
-            history: history
+            profileID: resolvedID,
+            history: context.history,
+            dataStore: context.dataStore
         )
         windows.append(controller)
         controller.showWindow(nil)
@@ -326,7 +366,14 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         atScreenPoint point: NSPoint? = nil,
         focusesAddressBar: Bool = false
     ) -> BrowserWindowController {
-        let controller = BrowserWindowController(tab: tab)
+        // The fresh window inherits the tab's profile, so the tab's jar and
+        // recorder stay valid without any migration.
+        let context = ProfileManager.shared.context(forID: tab.profileID)
+        let controller = BrowserWindowController(
+            tab: tab,
+            history: context.history,
+            dataStore: context.dataStore
+        )
         windows.append(controller)
         controller.showWindow(nil)
         if let window = controller.window {
@@ -385,9 +432,14 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         focusesAddressBar: Bool = true
     ) -> BrowserTab? {
         let target = controller ?? keyController
+        let manager = ProfileManager.shared
+        let resolvedID = target?.profileID ?? manager.defaultProfile.id
+        let context = manager.context(forID: resolvedID)
         let tab = BrowserTab(
             privacyMode: Self.resolvedPrivacyMode(explicit: privacyMode, in: target),
-            history: history,
+            profileID: resolvedID,
+            history: context.history,
+            dataStore: context.dataStore,
             initialURL: url
         )
         if let target {
@@ -427,8 +479,19 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             SystemBeep.play()
             return
         }
-        let tab = BrowserTab(privacyMode: closed.privacyMode, history: history, initialURL: closed.url)
+        // A reopened tab is a fresh load into the key window's profile: its
+        // URL carries over, its cookies do not.
         let controller = keyController
+        let manager = ProfileManager.shared
+        let resolvedID = controller?.profileID ?? manager.defaultProfile.id
+        let context = manager.context(forID: resolvedID)
+        let tab = BrowserTab(
+            privacyMode: closed.privacyMode,
+            profileID: resolvedID,
+            history: context.history,
+            dataStore: context.dataStore,
+            initialURL: closed.url
+        )
         if let controller {
             controller.addTab(tab)
             controller.selectTab(tab)
@@ -495,6 +558,13 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
         guard let source else { return }
         if source !== destination {
+            if source.profileID != destination.profileID {
+                // Tabs never change profile: a cross-profile move becomes a
+                // detach into a fresh window that inherits the tab's own.
+                source.detachTab(tab)
+                newWindow(containing: tab)
+                return
+            }
             source.detachTab(tab)
             destination.addTab(tab, at: index)
         } else {
@@ -533,6 +603,12 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
         guard let source else { return }
         if source !== destination {
+            if source.profileID != destination.profileID {
+                // As with single tabs: the pair keeps its profile in a
+                // fresh window rather than mixing into another's.
+                detachGroup(pair, from: source, atScreenPoint: nil)
+                return
+            }
             source.detachTab(pair[0])
             source.detachTab(pair[1])
             destination.addTab(pair[0], at: index, select: false)
@@ -574,11 +650,21 @@ final class BrowserCoordinator: NSObject, ObservableObject {
             ClosedTab(url: $0.displayURL, privacyMode: $0.privacyMode)
         })
         trimRecentlyClosed()
+        let closedProfile = controller.profileID
         controller.tearDown()
         windows.removeAll { $0 === controller }
         // After the removal, so the snapshot describes what is still open. The
         // frame is captured while the window still exists.
         sessionDidChange()
+        // A profile that just lost its last window would otherwise keep its
+        // stale document: the partition above only writes profiles that
+        // still have windows, so the emptied one is cleared explicitly.
+        if !windows.contains(where: { $0.profileID == closedProfile }) {
+            let client = ProfileManager.shared.client(for: closedProfile)
+            Task {
+                await SessionStore.shared.scheduleSave(.empty, using: client)
+            }
+        }
     }
 
     private func trimRecentlyClosed() {

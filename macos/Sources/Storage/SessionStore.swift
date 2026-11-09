@@ -42,6 +42,10 @@ actor SessionStore {
     private static let saveTimeout: Duration = .seconds(3)
 
     private var saveTask: Task<Void, Never>?
+    /// A write waiting out its debounce, with the client it must reach.
+    /// The client rides along because one shared store serves every
+    /// profile: the snapshot alone no longer says where it goes.
+    private var pending: (snapshot: SessionSnapshot, client: StoreClient)?
 
     /// Whether a change has not reached the store yet.
     ///
@@ -61,9 +65,9 @@ actor SessionStore {
     ///
     /// A store that cannot be reached is not fatal: the caller opens a fresh
     /// window instead, exactly as a first launch does.
-    func load() async -> SessionSnapshot? {
+    func load(using client: StoreClient) async -> SessionSnapshot? {
         do {
-            let data = try await StoreClient.shared.session()
+            let data = try await client.session()
             let snapshot = try JSONDecoder().decode(SessionSnapshot.self, from: data)
             return snapshot.isRestorable ? snapshot : nil
         } catch {
@@ -75,27 +79,37 @@ actor SessionStore {
     // MARK: - Writing
 
     /// Schedules a write, replacing any one already waiting.
-    func scheduleSave(_ snapshot: SessionSnapshot) {
+    func scheduleSave(_ snapshot: SessionSnapshot, using client: StoreClient) {
         saveTask?.cancel()
         hasPendingWrite = true
+        pending = (snapshot, client)
         saveTask = Task { [weak self] in
             try? await Task.sleep(for: Self.saveDebounce)
             guard !Task.isCancelled else { return }
-            await self?.saveNow(snapshot)
+            await self?.flushPending()
         }
+    }
+
+    /// Writes a waiting snapshot, if one survived its debounce. The task
+    /// captures only the store: the snapshot and client wait in `pending`,
+    /// so nothing profile-bound crosses into the sendable closure.
+    private func flushPending() async {
+        guard let pending else { return }
+        await saveNow(pending.snapshot, using: pending.client)
     }
 
     /// Writes immediately, bypassing the debounce. Used on quit and when a
     /// window closes, where there may be no later chance.
-    func saveNow(_ snapshot: SessionSnapshot) async {
+    func saveNow(_ snapshot: SessionSnapshot, using client: StoreClient) async {
         saveTask?.cancel()
         saveTask = nil
+        pending = nil
         hasPendingWrite = false
 
         let didSave = await withTaskGroup(of: Bool.self) { group in
             group.addTask {
                 do {
-                    try await StoreClient.shared.saveSession(
+                    try await client.saveSession(
                         JSONEncoder().encode(snapshot)
                     )
                     return true
@@ -116,12 +130,13 @@ actor SessionStore {
     }
 
     /// Forgets the stored snapshot, so the next launch opens a fresh session.
-    func clear() async {
+    func clear(using client: StoreClient) async {
         saveTask?.cancel()
         saveTask = nil
+        pending = nil
         hasPendingWrite = false
         do {
-            try await StoreClient.shared.clearSession()
+            try await client.clearSession()
             lastError = nil
         } catch {
             lastError = error.localizedDescription

@@ -166,6 +166,18 @@ final class ProfileManager: ObservableObject {
         return made
     }
 
+    /// The context for an id, falling back to the default profile when the
+    /// id is unknown (a window restored after its profile was deleted).
+    func context(forID id: String) -> ProfileContext {
+        context(for: profile(withID: id) ?? defaultProfile)
+    }
+
+    /// Contexts built so far this run. The quit path drains pending writes
+    /// through these; profiles never touched need nothing.
+    var activeContexts: [ProfileContext] {
+        Array(contexts.values)
+    }
+
     /// Creates a profile and reloads the registry, returning the new entry.
     @discardableResult
     func createProfile(name: String) async throws -> BrowserProfile {

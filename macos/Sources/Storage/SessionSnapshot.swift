@@ -60,19 +60,24 @@ struct SessionSnapshot: Codable, Equatable {
         /// hidden. Absent in documents written before groups existed, which
         /// decode as no group.
         var splitGroup: Layout?
+        /// The profile the window belonged to. Absent in documents written
+        /// before profiles existed, which restore into the default profile.
+        var profileID: String?
 
         init(
             frame: Frame = .default,
             tabs: [TabSnapshot] = [],
             selectedTabID: UUID? = nil,
             layout: Layout,
-            splitGroup: Layout? = nil
+            splitGroup: Layout? = nil,
+            profileID: String? = nil
         ) {
             self.frame = frame
             self.tabs = tabs
             self.selectedTabID = selectedTabID
             self.layout = layout
             self.splitGroup = splitGroup
+            self.profileID = profileID
         }
 
         /// What the page area was showing: one tab, or two with a divider ratio.

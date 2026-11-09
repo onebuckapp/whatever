@@ -105,6 +105,11 @@ final class BrowserTab: NSObject {
     }
 
     private let dataStore: WKWebsiteDataStore
+    /// The profile this tab records into. Fixed at creation: a tab never
+    /// changes profile, so its history stays with it across window moves.
+    /// Cookie isolation needs no such decision point: the jar below is
+    /// fixed at the same moment.
+    let profileID: String
     private let navigationController: NavigationController
 
     /// The website data store backing this tab's pages: the shared
@@ -251,19 +256,23 @@ final class BrowserTab: NSObject {
     init(
         id: UUID = UUID(),
         privacyMode: BrowserPrivacyMode = .regular,
+        profileID: String = BrowserProfile.defaultID,
         history: HistoryRecording,
+        dataStore: WKWebsiteDataStore? = nil,
         initialURL: URL? = nil,
         restored: RestoredState? = nil,
         historyShouldRecord: @escaping (String) async throws -> Bool = BrowserCore.historyShouldRecord
     ) {
         self.id = id
         self.privacyMode = privacyMode
+        self.profileID = profileID
         self.historyShouldRecord = historyShouldRecord
 
-        let dataStore: WKWebsiteDataStore = privacyMode == .privateBrowsing
-            ? .nonPersistent()
-            : .default()
-        self.dataStore = dataStore
+        // Private tabs always isolate: whatever jar is passed, a private
+        // tab gets a non-persistent one, so profile jars never see private
+        // cookies and every creation site can pass its window's jar
+        // unconditionally.
+        self.dataStore = privacyMode == .privateBrowsing ? .nonPersistent() : (dataStore ?? .default())
 
         let tab = BrowserTabController(
             id: id,

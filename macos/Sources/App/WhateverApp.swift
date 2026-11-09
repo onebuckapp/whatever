@@ -412,7 +412,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // not fatal: the browser still opens with defaults, it just cannot
             // read or write stored data.
             async let version = BrowserCore.version()
-            async let session = SessionStore.shared.load()
             // Warms the bookmark cache while the window is still opening, so
             // the address bar's first query already sees bookmarks. Runs with
             // the other launch loads rather than on any keystroke path.
@@ -467,11 +466,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // leaves the store empty and pages load unblocked.
             await ContentBlockerStore.shared.refreshIfNeeded()
 
-            // Reopen the session the user left, and only fall back to a fresh
-            // window when there was nothing to reopen. The two stores are read
-            // concurrently: neither depends on the other, and the session load
-            // is what decides whether this launch opens anything at all.
-            if BrowserCoordinator.shared.restore(from: await session) == 0 {
+            // Reopen every profile's session the user left, and only fall back
+            // to a fresh window when there was nothing to reopen anywhere.
+            // Each profile loads only its own document, so restoring one
+            // profile never resurrects another's windows.
+            let manager = ProfileManager.shared
+            let launchProfiles = manager.profiles.isEmpty
+                ? [manager.defaultProfile] : manager.profiles
+            var restoredWindows = 0
+            for profile in launchProfiles {
+                let snapshot = await SessionStore.shared.load(
+                    using: manager.client(for: profile.id))
+                restoredWindows += BrowserCoordinator.shared.restore(
+                    from: snapshot, profileID: profile.id)
+            }
+            if restoredWindows == 0 {
                 BrowserCoordinator.shared.newTab()
             }
         }
@@ -492,14 +501,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// recoverable from anywhere else.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Task { @MainActor in
-            let settingsPending = SettingsStore.shared.hasPendingWrite
+            var settingsPending = SettingsStore.shared.hasPendingWrite
+            let manager = ProfileManager.shared
+            for context in manager.activeContexts where !settingsPending {
+                if context.settings.hasPendingWrite {
+                    settingsPending = true
+                }
+            }
             let sessionPending = await BrowserCoordinator.shared.hasPendingSessionWrite()
             guard settingsPending || sessionPending else {
                 NSApplication.shared.reply(toApplicationShouldTerminate: true)
                 return
             }
-            if settingsPending {
+            if SettingsStore.shared.hasPendingWrite {
                 await SettingsStore.shared.saveNow()
+            }
+            for context in manager.activeContexts where context.settings.hasPendingWrite {
+                await context.settings.saveNow()
             }
             if sessionPending {
                 await BrowserCoordinator.shared.saveSessionNow()

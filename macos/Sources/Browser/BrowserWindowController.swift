@@ -339,6 +339,16 @@ final class BrowserWindowController: NSWindowController {
     var defaultPrivacyMode: BrowserPrivacyMode {
         isIncognito ? .privateBrowsing : .regular
     }
+    /// The profile this window belongs to. Fixed at creation: windows never
+    /// change profile — switching profiles focuses or opens a window — so
+    /// every tab it creates records into the same profile, and the session
+    /// snapshot attributes the whole window at once.
+    let profileID: String
+    /// History recorder and cookie jar for tabs this window creates. Stored
+    /// rather than resolved per tab so creation sites stay uniform; both
+    /// are plain references with no actor isolation, safe to hold here.
+    private let windowHistory: HistoryRecording
+    private let windowDataStore: WKWebsiteDataStore
     /// The sticky split group: the pair (and ratio) that renders joined in
     /// the tab bar and side by side in the page area.
     ///
@@ -368,8 +378,13 @@ final class BrowserWindowController: NSWindowController {
 
     // MARK: - Init
 
-    init(tab: BrowserTab) {
+    init(tab: BrowserTab, history: HistoryRecording, dataStore: WKWebsiteDataStore) {
         self.isIncognito = tab.privacyMode == .privateBrowsing
+        // A dragged tab keeps its profile: the fresh window inherits it, so
+        // the tab's jar and recorder stay valid without any migration.
+        self.profileID = tab.profileID
+        self.windowHistory = history
+        self.windowDataStore = dataStore
         self.layout = .single(tabID: tab.id)
         let content = BrowserWindowContentViewController()
         self.contentController = content
@@ -391,7 +406,15 @@ final class BrowserWindowController: NSWindowController {
     /// The tabs come back without web views, so a window that had a dozen tabs
     /// open builds pages only for the ones its layout actually shows. Everything
     /// else waits until it is selected.
-    init(restoring record: SessionSnapshot.WindowSnapshot, history: HistoryRecording) {
+    init(
+        restoring record: SessionSnapshot.WindowSnapshot,
+        profileID: String,
+        history: HistoryRecording,
+        dataStore: WKWebsiteDataStore
+    ) {
+        self.profileID = profileID
+        self.windowHistory = history
+        self.windowDataStore = dataStore
         // A tab whose stored address will not parse cannot be rebuilt, so it is
         // dropped rather than restored to the homepage and quietly disagreeing
         // with the document.
@@ -400,7 +423,9 @@ final class BrowserWindowController: NSWindowController {
             return BrowserTab(
                 id: tabRecord.id,
                 privacyMode: .regular,
+                profileID: profileID,
                 history: history,
+                dataStore: dataStore,
                 restored: .init(
                     urls: urls,
                     index: min(tabRecord.restoredIndex, urls.count - 1),
@@ -413,7 +438,7 @@ final class BrowserWindowController: NSWindowController {
         // A record whose every tab failed to rebuild still opens a usable window
         // rather than a blank one.
         let restoredTabs = rebuilt.isEmpty
-            ? [BrowserTab(history: history)]
+            ? [BrowserTab(profileID: profileID, history: history, dataStore: dataStore)]
             : rebuilt
         let rebuiltIDs = Set(restoredTabs.map(\.id))
 
@@ -497,9 +522,11 @@ final class BrowserWindowController: NSWindowController {
     convenience init(
         initialURL: URL? = nil,
         privacyMode: BrowserPrivacyMode = .regular,
-        history: HistoryRecording
+        profileID: String,
+        history: HistoryRecording,
+        dataStore: WKWebsiteDataStore
     ) {
-        self.init(tab: BrowserTab(privacyMode: privacyMode, history: history, initialURL: initialURL))
+        self.init(tab: BrowserTab(privacyMode: privacyMode, profileID: profileID, history: history, dataStore: dataStore, initialURL: initialURL), history: history, dataStore: dataStore)
     }
 
     required init?(coder: NSCoder) {
@@ -854,10 +881,14 @@ final class BrowserWindowController: NSWindowController {
     @discardableResult
     func duplicateTab(_ tab: BrowserTab) -> BrowserTab {
         // A blank page duplicates as a fresh homepage, not as about:blank.
+        // The copy adopts the window's profile: it is a fresh load with no
+        // carried cookies, so there is nothing of the source profile to keep.
         let url = tab.displayURL
         let copy = BrowserTab(
             privacyMode: tab.privacyMode,
-            history: BrowserCoordinator.shared.history,
+            profileID: profileID,
+            history: windowHistory,
+            dataStore: windowDataStore,
             initialURL: url.isAddresslessPage ? nil : url
         )
         let index = tabs.firstIndex(where: { $0.id == tab.id }).map { $0 + 1 }

@@ -593,6 +593,7 @@ final class BrowserPaneController: NSViewController {
         if tab.privacyMode == .privateBrowsing {
             let fresh = BrowserTab(
                 privacyMode: .privateBrowsing,
+                profileID: tab.profileID,
                 history: BrowserCoordinator.shared.history,
                 initialURL: url
             )
