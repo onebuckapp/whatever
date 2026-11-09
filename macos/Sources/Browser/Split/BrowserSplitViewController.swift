@@ -22,6 +22,14 @@ import Combine
 /// existing web views are reparented rather than recreated, and the
 /// divider position is stored as a ratio so it survives window resizes.
 final class BrowserSplitViewController: NSSplitViewController {
+    /// The window's profile, for the background setting. Set at creation.
+    var profileID: String = BrowserProfile.defaultID
+
+    /// The window's appearance settings.
+    private var appearance: AppSettings.AppearanceSettings {
+        ProfileManager.shared.context(forID: profileID).settings.settings.appearance
+    }
+
     static let minimumPaneWidth: CGFloat = 260
     static let minimumRatio: CGFloat = 0.2
     static let maximumRatio: CGFloat = 0.8
@@ -45,7 +53,7 @@ final class BrowserSplitViewController: NSSplitViewController {
         applySplitBackgroundTransparency()
         // The split view is created and thrown away as the layout changes, so it
         // reads the setting itself rather than being told.
-        backgroundSubscription = SettingsStore.shared.$settings
+        backgroundSubscription = ProfileManager.shared.context(forID: profileID).settings.$settings
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.applySplitBackgroundTransparency()
@@ -69,7 +77,7 @@ final class BrowserSplitViewController: NSSplitViewController {
     /// Only applied while a background is configured: with none, the split is
     /// left exactly as AppKit drew it.
     private func applySplitBackgroundTransparency() {
-        guard SettingsStore.shared.settings.appearance.background.isActive else {
+        guard appearance.background.isActive else {
             splitView.layer?.backgroundColor = nil
             return
         }

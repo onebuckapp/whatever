@@ -23,6 +23,19 @@ import Combine
 /// tabs. Navigation and the address field live in `BrowserToolbarView`.
 final class BrowserWindowContentViewController: NSViewController {
     static let tabBarHeight: CGFloat = 36
+    /// The window's profile. Set by the window controller at creation;
+    /// every card this view presents (settings, passwords, feeds,
+    /// bookmarks) resolves its store through it.
+    var profileID: String = BrowserProfile.defaultID {
+        didSet {
+            tabBar.profileID = profileID
+        }
+    }
+
+    /// The window's profile objects, for everything this view presents.
+    private var profileContext: ProfileContext {
+        ProfileManager.shared.context(forID: profileID)
+    }
 
     /// Breathing room the top crawl bar keeps below itself, mirroring its own
     /// top margin. The strip the bar hangs off — the tab bar when the tabs
@@ -145,7 +158,7 @@ final class BrowserWindowContentViewController: NSViewController {
     /// otherwise.
     private var chromeLayout: ChromeLayout {
         if let chromeLayoutForTesting { return chromeLayoutForTesting }
-        let settings = SettingsStore.shared.settings
+        let settings = profileContext.settings.settings
         return ChromeLayout(
             tabsAtBottom: settings.appearance.tabPosition == .bottom,
             crawlAtTop: settings.feeds.crawlPosition == .top,
@@ -281,7 +294,7 @@ final class BrowserWindowContentViewController: NSViewController {
         let presenter = SettingsModalPresenter(container: view) { [weak self] in
             self?.clearSettings()
         }
-        presenter.present(section: section)
+        presenter.present(section: section, profileID: profileID)
         settingsPresenter = presenter
         noiseOverlay?.moveToFront()
     }
@@ -312,7 +325,7 @@ final class BrowserWindowContentViewController: NSViewController {
             // Fall through and reopen: the candidates belong to this tab and
             // this press, not to whatever the previous card was showing.
         }
-        let presenter = FeedReaderPresenter(container: view) { [weak self] in
+        let presenter = FeedReaderPresenter(container: view, profileID: profileID) { [weak self] in
             self?.feedReaderPresenter = nil
             self?.releaseShield(id: "feed-reader")
         }
@@ -384,7 +397,7 @@ final class BrowserWindowContentViewController: NSViewController {
         claimShield(id: "adblock", dismissOnPress: true) { [weak self] in
             self?.dismissAdBlockPopup()
         }
-        presenter.present(host: host)
+        presenter.present(host: host, profileID: tab.profileID)
         if !presenter.isPresented {
             // The card never opened (a detached window): don't hold cover
             // for it.
@@ -588,7 +601,7 @@ final class BrowserWindowContentViewController: NSViewController {
             dismissPasswordManager()
             return
         }
-        let presenter = PasswordManagerPresenter(container: view) { [weak self] in
+        let presenter = PasswordManagerPresenter(container: view, profileID: profileID) { [weak self] in
             self?.clearPasswordManager()
         }
         passwordManagerPresenter = presenter
@@ -597,14 +610,14 @@ final class BrowserWindowContentViewController: NSViewController {
                 self?.dismissPasswordManager()
             }
         }
-        presenter.present(initialQuery: query)
+        presenter.present(initialQuery: query, profileID: profileID)
         if !presenter.isPresented {
             // The card never opened (a detached window): don't hold cover
             // for it, and don't leave a vault unlocked behind it.
             passwordManagerPresenter = nil
             releaseShield(id: "passwords")
-            Task { @MainActor in
-                await PasswordStore.shared.lock()
+            Task { @MainActor [weak self] in
+                await self?.profileContext.passwords.lock()
             }
         }
     }
@@ -620,8 +633,8 @@ final class BrowserWindowContentViewController: NSViewController {
     private func clearPasswordManager() {
         passwordManagerPresenter = nil
         releaseShield(id: "passwords")
-        Task { @MainActor in
-            await PasswordStore.shared.lock()
+        Task { @MainActor [weak self] in
+            await self?.profileContext.passwords.lock()
         }
     }
 
@@ -842,7 +855,11 @@ final class BrowserWindowContentViewController: NSViewController {
         // The bookmarks strip: always parented, between the toolbar and the
         // tab bar (see `installToolbar`). Hidden and zero-height until the
         // setting asks for it, so nothing shifts by default.
-        let bookmarkBar = BookmarkBarController(container: view)
+        let bookmarkBar = BookmarkBarController(
+            container: view,
+            store: profileContext.bookmarks,
+            settings: profileContext.settings
+        )
         bookmarkBar.onOpen = { [weak self] url, newTab in
             self?.onOpenBookmarkURL?(url, newTab)
         }
@@ -873,18 +890,19 @@ final class BrowserWindowContentViewController: NSViewController {
         // the grain lands in front of it, and pinned to the bounds rather than
         // the safe area so it runs up behind the transparent toolbar.
         let background = BackgroundMediaView.install(in: view)
+        background.profileID = profileID
         backgroundMedia = background
         // Read straight off the settings store rather than through a mirror: the
         // stored shape is the in-memory shape here, so a second observable would
         // be pure overhead. `appearance` is already a published section, and
         // `changedKeys` already reports it.
-        backgroundSubscription = SettingsStore.shared.$settings
+        backgroundSubscription = profileContext.settings.$settings
             .receive(on: DispatchQueue.main)
             .sink { [weak background] settings in
                 background?.configuration = settings.appearance.background
             }
-        background.configuration = SettingsStore.shared.settings.appearance.background
-        ThemeEngine.shared.$fullCSS
+        background.configuration = profileContext.settings.settings.appearance.background
+        profileContext.theme.$fullCSS
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refreshBackgroundThemeStyles() }
@@ -894,7 +912,7 @@ final class BrowserWindowContentViewController: NSViewController {
         // swap edges without a relaunch. Fires at once with the current
         // values, which lays out the default chain before the toolbar
         // install re-pins it onto the bookmark bar.
-        chromeCancellable = SettingsStore.shared.$settings
+        chromeCancellable = profileContext.settings.$settings
             .map { ($0.appearance.tabPosition, $0.feeds.crawlPosition, $0.appearance.tabShape) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
@@ -1009,7 +1027,7 @@ final class BrowserWindowContentViewController: NSViewController {
     /// ticker with no pane-side changes. Cmd+F therefore always opens above
     /// the crawl bar.
     private func installCrawlBar() {
-        let controller = CrawlBarController(container: view) { [weak self] url in
+        let controller = CrawlBarController(container: view, profileID: profileID) { [weak self] url in
             // Ticker taps always open a new tab: the strip is window-wide
             // ambient content, never the current page, so replacing the page
             // underneath would lose where the user was reading.
@@ -1037,7 +1055,7 @@ final class BrowserWindowContentViewController: NSViewController {
             children: [ThemeNode(
                 key: "background", element: "background", id: "background")])]
         Task { [weak self] in
-            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            let styles = await profileContext.theme.resolve(nodes: tree)
             guard let self, current == self.backgroundThemeGeneration else { return }
             self.backgroundMedia?.applyThemeCSS(styles["background"] ?? [:])
         }

@@ -29,8 +29,6 @@ import WebKit
 final class FeedReaderCoordinator: ObservableObject {
     static let shared = FeedReaderCoordinator()
 
-    let store = FeedReaderStore()
-
     /// Opens an article URL. `true` means a new tab; false means the selected tab.
     var onOpenArticle: ((URL, Bool) -> Void)?
 
@@ -51,6 +49,8 @@ final class FeedReaderCoordinator: ObservableObject {
 struct FeedReaderPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
+    /// The window's profile, for the library the card shows.
+    var profileID = BrowserProfile.defaultID
 
     func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
         config
@@ -67,7 +67,7 @@ struct FeedReaderPopup: CenterPopup {
     }
 
     var body: some View {
-        FeedReaderView()
+        FeedReaderView(store: ProfileManager.shared.context(forID: profileID).feeds)
             .shadow(color: .black.opacity(0.34), radius: 18, x: 0, y: 10)
             .shadow(color: .black.opacity(0.58), radius: 25, x: 0, y: 30)
             // Mijick masks the whole popup to its measured bounds, so the
@@ -86,6 +86,7 @@ struct FeedReaderPopup: CenterPopup {
 struct FeedReaderRootView: View {
     let stackID: PopupStackID
     let popupID: String
+    var profileID = BrowserProfile.defaultID
 
     var body: some View {
         Color.clear
@@ -99,7 +100,7 @@ struct FeedReaderRootView: View {
                 }
             }
             .task {
-                await FeedReaderPopup(stackID: stackID, popupID: popupID)
+                await FeedReaderPopup(stackID: stackID, popupID: popupID, profileID: profileID)
                     .present(popupStackID: stackID)
             }
     }
@@ -113,9 +114,12 @@ final class FeedReaderPresenter {
     private var stackID: PopupStackID?
     private var escapeMonitor: Any?
     private var onDidDismiss: (() -> Void)?
+    /// The window's profile, for the library the card shows.
+    private let profileID: String
 
-    init(container: NSView, onDidDismiss: (() -> Void)? = nil) {
+    init(container: NSView, profileID: String = BrowserProfile.defaultID, onDidDismiss: (() -> Void)? = nil) {
         self.container = container
+        self.profileID = profileID
         self.onDidDismiss = onDidDismiss
     }
 
@@ -123,8 +127,8 @@ final class FeedReaderPresenter {
         hostingView?.superview != nil
     }
 
-    /// Prepares the shared reader around one page's candidates, then shows the
-    /// card over the window.
+    /// Prepares the window's profile library around one page's candidates,
+    /// then shows the card over the window.
     func present(
         candidates: [FeedCandidate],
         pageURL: URL?,
@@ -136,8 +140,9 @@ final class FeedReaderPresenter {
         guard let container else { return }
         resetForReuse()
         FeedReaderCoordinator.shared.onOpenArticle = onOpenArticle
+        let library = ProfileManager.shared.context(forID: profileID).feeds
         Task {
-            await FeedReaderCoordinator.shared.store.present(
+            await library.present(
                 candidates: candidates,
                 pageURL: pageURL,
                 siteName: siteName,
@@ -148,7 +153,7 @@ final class FeedReaderPresenter {
 
         let stackID = PopupStackID(rawValue: "feed-reader-\(UUID().uuidString)")
         let popupID = "feed-reader"
-        let root = FeedReaderRootView(stackID: stackID, popupID: popupID)
+        let root = FeedReaderRootView(stackID: stackID, popupID: popupID, profileID: profileID)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)

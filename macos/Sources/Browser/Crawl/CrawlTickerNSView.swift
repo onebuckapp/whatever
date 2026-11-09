@@ -46,6 +46,8 @@ struct CrawlTickerInputs {
 /// loop sweeps the bitmap's full span, reversing at each end instead of
 /// wrapping, so the bar never shows a half-empty strip.
 final class CrawlTickerNSView: NSView {
+    /// The window's profile, for the corner-radius setting.
+    var profileID: String = BrowserProfile.defaultID
     /// Horizontal inset of the scrolling content, matching the old row's
     /// `.padding(.horizontal, 12)`.
     static let horizontalInset: CGFloat = 12
@@ -153,7 +155,7 @@ final class CrawlTickerNSView: NSView {
         rootLayer.addSublayer(containerLayer)
         // Roundness changes no inputs, so the pill only follows them through
         // a layout pass of its own.
-        radiusCancellable = SettingsStore.shared.$settings
+        radiusCancellable = ProfileManager.shared.context(forID: profileID).settings.$settings
             .map(\.appearance.crawlCornerRadius)
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -534,7 +536,7 @@ final class CrawlTickerNSView: NSView {
         // `update(with:)`, and layout runs before each paint anyway. CSS
         // overrides the slider while set.
         let configured = cssCornerRadius
-            ?? CGFloat(SettingsStore.shared.settings.appearance.crawlCornerRadius)
+            ?? CGFloat(ProfileManager.shared.context(forID: profileID).settings.settings.appearance.crawlCornerRadius)
         backgroundLayer.cornerRadius = min(
             max(configured, 0),
             bounds.height > 0 ? bounds.height / 2 : .greatestFiniteMagnitude

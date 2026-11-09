@@ -282,7 +282,10 @@ final class BrowserTab: NSObject {
         )
         self.tabController = tab
 
-        let navigation = NavigationController(history: history)
+        let navigation = NavigationController(
+            history: history,
+            client: ProfileManager.shared.client(for: profileID)
+        )
         self.navigationController = navigation
 
         super.init()
@@ -390,7 +393,7 @@ final class BrowserTab: NSObject {
     @discardableResult
     func ensureWebView() -> WKWebView {
         if let webView { return webView }
-        let fresh = WebViewFactory.makeWebView(mode: privacyMode, dataStore: dataStore)
+        let fresh = WebViewFactory.makeWebView(mode: privacyMode, dataStore: dataStore, profileID: profileID)
         fresh.navigationDelegate = navigationController
         fresh.takesMouseInput = acceptsMouseInput
         webView = fresh

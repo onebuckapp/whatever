@@ -47,15 +47,19 @@ final class BookmarkBarController {
     var onOpenSettings: (() -> Void)?
 
     private let store: BookmarkStore
+    private let settings: SettingsStore
     private let menuTarget = BookmarkMenuTarget()
     private var heightConstraint: NSLayoutConstraint?
     private var cancellables = Set<AnyCancellable>()
     private var lastRoots: [BookmarkNode]?
 
     /// `store` defaults to the shared store; injected in tests so the bar
-    /// can be driven without XPC.
-    init(container: NSView, store: BookmarkStore = .shared) {
+    /// can be driven without XPC. `settings` likewise: the window passes
+    /// its profile's settings, so the bar's visibility follows the profile
+    /// it renders rather than the shared document.
+    init(container: NSView, store: BookmarkStore = .shared, settings: SettingsStore = .shared) {
         self.store = store
+        self.settings = settings
         view = BookmarkBarView()
         view.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(view)
@@ -88,7 +92,7 @@ final class BookmarkBarController {
             self?.store.move(id, to: parentID, before: beforeID)
         }
 
-        SettingsStore.shared.$settings
+        settings.$settings
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
@@ -103,7 +107,7 @@ final class BookmarkBarController {
     var isVisible: Bool { !view.isHidden }
 
     private func refresh() {
-        let enabled = forceEnabledForTesting ?? SettingsStore.shared.settings.bookmarks.showBar
+        let enabled = forceEnabledForTesting ?? settings.settings.bookmarks.showBar
         heightConstraint?.constant = enabled ? BookmarkBarView.height : 0
         view.isHidden = !enabled
 

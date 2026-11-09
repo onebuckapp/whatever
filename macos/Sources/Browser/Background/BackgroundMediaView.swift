@@ -83,6 +83,9 @@ enum BackgroundMediaError: Equatable {
 /// resolved in one place. Redraws come only from bounds, configuration,
 /// appearance or backing-scale changes; there is no timer and no per-frame work.
 final class BackgroundMediaView: NSView {
+    /// The window's profile, for background settings. Set at install.
+    var profileID: String = BrowserProfile.defaultID
+
     /// Below everything in the window. See the note above.
     static let zPosition: CGFloat = -1
 
@@ -174,7 +177,7 @@ final class BackgroundMediaView: NSView {
             // off in the store rather than left configured and failing silently.
             BackgroundDiagnostics.shared.report(error.message)
             self?.onError?(error)
-            SettingsStore.shared.update { $0.appearance.background.kind = .none }
+            ProfileManager.shared.context(forID: self?.profileID ?? BrowserProfile.defaultID).settings.update { $0.appearance.background.kind = .none }
         }
         videoLayer.onFirstFrame = { [weak self] in self?.needsDisplay = true }
         apply()
@@ -381,7 +384,7 @@ final class BackgroundMediaView: NSView {
                         // window or retrying forever on a bad path. Written to the
                         // store as well as locally, so the pane does not keep
                         // showing a file that is already known to be unusable.
-                        SettingsStore.shared.update {
+                        ProfileManager.shared.context(forID: self.profileID).settings.update {
                             $0.appearance.background.kind = .none
                         }
                     }

@@ -387,6 +387,7 @@ final class BrowserWindowController: NSWindowController {
         self.windowDataStore = dataStore
         self.layout = .single(tabID: tab.id)
         let content = BrowserWindowContentViewController()
+        content.profileID = profileID
         self.contentController = content
         let window = Self.makeWindow(content: content)
         super.init(window: window)
@@ -484,6 +485,7 @@ final class BrowserWindowController: NSWindowController {
         self.splitGroup = restoredGroup
 
         let content = BrowserWindowContentViewController()
+        content.profileID = profileID
         self.contentController = content
         let window = Self.makeWindow(content: content)
         super.init(window: window)
@@ -1635,7 +1637,7 @@ final class BrowserWindowController: NSWindowController {
             pane(for: tab).pdfZoomIn()
             return
         }
-        SettingsStore.shared.update {
+        ProfileManager.shared.context(forID: profileID).settings.update {
             $0.web.pageZoom = ZoomSupport.stepped($0.web.pageZoom, direction: 1)
         }
     }
@@ -1650,7 +1652,7 @@ final class BrowserWindowController: NSWindowController {
             pane(for: tab).pdfZoomOut()
             return
         }
-        SettingsStore.shared.update {
+        ProfileManager.shared.context(forID: profileID).settings.update {
             $0.web.pageZoom = ZoomSupport.stepped($0.web.pageZoom, direction: -1)
         }
     }
@@ -1666,7 +1668,7 @@ final class BrowserWindowController: NSWindowController {
             pane(for: tab).pdfResetZoom()
             return
         }
-        SettingsStore.shared.update {
+        ProfileManager.shared.context(forID: profileID).settings.update {
             $0.web.pageZoom = 1.0
         }
     }
@@ -1844,6 +1846,7 @@ final class BrowserWindowController: NSWindowController {
             split = existing
         } else {
             split = BrowserSplitViewController()
+            split.profileID = profileID
             splitController = split
             singlePane = nil
         }

@@ -40,16 +40,26 @@ final class ProfileContext {
     let feeds: FeedReaderStore
     /// The profile's cookie jar. See `cookieJar(for:)`.
     let dataStore: WKWebsiteDataStore
+    /// The profile's content-blocker compile: rules, exceptions, and
+    /// bookkeeping resolve through its settings, and WebKit identifiers
+    /// carry the profile id.
+    let blocker: ContentBlockerStore
+    /// The profile's theme engine: managed CSS and full CSS resolve from
+    /// its settings, so windows on different profiles paint different
+    /// chrome.
+    let theme: ThemeEngine
 
     init(profile: BrowserProfile, client: StoreClient) {
         self.profile = profile
         self.client = client
-        self.settings = SettingsStore(client: client)
+        self.settings = SettingsStore(client: client, profileID: profile.id)
         self.history = StoreHistoryRecorder(client: client, settings: settings)
         self.passwords = PasswordStore(client: client)
         self.bookmarks = BookmarkStore(client: client)
         self.downloads = DownloadsStore(client: client)
         self.feeds = FeedReaderStore(client: client)
+        self.blocker = ContentBlockerStore(settings: settings)
+        self.theme = ThemeEngine(settings: settings)
         self.dataStore = Self.cookieJar(for: profile.id)
     }
 
@@ -163,7 +173,41 @@ final class ProfileManager: ObservableObject {
         }
         let made = ProfileContext(profile: profile, client: client(for: profile.id))
         contexts[profile.id] = made
+        // Live settings fan-out, per profile: a change made anywhere — a
+        // control, a migration, a future programmatic caller — pushes onto
+        // that profile's open pages only, exactly like the single-profile
+        // subscription this replaces (see `WhateverApp`, since removed).
+        made.settings.onChange = { [weak self] changed in
+            guard let self else { return }
+            self.applyLiveSettings(changed, for: profile.id)
+        }
+        // Settings load on first use rather than at creation: creation
+        // happens on window open, where blocking on the store is wrong.
+        // Reads before the load lands see built-in defaults, as before.
+        Task { await made.settings.load() }
         return made
+    }
+
+    /// Pushes one profile's live settings onto its open pages. Only the
+    /// `WKWebView` properties can be pushed; the rest take effect on the
+    /// next page, which reads the same profile's document at build.
+    private func applyLiveSettings(_ changed: Set<String>, for profileID: String) {
+        let coordinator = BrowserCoordinator.shared
+        if changed.contains("web") {
+            coordinator.applyLiveWebSettings(for: profileID)
+            // The sleep threshold lives in the same section: enabling it
+            // reaps at once instead of waiting for the next minute.
+            TabSleeper.shared.sweep()
+        }
+        if changed.contains("appearance") {
+            coordinator.applyLiveBackgroundSettings(for: profileID)
+        }
+        if changed.contains("search") {
+            coordinator.applyLiveSearchLinkGuard(for: profileID)
+        }
+        if changed.contains("adblock") {
+            coordinator.applyLiveContentBlocker(for: profileID)
+        }
     }
 
     /// The context for an id, falling back to the default profile when the

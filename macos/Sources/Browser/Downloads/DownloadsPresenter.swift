@@ -40,10 +40,13 @@ final class DownloadsPresenter {
     private var escapeMonitor: Any?
     private var onDidDismiss: (() -> Void)?
     private var store: DownloadsStore?
+    /// The window's profile, for the history the card lists.
+    private let profileID: String
 
-    init(container: NSView, area: NSView, onDidDismiss: (() -> Void)? = nil) {
+    init(container: NSView, area: NSView, profileID: String = BrowserProfile.defaultID, onDidDismiss: (() -> Void)? = nil) {
         self.container = container
         self.area = area
+        self.profileID = profileID
         self.onDidDismiss = onDidDismiss
     }
 
@@ -61,7 +64,11 @@ final class DownloadsPresenter {
             return
         }
         resetForReuse()
-        let store = DownloadsStore()
+        // A fresh store per opening (never the shared profile one): the
+        // card sets a per-open retry handler on it, which sharing would
+        // clobber across windows. The client binds it to this profile.
+        let store = DownloadsStore(
+            client: ProfileManager.shared.client(for: profileID))
         store.onRetry = { [weak self] url in
             self?.dismiss()
             onRetry(url)

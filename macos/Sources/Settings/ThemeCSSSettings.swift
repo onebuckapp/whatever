@@ -29,7 +29,7 @@ import SwiftUI
 /// `customCSS` in the same update. What remains applies as a CSS-only
 /// override through the cascade and still repaints live.
 struct ThemeCSSSettingsGroups: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
 
     /// Draft of the user block. Seeded once on appear: the card keeps panes
     /// mounted, so a blind reseed would clobber typing on every return.
@@ -82,7 +82,7 @@ struct ThemeCSSSettingsGroups: View {
                 scheduleCheck()
             }
             if helpText == nil {
-                Task { @MainActor in helpText = await Self.loadHelp() }
+                Task { @MainActor in helpText = await Self.loadHelp(profileID: store.profileID) }
             }
         }
     }
@@ -158,8 +158,8 @@ struct ThemeCSSSettingsGroups: View {
         .font(.system(size: 11))
     }
 
-    private static func loadHelp() async -> String {
-        guard let data = await ThemeEngine.shared.spec(),
+    private static func loadHelp(profileID: String) async -> String {
+        guard let data = await ProfileManager.shared.context(forID: profileID).theme.spec(),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {
             return "background-color, color, border-color, border-radius, border-width, font-size, opacity, background-image: linear-gradient(…)"
@@ -264,11 +264,11 @@ struct ThemeCSSSettingsGroups: View {
                 guard current == generation else { return }
                 let declarations = ThemeDeclaration.list(from: declData)
                 var outcome = ThemeCSSSync.Outcome()
-                SettingsStore.shared.update { settings in
+                store.update { settings in
                     settings.appearance.customCSS = text
                     outcome = ThemeCSSSync.mapInto(declarations, &settings)
                 }
-                await ThemeEngine.shared.refreshManaged()
+                await ProfileManager.shared.context(forID: store.profileID).theme.refreshManaged()
                 guard current == generation else { return }
                 if outcome.cssOnly == 0 {
                     status = tr(

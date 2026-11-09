@@ -90,7 +90,7 @@ struct ThemeCSSValueTests {
     @Test("managed projection covers the CSS-expressible slice")
     @MainActor
     func managedDocument() {
-        let document = ThemeEngine.managedDocument()
+        let document = ThemeEngine().managedDocument()
         #expect(document[".tab"]?["border-radius"]?.hasSuffix("px") == true)
         #expect(document["#addressbar"]?["border-radius"]?.hasSuffix("px") == true)
         #expect(document["#crawlbar"]?["opacity"] != nil)

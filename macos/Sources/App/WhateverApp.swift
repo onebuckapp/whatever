@@ -380,26 +380,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBarRetitler.retitleBar()
         // Idle-tab reaping runs for the life of the app once started.
         TabSleeper.shared.start()
-        // One subscription, so a web setting changed anywhere — a settings
-        // control, a migration, a future programmatic caller — reaches open
-        // pages the same way.
-        SettingsStore.shared.onChange = { changed in
-            if changed.contains("web") {
-                BrowserCoordinator.shared.applyLiveWebSettings()
-                // The sleep threshold lives in the same section: enabling it
-                // reaps at once instead of waiting for the next minute.
-                TabSleeper.shared.sweep()
-            }
-            if changed.contains("appearance") {
-                BrowserCoordinator.shared.applyLiveBackgroundSettings()
-            }
-            if changed.contains("search") {
-                BrowserCoordinator.shared.applyLiveSearchLinkGuard()
-            }
-            if changed.contains("adblock") {
-                BrowserCoordinator.shared.applyLiveContentBlocker()
-            }
-        }
         Task { @MainActor in
             // Profiles first: this migrates a legacy single-store install
             // into `Profiles/default/` inside the service and loads the
@@ -463,8 +443,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Compiles the content-blocker lists before the first tab opens,
             // so the first page is already filtered. Fail-open: a failure
-            // leaves the store empty and pages load unblocked.
-            await ContentBlockerStore.shared.refreshIfNeeded()
+            // leaves the store empty and pages load unblocked. Compiles the
+            // default profile's lists; other profiles compile on first use
+            // through their settings' fan-out.
+            await ProfileManager.shared.context(for: ProfileManager.shared.defaultProfile).blocker
+                .refreshIfNeeded()
 
             // Reopen every profile's session the user left, and only fall back
             // to a fresh window when there was nothing to reopen anywhere.

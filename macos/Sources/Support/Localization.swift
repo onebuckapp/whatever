@@ -143,9 +143,17 @@ final class Localization: ObservableObject {
 
     /// The effective BCP-47 tag: the settings override, or the system
     /// locale when it says `"system"`. The core normalizes (`ro-RO` tries
-    /// `ro_RO` then `ro`), so no canonicalization here.
+    /// `ro_RO` then `ro`), so no canonicalization here. Reads the front
+    /// window's profile: the language is app-wide, and the window the
+    /// user is looking at is where a change was just made. Resolved
+    /// without `NSApp`, which does not exist under XCTest.
     static func resolveTag() -> String {
-        let override = SettingsStore.shared.settings.general.language
+        let manager = ProfileManager.shared
+        let keyID = BrowserCoordinator.shared.windows.first(where: {
+            $0.window?.isKeyWindow == true
+        })?.profileID
+        let override = manager.context(forID: keyID ?? manager.defaultProfile.id)
+            .settings.settings.general.language
         if override == "system" || override.isEmpty {
             return Locale.current.identifier
         }

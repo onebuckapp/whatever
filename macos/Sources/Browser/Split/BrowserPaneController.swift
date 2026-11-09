@@ -181,7 +181,7 @@ final class BrowserPaneController: NSViewController {
         // is open and reactivates it on close, so the page holder yields its
         // bottom edge to the bar instead of overlapping it.
         let pageBottom = pageContainer.bottomAnchor.constraint(
-            equalTo: view.bottomAnchor, constant: -Self.currentPageBottomInset)
+            equalTo: view.bottomAnchor, constant: -currentPageBottomInset)
         pageBottom.isActive = true
         pageBottomConstraint = pageBottom
 
@@ -198,12 +198,12 @@ final class BrowserPaneController: NSViewController {
         // corners join it (pills) or meet the tab bar squarely (attached).
         // No half-height cap: the page is orders of magnitude larger than
         // any sane radius.
-        radiusCancellable = SettingsStore.shared.$settings
+        radiusCancellable = ProfileManager.shared.context(forID: self.tab.profileID).settings.$settings
             .map { ($0.appearance.pageCornerRadius, $0.appearance.tabShape, $0.appearance.tabPosition) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.applyPageAppearance() }
-        themeCancellable = ThemeEngine.shared.$fullCSS
+        themeCancellable = ProfileManager.shared.context(forID: self.tab.profileID).theme.$fullCSS
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refreshPageThemeStyles() }
@@ -245,10 +245,10 @@ final class BrowserPaneController: NSViewController {
         return 6
     }
 
-    /// `pageBottomInset` for the stored settings.
-    private static var currentPageBottomInset: CGFloat {
-        let appearance = SettingsStore.shared.settings.appearance
-        return pageBottomInset(tabPosition: appearance.tabPosition, tabShape: appearance.tabShape)
+    /// `pageBottomInset` for the tab's profile settings.
+    private var currentPageBottomInset: CGFloat {
+        let appearance = ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.appearance
+        return Self.pageBottomInset(tabPosition: appearance.tabPosition, tabShape: appearance.tabShape)
     }
 
     /// Applies the page card's roundness and the bottom inset that keeps it
@@ -257,13 +257,13 @@ final class BrowserPaneController: NSViewController {
     /// corners and wherever the page lets through.
     private func applyPageAppearance() {
         let structured = CGFloat(max(
-            SettingsStore.shared.settings.appearance.pageCornerRadius, 0))
+            ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.appearance.pageCornerRadius, 0))
         pageContainer?.layer?.cornerRadius =
             ThemeStyleValue.length(pageThemeProps, "border-radius") ?? structured
         pageContainer?.layer?.maskedCorners = pageMaskedCorners()
         pageContainer?.layer?.backgroundColor =
             ThemeStyleValue.color(pageThemeProps, "background-color")?.cgColor
-        pageBottomConstraint?.constant = -Self.currentPageBottomInset
+        pageBottomConstraint?.constant = -currentPageBottomInset
     }
 
     /// Re-resolves user-CSS over the page node and repaints. The only page
@@ -279,7 +279,9 @@ final class BrowserPaneController: NSViewController {
             children: [ThemeNode(
                 key: "page", element: "page", id: "page", states: states)])]
         Task { [weak self] in
-            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            let styles = await ProfileManager.shared.context(
+                forID: self?.tab.profileID ?? BrowserProfile.defaultID
+            ).theme.resolve(nodes: tree)
             guard let self, current == self.themeGeneration else { return }
             self.pageThemeProps = styles["page"] ?? [:]
             self.applyPageAppearance()
@@ -297,11 +299,11 @@ final class BrowserPaneController: NSViewController {
     /// bar. Read live from Settings, so both this and `applySplitPosition`
     /// converge whichever runs last.
     private func pageMaskedCorners() -> CACornerMask {
-        let pills = SettingsStore.shared.settings.appearance.tabShape.roundsBottomCorners
-        let tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
+        let pills = ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.appearance.tabShape.roundsBottomCorners
+        let tabsAtBottom = ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.appearance.tabPosition == .bottom
         switch splitPosition {
         case .single:
-            return SettingsStore.shared.settings.appearance.tabShape.pageCorners(tabsAtBottom: tabsAtBottom)
+            return ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.appearance.tabShape.pageCorners(tabsAtBottom: tabsAtBottom)
         case .leading:
             if pills {
                 return [.layerMinXMinYCorner, .layerMinXMaxYCorner]
@@ -427,7 +429,7 @@ final class BrowserPaneController: NSViewController {
                 guard let self else {
                     return PasswordMenuContext(isUnlocked: false, matches: [])
                 }
-                let store = PasswordStore.shared
+                let store = ProfileManager.shared.context(forID: self.tab.profileID).passwords
                 let host = PasswordAutofill.normalizeHost(url: self.tab.displayURL)
                 guard !host.isEmpty else {
                     return PasswordMenuContext(
@@ -621,7 +623,8 @@ final class BrowserPaneController: NSViewController {
                     download: download,
                     sourceURL: url,
                     suggestedFilename: nil,
-                    bytesExpected: -1
+                    bytesExpected: -1,
+                    client: ProfileManager.shared.client(for: self.tab.profileID)
                 ))
             }
         }
@@ -731,7 +734,7 @@ final class BrowserPaneController: NSViewController {
         if let downloadsPresenter, downloadsPresenter.isPresented {
             dismissDownloads()
         }
-        let presenter = DownloadsPresenter(container: popupContainer, area: pageContainer) { [weak self] in
+        let presenter = DownloadsPresenter(container: popupContainer, area: pageContainer, profileID: tab.profileID) { [weak self] in
             self?.downloadsPresenter = nil
             self?.releasePopupShield(id: "downloads")
         }
@@ -878,7 +881,7 @@ final class BrowserPaneController: NSViewController {
     /// Fills a vault credential into the page's login form. An explicit
     /// menu click always fills, even over non-empty fields.
     private func fillCredential(siteID: String, credentialID: String) {
-        let store = PasswordStore.shared
+        let store = ProfileManager.shared.context(forID: self.tab.profileID).passwords
         guard store.lockState == .unlocked,
               let credential = store.site(siteID)?.credentials.first(where: { $0.id == credentialID }),
               let webView = tab.webView
@@ -927,7 +930,7 @@ final class BrowserPaneController: NSViewController {
             anchorRect: anchor,
             in: anchorView,
             wordlist: PasswordGenerator.loadWordlist(),
-            vaultUnlocked: PasswordStore.shared.lockState == .unlocked,
+            vaultUnlocked: ProfileManager.shared.context(forID: self.tab.profileID).passwords.lockState == .unlocked,
             onUse: { [weak self] password in
                 self?.suggestPresenter?.dismiss()
                 self?.useSuggestedPassword(password)
@@ -985,7 +988,7 @@ final class BrowserPaneController: NSViewController {
               ["http", "https"].contains(pageURL.scheme?.lowercased() ?? ""),
               !host.isEmpty
         else { return }
-        let store = PasswordStore.shared
+        let store = ProfileManager.shared.context(forID: self.tab.profileID).passwords
         guard store.lockState == .unlocked else { return }
         let matches = store.credentials(matchingHost: host)
         if matches.isEmpty {
@@ -1013,7 +1016,7 @@ final class BrowserPaneController: NSViewController {
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
             Task { @MainActor in
-                PasswordStore.shared.updateCredential(
+                ProfileManager.shared.context(forID: self.tab.profileID).passwords.updateCredential(
                     siteID: only.siteID, only.credential.id,
                     username: only.credential.username, password: suggested)
             }
@@ -1032,7 +1035,7 @@ final class BrowserPaneController: NSViewController {
         else { return }
         let host = PasswordAutofill.normalizeHost(url: tab.displayURL)
         guard !host.isEmpty else { return }
-        let store = PasswordStore.shared
+        let store = ProfileManager.shared.context(forID: self.tab.profileID).passwords
         switch store.lockState {
         case .unlocked:
             let matches = store.credentials(matchingHost: host)
@@ -1102,7 +1105,7 @@ final class BrowserPaneController: NSViewController {
         guard tab.privacyMode == .regular,
               ["http", "https"].contains(tab.displayURL.scheme?.lowercased() ?? ""),
               !password.isEmpty,
-              PasswordStore.shared.lockState == .unlocked
+              ProfileManager.shared.context(forID: self.tab.profileID).passwords.lockState == .unlocked
         else { return }
         pendingLogin = PendingLogin(
             formURL: tab.displayURL, username: username, password: password)
@@ -1149,7 +1152,8 @@ final class BrowserPaneController: NSViewController {
                 Self.applyLoginSave(
                     pending: pending,
                     host: host,
-                    formURL: pending.formURL.absoluteString
+                    formURL: pending.formURL.absoluteString,
+                    profileID: self.tab.profileID
                 )
             }
         }
@@ -1185,8 +1189,8 @@ final class BrowserPaneController: NSViewController {
         return .openManager
     }
 
-    private static func applyLoginSave(pending: PendingLogin, host: String, formURL: String) {
-        let store = PasswordStore.shared
+    private static func applyLoginSave(pending: PendingLogin, host: String, formURL: String, profileID: String) {
+        let store = ProfileManager.shared.context(forID: profileID).passwords
         guard store.lockState == .unlocked else { return }
         switch loginSaveAction(
             matches: store.credentials(matchingHost: host),
@@ -1408,7 +1412,7 @@ extension BrowserPaneController: WKUIDelegate {
             decisionHandler(.deny)
             return
         }
-        let stored = SettingsStore.shared.settings.mediaCapture
+        let stored = ProfileManager.shared.context(forID: self.tab.profileID).settings.settings.mediaCapture
         // Any stored block denies the whole call: a combined request gets
         // one decision, and half a grant is not a thing.
         guard !kinds.contains(where: { stored.decision(for: host, kind: $0) == .block }) else {
@@ -1461,7 +1465,7 @@ extension BrowserPaneController: WKUIDelegate {
                let host = tab.displayURL.host?.lowercased(),
                !host.isEmpty
             {
-                SettingsStore.shared.update {
+                ProfileManager.shared.context(forID: self.tab.profileID).settings.update {
                     $0.mediaCapture.setDecision(granted ? .allow : .block, for: host, kind: kind)
                 }
             }
@@ -1469,7 +1473,7 @@ extension BrowserPaneController: WKUIDelegate {
         }
         if persist, tab.privacyMode == .regular {
             let host = request.host
-            SettingsStore.shared.update {
+            ProfileManager.shared.context(forID: self.tab.profileID).settings.update {
                 $0.mediaCapture.setDecision(granted ? .allow : .block, for: host, kind: kind)
             }
         }

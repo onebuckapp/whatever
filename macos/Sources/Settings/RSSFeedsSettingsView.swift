@@ -25,8 +25,9 @@ import SwiftUI
 /// feeds store and are managed here through the shared reader store, so this
 /// pane never invents a second copy of subscription state.
 struct RSSFeedsSettingsView: View {
-    @ObservedObject private var settings = SettingsStore.shared
-    @ObservedObject private var reader = FeedReaderCoordinator.shared.store
+    @ObservedObject var settings: SettingsStore
+    /// The window's profile library, for subscription rows and counts.
+    @ObservedObject var reader: FeedReaderStore
     // Observed for `revision`: count labels re-resolve below without
     // reopening Settings.
     @ObservedObject private var localization = Localization.shared

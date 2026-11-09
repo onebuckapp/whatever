@@ -38,15 +38,16 @@ final class BrowserCoordinator: NSObject, ObservableObject {
     let history: HistoryRecording = StoreHistoryRecorder()
 
     private(set) var windows: [BrowserWindowController] = []
-    /// Pushes the live half of the web settings onto every open page.
+    /// Pushes the live half of the web settings onto every open page of one
+    /// profile.
     ///
     /// Only the `WKWebView` properties can be changed this way; the rest are read
     /// when a view is built, so those take effect on the next page. Called from
-    /// `SettingsStore.onChange` rather than from each control, so a change made
-    /// anywhere lands the same way.
-    func applyLiveWebSettings() {
-        let settings = SettingsStore.shared.settings.web
-        for window in windows {
+    /// the profile's settings `onChange` (see `ProfileManager`) rather than
+    /// from each control, so a change made anywhere lands the same way.
+    func applyLiveWebSettings(for profileID: String) {
+        let settings = ProfileManager.shared.context(forID: profileID).settings.settings.web
+        for window in windows where window.profileID == profileID {
             for tab in window.tabs {
                 // Skips tabs with no view: they read the configuration half when
                 // they are built, and there is nothing to push live settings onto.
@@ -56,16 +57,16 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
     }
 
-    /// Pushes the window background onto every open page.
+    /// Pushes the window background onto every open page of one profile.
     ///
     /// Only the page-transparency part needs pushing: the background layer
     /// itself reads the store directly, one subscription per window.
-    func applyLiveBackgroundSettings() {
-        let background = SettingsStore.shared.settings.appearance.background
+    func applyLiveBackgroundSettings(for profileID: String) {
+        let background = ProfileManager.shared.context(forID: profileID).settings.settings.appearance.background
         // Inert unless there is a background to reveal. A transparent page over
         // the plain window colour is a different appearance, not this feature.
         let enabled = background.isActive && background.showThroughPages
-        for window in windows {
+        for window in windows where window.profileID == profileID {
             for tab in window.tabs {
                 guard let webView = tab.webView else { continue }
                 PageTransparency.apply(enabled: enabled, to: webView)
@@ -73,14 +74,14 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
     }
 
-    /// Pushes the search link guard onto every open page.
+    /// Pushes the search link guard onto every open page of one profile.
     ///
     /// The script list rebuilds from current settings and the visible
     /// documents patch live, so the toggle answers at once instead of on the
-    /// next navigation. Called from `SettingsStore.onChange`.
-    func applyLiveSearchLinkGuard() {
-        let enabled = SettingsStore.shared.settings.search.cleanResultLinks
-        for window in windows {
+    /// next navigation. Called from the profile's settings `onChange`.
+    func applyLiveSearchLinkGuard(for profileID: String) {
+        let enabled = ProfileManager.shared.context(forID: profileID).settings.settings.search.cleanResultLinks
+        for window in windows where window.profileID == profileID {
             for tab in window.tabs {
                 guard let webView = tab.webView else { continue }
                 SearchLinkGuard.apply(enabled: enabled, to: webView)
@@ -88,18 +89,20 @@ final class BrowserCoordinator: NSObject, ObservableObject {
         }
     }
 
-    /// Pushes the compiled content-blocker lists onto every open page.
+    /// Pushes the compiled content-blocker lists onto every open page of one
+    /// profile.
     ///
     /// Each tab is synced with the exception list for the page it shows, and
     /// only tabs whose blocking actually moved reload: an exception added for
     /// one site must not throw away form state in twenty others. Called from
-    /// `SettingsStore.onChange`, which also fires for the compile
+    /// the profile's settings `onChange`, which also fires for the compile
     /// bookkeeping `refreshIfNeeded` records — at launch there are no pages
     /// yet, and later that bookkeeping always accompanies a real change.
-    func applyLiveContentBlocker() {
-        let store = ContentBlockerStore.shared
+    func applyLiveContentBlocker(for profileID: String) {
+        let manager = ProfileManager.shared
+        let store = manager.context(forID: profileID).blocker
         var liveIDs = Set<UUID>()
-        for window in windows {
+        for window in windows where window.profileID == profileID {
             for tab in window.tabs {
                 guard let webView = tab.webView else { continue }
                 liveIDs.insert(tab.id)

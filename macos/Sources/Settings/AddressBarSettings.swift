@@ -49,7 +49,7 @@ struct AddressBarSettings: Codable, Equatable {
 /// chrome groups; every control writes straight through the store, so the
 /// strip behind the card follows live.
 struct AddressBarSettingsGroups: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
 
     var body: some View {
         SettingsGroup(

@@ -41,7 +41,7 @@ struct ThemeCrashProbeTests {
     @Test("real settings group survives garbage typing")
     @MainActor
     func garbageTyping() async throws {
-        let hosted = NSHostingView(rootView: ThemeCSSSettingsGroups())
+        let hosted = NSHostingView(rootView: ThemeCSSSettingsGroups(store: SettingsStore()))
         hosted.frame = NSRect(x: 0, y: 0, width: 500, height: 600)
         let window = NSWindow(
             contentRect: hosted.frame, styleMask: [.titled],

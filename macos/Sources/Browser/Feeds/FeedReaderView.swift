@@ -23,6 +23,9 @@ import SwiftUI
 /// cards, then collapse to one column on narrow windows.
 struct FeedReaderView: View {
     @ObservedObject private var coordinator = FeedReaderCoordinator.shared
+    /// The window's profile library, passed down from the presenter so two
+    /// windows on different profiles never share subscriptions.
+    @ObservedObject var store: FeedReaderStore
     // Observed for `revision`: every label below re-resolves without
     // reopening the reader.
     @ObservedObject private var localization = Localization.shared
@@ -30,8 +33,6 @@ struct FeedReaderView: View {
     @State private var detail: FeedArticleDetail?
     @State private var isLoadingDetail = false
     @State private var onlyUnread = false
-
-    private var store: FeedReaderStore { coordinator.store }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -185,7 +186,7 @@ struct FeedReaderView: View {
                         spacing: 12
                     ) {
                         ForEach(store.articles) { article in
-                            FeedCardLoader(article: article) { thumbnail, favicon in
+                            FeedCardLoader(article: article, store: store) { thumbnail, favicon in
                                 FeedArticleCard(
                                     article: article,
                                     favicon: favicon,
@@ -268,6 +269,7 @@ struct FeedReaderView: View {
 /// Loads persisted card images without making the card itself stateful.
 private struct FeedCardLoader<Content: View>: View {
     let article: FeedArticleSummary
+    @ObservedObject var store: FeedReaderStore
     let content: (NSImage?, NSImage?) -> Content
     @ObservedObject private var coordinator = FeedReaderCoordinator.shared
     @State private var thumbnail: NSImage?
@@ -276,9 +278,9 @@ private struct FeedCardLoader<Content: View>: View {
     var body: some View {
         content(thumbnail, favicon)
             .task(id: article.articleID) {
-                thumbnail = await coordinator.store.thumbnail(for: article)
-                if let subscription = coordinator.store.subscriptions.first(where: { $0.feedURL == article.feedURL }) {
-                    favicon = await coordinator.store.favicon(for: subscription)
+                thumbnail = await store.thumbnail(for: article)
+                if let subscription = store.subscriptions.first(where: { $0.feedURL == article.feedURL }) {
+                    favicon = await store.favicon(for: subscription)
                 }
             }
     }

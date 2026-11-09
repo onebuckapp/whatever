@@ -758,7 +758,13 @@ struct AppSettings: Codable, Equatable {
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
 
-    private let client: StoreClient
+    /// The profile's store connection, for panes that need more than
+    /// settings (history management reads the same profile's history).
+    let client: StoreClient
+    /// The profile this store reads and writes. Set at creation; the window
+    /// passes its own, so panes and live reads resolve the right document
+    /// without every call site threading an id.
+    let profileID: String
 
     /// Current settings. Starts as the built-in defaults and is replaced once
     /// the store answers, so the UI is never blocked on the first read.
@@ -798,14 +804,17 @@ final class SettingsStore: ObservableObject {
     /// `client` defaults to the shared client when nil: spelled this way
     /// rather than `= .shared` so the main-actor-isolated singleton is only
     /// touched from inside the isolated init body.
-    init(client: StoreClient? = nil) {
+    init(client: StoreClient? = nil, profileID: String = BrowserProfile.defaultID) {
         self.client = client ?? .shared
+        self.profileID = profileID
     }
 
     // MARK: - Loading
 
     /// Loads settings from the store, migrating the legacy UserDefaults
-    /// document on a store that has none.
+    /// document on a store that has none. The legacy migration runs only
+    /// for the default profile: the key is never deleted, so every profile
+    /// loading it would otherwise copy the same pre-store values.
     ///
     /// Safe to call more than once: the second call is ignored once loaded.
     func load() async {
@@ -817,7 +826,8 @@ final class SettingsStore: ObservableObject {
                 // An empty object is what a fresh install reads back, so the
                 // legacy document is the only thing that can carry real choices
                 // forward.
-                if let migrated = migrateLegacyDefaults() {
+                if profileID == BrowserProfile.defaultID,
+                   let migrated = migrateLegacyDefaults() {
                     settings = migrated
                     await saveNow()
                 }
@@ -829,7 +839,8 @@ final class SettingsStore: ObservableObject {
             lastError = error.localizedDescription
             // A store that cannot be reached must not stop the browser from
             // opening, so the defaults stand and the UI can report the failure.
-            if let migrated = migrateLegacyDefaults() {
+            if profileID == BrowserProfile.defaultID,
+               let migrated = migrateLegacyDefaults() {
                 settings = migrated
             }
             isLoaded = true

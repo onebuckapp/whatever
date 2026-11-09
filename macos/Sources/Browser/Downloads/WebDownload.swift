@@ -36,6 +36,8 @@ final class WebDownload: NSObject {
     private let bytesExpected: Int64
     private var lastProgressUpdate = Date.distantPast
     private var terminal = false
+    /// Records rows into the profile whose page started the download.
+    private let client: StoreClient
 
     /// Progress writes are XPC round trips, and the delegate can fire dozens
     /// of times per second on a fast link. At most one store write per
@@ -47,9 +49,11 @@ final class WebDownload: NSObject {
         download: WKDownload,
         sourceURL: URL,
         suggestedFilename: String?,
-        bytesExpected: Int64
+        bytesExpected: Int64,
+        client: StoreClient = .shared
     ) {
         self.id = id
+        self.client = client
         self.download = download
         self.sourceURL = sourceURL
         if let suggestedFilename, !suggestedFilename.isEmpty {
@@ -85,7 +89,7 @@ extension WebDownload: WKDownloadDelegate {
         let source = sourceURL.absoluteString
         let expected = (response.expectedContentLength >= 0) ? response.expectedContentLength : bytesExpected
         Task { @MainActor in
-            try? await StoreClient.shared.recordDownload(
+            try? await client.recordDownload(
                 id: id,
                 sourceURL: source,
                 filename: destination.lastPathComponent,
@@ -108,7 +112,7 @@ extension WebDownload: WKDownloadDelegate {
         lastProgressUpdate = now
         let id = id
         Task { @MainActor in
-            try? await StoreClient.shared.updateDownload(id: id, bytesReceived: totalBytesWritten)
+            try? await client.updateDownload(id: id, bytesReceived: totalBytesWritten)
         }
     }
 
@@ -118,7 +122,7 @@ extension WebDownload: WKDownloadDelegate {
         Task { @MainActor in
             // A delegate that only reports completion may never have written
             // progress; -1 keeps whatever the store has.
-            try? await StoreClient.shared.finishDownload(id: id, bytesReceived: -1)
+            try? await client.finishDownload(id: id, bytesReceived: -1)
             DownloadsBadgeCenter.shared.noteFinished(id: id)
             DownloadsCenter.shared.retire(id: id)
         }
@@ -131,9 +135,9 @@ extension WebDownload: WKDownloadDelegate {
         let cancelled = (error as NSError).code == NSURLErrorCancelled
         Task { @MainActor in
             if cancelled {
-                try? await StoreClient.shared.cancelDownload(id: id)
+                try? await client.cancelDownload(id: id)
             } else {
-                try? await StoreClient.shared.failDownload(
+                try? await client.failDownload(
                     id: id,
                     error: error.localizedDescription,
                     bytesReceived: -1

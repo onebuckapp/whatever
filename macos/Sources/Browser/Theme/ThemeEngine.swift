@@ -32,6 +32,8 @@ import Foundation
 final class ThemeEngine: ObservableObject {
     static let shared = ThemeEngine()
 
+    private let settings: SettingsStore
+
     /// Managed CSS plus the user's `customCSS`, the single source every
     /// region resolves against.
     @Published private(set) var fullCSS = ""
@@ -42,8 +44,11 @@ final class ThemeEngine: ObservableObject {
     private var cachedSpec: Data?
     private var cancellables = Set<AnyCancellable>()
 
-    private init() {
-        SettingsStore.shared.$settings
+    /// `settings` defaults to the shared document; the window passes its
+    /// profile's, so managed CSS and full CSS resolve per profile.
+    init(settings: SettingsStore = .shared) {
+        self.settings = settings
+        settings.$settings
             .map { settings in
                 [
                     String(describing: settings.appearance),
@@ -67,7 +72,7 @@ final class ThemeEngine: ObservableObject {
     func refreshManaged() async {
         generation += 1
         let current = generation
-        let document = Self.managedDocument()
+        let document = managedDocument()
         guard let json = try? JSONSerialization.data(withJSONObject: document),
               let text = String(data: json, encoding: .utf8)
         else { return }
@@ -91,7 +96,7 @@ final class ThemeEngine: ObservableObject {
     }
 
     private func publishFullCSS() {
-        let custom = SettingsStore.shared.settings.appearance.customCSS
+        let custom = settings.settings.appearance.customCSS
         let combined: String
         if custom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             combined = managedCSS
@@ -141,26 +146,26 @@ final class ThemeEngine: ObservableObject {
     /// simple values project: gradients with positions, images, and videos
     /// have no CSS counterpart and stay structured-only (their views still
     /// render them; the managed block simply does not mention them).
-    static func managedDocument() -> [String: [String: String]] {
-        let settings = SettingsStore.shared.settings
+    func managedDocument() -> [String: [String: String]] {
+        let settings = settings.settings
         var document: [String: [String: String]] = [:]
         var tab: [String: String] = [:]
-        projectTabTheme(settings.appearance.tabTheme, into: &tab)
-        tab["border-radius"] = cssPoints(settings.appearance.tabCornerRadius)
+        Self.projectTabTheme(settings.appearance.tabTheme, into: &tab)
+        tab["border-radius"] = Self.cssPoints(settings.appearance.tabCornerRadius)
         if !tab.isEmpty { document[".tab"] = tab }
         var active: [String: String] = [:]
-        projectTabTheme(settings.appearance.activeTabTheme, into: &active)
-        active["border-radius"] = cssPoints(settings.appearance.tabCornerRadius)
+        Self.projectTabTheme(settings.appearance.activeTabTheme, into: &active)
+        active["border-radius"] = Self.cssPoints(settings.appearance.tabCornerRadius)
         if !active.isEmpty { document[".tab:active"] = active }
         document["#addressbar"] = [
-            "border-radius": cssPoints(settings.addressBar.cornerRadius)
+            "border-radius": Self.cssPoints(settings.addressBar.cornerRadius)
         ]
         document["#crawlbar"] = [
             "opacity": String(settings.feeds.crawlBackgroundOpacity),
-            "border-radius": cssPoints(settings.appearance.crawlCornerRadius),
+            "border-radius": Self.cssPoints(settings.appearance.crawlCornerRadius),
         ]
         document["#page"] = [
-            "border-radius": cssPoints(settings.appearance.pageCornerRadius)
+            "border-radius": Self.cssPoints(settings.appearance.pageCornerRadius)
         ]
         return document
     }
@@ -173,7 +178,7 @@ final class ThemeEngine: ObservableObject {
         case .solid:
             props["background-color"] = theme.background.solid.color.hexString
         case .gradient:
-            if let css = cssGradient(theme.background.gradient) {
+            if let css = Self.cssGradient(theme.background.gradient) {
                 props["background-image"] = css
             }
         case .none, .image, .video:

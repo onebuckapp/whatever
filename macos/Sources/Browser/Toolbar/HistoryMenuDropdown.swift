@@ -43,6 +43,10 @@ struct HistoryMenuEntry: Identifiable {
 /// this button" and takes the chosen list index back.
 @MainActor
 final class HistoryMenuController {
+    /// The window's profile. Set at install; the title backfill below reads
+    /// that profile's history, not the shared one.
+    var profileID: String = BrowserProfile.defaultID
+
     private var panel: HistoryMenuDropdown?
     private var entries: [HistoryMenuEntry] = []
     private var selectedID: HistoryMenuEntry.ID?
@@ -147,8 +151,9 @@ final class HistoryMenuController {
         titleTask?.cancel()
         let generation = self.generation
         let wanted = entries.map(\.url)
+        let profileID = self.profileID
         titleTask = Task { [weak self] in
-            guard let payload = try? await StoreClient.shared.recentHistory(limit: 200) else { return }
+            guard let payload = try? await ProfileManager.shared.client(for: profileID).recentHistory(limit: 200) else { return }
             guard !Task.isCancelled else { return }
             let map = Self.titleMap(from: payload)
             guard let self, generation == self.generation, self.isOpen,

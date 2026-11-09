@@ -32,6 +32,9 @@ struct PasswordManagerPopup: CenterPopup {
     /// Prefills the manager's search field, so an unlock from a login form
     /// lands on that site's credentials. Empty for a plain open.
     var initialQuery = ""
+    /// The window's profile. A plain string so the struct stays `Sendable`;
+    /// the card below resolves the profile's store from it.
+    var profileID = BrowserProfile.defaultID
 
     func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
         config
@@ -48,7 +51,10 @@ struct PasswordManagerPopup: CenterPopup {
     }
 
     var body: some View {
-        PasswordManagerCard(initialQuery: initialQuery)
+        PasswordManagerCard(
+            initialQuery: initialQuery,
+            store: ProfileManager.shared.context(forID: profileID).passwords
+        )
             .frame(width: 720, height: 520)
             .background(Color(nsColor: .windowBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -70,10 +76,10 @@ struct PasswordManagerPopup: CenterPopup {
 }
 
 /// The card itself: locked forms or the sidebar + detail, driven by the
-/// shared store. An ordinary view so it can own selection and drafts; the
-/// popup struct above stays `Sendable` with lets only.
+/// window's profile store. An ordinary view so it can own selection and
+/// drafts; the popup struct above stays `Sendable` with lets only.
 private struct PasswordManagerCard: View {
-    @ObservedObject private var store = PasswordStore.shared
+    @ObservedObject private var store: PasswordStore
     // Observed for `revision`: every label below re-resolves without
     // reopening the manager.
     @ObservedObject private var localization = Localization.shared
@@ -83,8 +89,9 @@ private struct PasswordManagerCard: View {
     @State private var hintDraft = ""
     @FocusState private var searchFocused: Bool
 
-    init(initialQuery: String = "") {
+    init(initialQuery: String = "", store: PasswordStore) {
         _query = State(initialValue: initialQuery)
+        _store = ObservedObject(initialValue: store)
     }
 
     private static let sidebarWidth: CGFloat = 220
@@ -95,9 +102,9 @@ private struct PasswordManagerCard: View {
         Group {
             switch store.lockState {
             case .unset:
-                PasswordSetupView()
+                PasswordSetupView(store: store)
             case .locked:
-                PasswordUnlockView()
+                PasswordUnlockView(store: store)
             case .unlocked:
                 manager
             case .unknown:
@@ -289,7 +296,7 @@ private struct PasswordManagerCard: View {
     @ViewBuilder
     private var detail: some View {
         if let site = selectedSite, store.site(site.id) != nil {
-            PasswordSiteDetail(siteID: site.id)
+            PasswordSiteDetail(store: store, siteID: site.id)
                 .id(site.id)
         } else {
             SettingsPlaceholder(
@@ -327,7 +334,7 @@ private struct PasswordSiteIcon: View {
 /// First-run form: choose the master password. A forgotten master password
 /// loses the vault — there is no recovery, so it says so plainly.
 private struct PasswordSetupView: View {
-    @ObservedObject private var store = PasswordStore.shared
+    @ObservedObject var store: PasswordStore
     @State private var password = ""
     @State private var confirm = ""
     @State private var hint = ""
@@ -462,7 +469,7 @@ private struct PasswordSetupView: View {
 
 /// Unlock form: one field, with "wrong password" answered plainly.
 private struct PasswordUnlockView: View {
-    @ObservedObject private var store = PasswordStore.shared
+    @ObservedObject var store: PasswordStore
     @State private var password = ""
     @State private var wrongPassword = false
     @State private var failure: String?
@@ -591,7 +598,7 @@ private struct PasswordUnlockView: View {
 
 /// One site's editor: header fields plus its credential pairs.
 private struct PasswordSiteDetail: View {
-    @ObservedObject private var store = PasswordStore.shared
+    @ObservedObject var store: PasswordStore
     let siteID: String
     let wordlist: [String] = PasswordGenerator.loadWordlist()
 
@@ -619,6 +626,7 @@ private struct PasswordSiteDetail: View {
                 Divider()
                 ForEach(site?.credentials ?? []) { credential in
                     PasswordCredentialRow(
+                        store: store,
                         siteID: siteID,
                         credentialID: credential.id,
                         wordlist: wordlist,
@@ -672,7 +680,7 @@ private struct PasswordSiteDetail: View {
                         focus,
                         forward: !mods.contains(.shift),
                         siteID: siteID,
-                        sites: PasswordStore.shared.vault.sites
+                        sites: store.vault.sites
                     )
                     return advanced ? nil : event
                 }
@@ -816,7 +824,7 @@ private struct PasswordIconButton<Label: View>: View {
 /// One credential pair: username and password fields with reveal, copy,
 /// generate, strength, and delete.
 private struct PasswordCredentialRow: View {
-    @ObservedObject private var store = PasswordStore.shared
+    @ObservedObject var store: PasswordStore
     let siteID: String
     let credentialID: String
     let wordlist: [String]
@@ -992,6 +1000,7 @@ struct PasswordManagerRootView: View {
     let stackID: PopupStackID
     let popupID: String
     var initialQuery = ""
+    var profileID = BrowserProfile.defaultID
 
     var body: some View {
         Color.clear
@@ -1005,7 +1014,7 @@ struct PasswordManagerRootView: View {
                 }
             }
             .task {
-                await PasswordManagerPopup(stackID: stackID, popupID: popupID, initialQuery: initialQuery)
+                await PasswordManagerPopup(stackID: stackID, popupID: popupID, initialQuery: initialQuery, profileID: profileID)
                     .present(popupStackID: stackID)
             }
     }
@@ -1050,9 +1059,12 @@ final class PasswordManagerPresenter {
     private var backdropDragMonitor: Any?
     private var backdropPressPoint: NSPoint?
     private var onDidDismiss: (() -> Void)?
+    /// The window's profile, for the vault the card shows and locks.
+    private let profileID: String
 
-    init(container: NSView, onDidDismiss: (() -> Void)? = nil) {
+    init(container: NSView, profileID: String = BrowserProfile.defaultID, onDidDismiss: (() -> Void)? = nil) {
         self.container = container
+        self.profileID = profileID
         self.onDidDismiss = onDidDismiss
     }
 
@@ -1062,13 +1074,15 @@ final class PasswordManagerPresenter {
 
     /// Opens the manager, or does nothing if it is already open.
     /// `initialQuery` prefills the search field; empty opens unfiltered.
-    func present(initialQuery: String = "") {
+    /// `profileID` selects the vault: the window's profile, so the manager
+    /// shows that profile's logins and locks that profile's vault.
+    func present(initialQuery: String = "", profileID: String = BrowserProfile.defaultID) {
         guard let container, container.window != nil, !isPresented else { return }
         resetForReuse()
 
         let stackID = PopupStackID(rawValue: "passwords-\(UUID().uuidString)")
         let popupID = "passwords"
-        let root = PasswordManagerRootView(stackID: stackID, popupID: popupID, initialQuery: initialQuery)
+        let root = PasswordManagerRootView(stackID: stackID, popupID: popupID, initialQuery: initialQuery, profileID: profileID)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)

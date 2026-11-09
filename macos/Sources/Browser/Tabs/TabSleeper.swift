@@ -62,10 +62,13 @@ final class TabSleeper {
 
     /// Drops one page per qualifying tab. Called by the timer and whenever
     /// the web settings change, so enabling sleeping takes effect at once.
+    /// The threshold resolves per window: profiles sleep on their own terms.
     func sweep() {
-        guard let minutes = SettingsStore.shared.settings.web.sleepInactiveTabs.minutes else { return }
-        let cutoff = Date().addingTimeInterval(-minutes * 60)
         for window in BrowserCoordinator.shared.windows {
+            guard let minutes = ProfileManager.shared.context(forID: window.profileID).settings
+                .settings.web.sleepInactiveTabs.minutes
+            else { continue }
+            let cutoff = Date().addingTimeInterval(-minutes * 60)
             let displayed = Set(window.displayedTabs.map(\.id))
             for tab in window.tabs {
                 guard Self.shouldSleep(

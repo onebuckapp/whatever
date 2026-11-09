@@ -29,6 +29,9 @@ import SwiftUI
 struct AdBlockPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
+    /// The window's profile. A plain string so the struct stays `Sendable`;
+    /// the card resolves the profile's store from it.
+    var profileID = BrowserProfile.defaultID
     /// Lowercased page host the card opened on, or nil for pages without
     /// one (homepage, empty tabs), where there is nothing to except.
     let host: String?
@@ -48,7 +51,10 @@ struct AdBlockPopup: CenterPopup {
     }
 
     var body: some View {
-        AdBlockPopupCard(host: host) {
+        AdBlockPopupCard(
+            store: ProfileManager.shared.context(forID: profileID).settings,
+            host: host
+        ) {
             Task { @MainActor in
                 AdBlockPopupCoordinator.shared.manageTapped(id: popupID)
             }
@@ -79,7 +85,7 @@ struct AdBlockPopup: CenterPopup {
 /// and own the toggle binding. The popup struct above stays `Sendable` with
 /// lets only.
 private struct AdBlockPopupCard: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
 
     /// Lowercased page host, or nil where there is nothing to except.
     let host: String?
@@ -170,6 +176,7 @@ struct AdBlockPopupRootView: View {
     let stackID: PopupStackID
     let popupID: String
     let host: String?
+    var profileID = BrowserProfile.defaultID
 
     var body: some View {
         Color.clear
@@ -186,6 +193,7 @@ struct AdBlockPopupRootView: View {
                 await AdBlockPopup(
                     stackID: stackID,
                     popupID: popupID,
+                    profileID: profileID,
                     host: host
                 )
                 .present(popupStackID: stackID)
@@ -255,13 +263,13 @@ final class AdBlockPopupPresenter {
     ///
     /// Re-opening while it is up would stack a second card on the same
     /// window, and Mijick does not collapse two popups of the same id.
-    func present(host: String?) {
+    func present(host: String?, profileID: String = BrowserProfile.defaultID) {
         guard let container, container.window != nil, !isPresented else { return }
         resetForReuse()
 
         let stackID = PopupStackID(rawValue: "adblock-\(UUID().uuidString)")
         let popupID = "adblock-\(UUID().uuidString)"
-        let root = AdBlockPopupRootView(stackID: stackID, popupID: popupID, host: host)
+        let root = AdBlockPopupRootView(stackID: stackID, popupID: popupID, host: host, profileID: profileID)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)

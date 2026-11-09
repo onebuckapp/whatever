@@ -29,9 +29,13 @@ import AppKit
 final class NavigationController: NSObject {
     weak var owner: BrowserTab?
     private let history: HistoryRecording
+    /// Records downloads into the tab's profile: every row the pipeline
+    /// writes belongs to the profile whose page started it.
+    private let client: StoreClient
 
-    init(history: HistoryRecording) {
+    init(history: HistoryRecording, client: StoreClient = .shared) {
         self.history = history
+        self.client = client
     }
 }
 
@@ -234,7 +238,8 @@ extension NavigationController: WKNavigationDelegate {
             download: download,
             sourceURL: source,
             suggestedFilename: navigationResponse.response.suggestedFilename,
-            bytesExpected: navigationResponse.response.expectedContentLength
+            bytesExpected: navigationResponse.response.expectedContentLength,
+            client: client
         )
         Task { @MainActor in
             DownloadsCenter.shared.adopt(operation)
@@ -256,7 +261,8 @@ extension NavigationController: WKNavigationDelegate {
             download: download,
             sourceURL: source,
             suggestedFilename: nil,
-            bytesExpected: -1
+            bytesExpected: -1,
+            client: client
         )
         Task { @MainActor in
             DownloadsCenter.shared.adopt(operation)
@@ -399,7 +405,12 @@ extension NavigationController: WKNavigationDelegate {
         // and cross-site swaps in a factory-fresh one; both pass through
         // here, so both converge without a reload.
         if navigationAction.targetFrame?.isMainFrame == true {
-            ContentBlockerStore.shared.applyException(
+            // The owning tab's profile: exceptions are per profile, so a
+            // Work exception never unblocks a Personal page.
+            let blocker = ProfileManager.shared.context(
+                forID: owner?.profileID ?? BrowserProfile.defaultID
+            ).blocker
+            blocker.applyException(
                 for: navigationAction.request.url,
                 to: webView.configuration.userContentController
             )

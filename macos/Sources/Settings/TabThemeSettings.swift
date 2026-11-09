@@ -27,7 +27,7 @@ import UniformTypeIdentifiers
 /// the card re-themes as the control moves. Emits groups rather than a whole
 /// pane, because it lives inside Appearance alongside the other groups.
 struct TabThemeSettingsGroups: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
 
     var body: some View {
         TabThemeGroup(

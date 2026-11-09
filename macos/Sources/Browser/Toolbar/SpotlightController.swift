@@ -27,6 +27,22 @@ import AppKit
 /// child's background would be clipped by the parent's corner radius.
 @MainActor
 final class SpotlightController {
+    /// The window's profile. Set at install; every store read below
+    /// resolves through it, so two windows on different profiles search
+    /// different history, hints, and bookmarks. Defaults to the built-in
+    /// profile for tests and unowned use.
+    var profileID: String = BrowserProfile.defaultID
+
+    /// The window's store connection, for history and hints.
+    private var profileClient: StoreClient {
+        ProfileManager.shared.client(for: profileID)
+    }
+
+    /// The window's profile objects, for bookmarks and search settings.
+    private var profileContext: ProfileContext {
+        ProfileManager.shared.context(forID: profileID)
+    }
+
     private weak var fieldView: SpotlightField?
     private weak var container: NSView?
     private var dropdown: SpotlightDropdown?
@@ -168,7 +184,7 @@ final class SpotlightController {
             guard !Task.isCancelled, let self else { return }
             let payload: Data
             do {
-                payload = try await StoreClient.shared.fuzzySearchHistory(
+                payload = try await self.profileClient.fuzzySearchHistory(
                     trimmed,
                     limit: Self.resultLimit
                 )
@@ -189,7 +205,7 @@ final class SpotlightController {
             guard let self else { return }
             let payload: Data
             do {
-                payload = try await StoreClient.shared.spotlightHint(trimmed)
+                payload = try await self.profileClient.spotlightHint(trimmed)
             } catch {
                 return
             }
@@ -227,7 +243,7 @@ final class SpotlightController {
             var kind: String
         }
         guard let hint = try? JSONDecoder().decode(Hint.self, from: payload) else { return }
-        let engine = SettingsStore.shared.settings.search.engine()
+        let engine = profileContext.settings.settings.search.engine()
         guard let resolved = Self.ghost(kind: hint.kind, trimmed: trimmed, engine: engine) else {
             cachedHint = nil
             // The text names its own destination now, so nothing is
@@ -249,7 +265,7 @@ final class SpotlightController {
             guard let self else { return }
             let payload: Data
             do {
-                payload = try await StoreClient.shared.recentHistory(limit: Self.resultLimit)
+                payload = try await self.profileClient.recentHistory(limit: Self.resultLimit)
             } catch {
                 return
             }
@@ -273,7 +289,7 @@ final class SpotlightController {
         // over a few hundred nodes, no store round trip on the keystroke
         // path. History rows get flagged here; bookmark-sourced rows arrive
         // already flagged and keep their flag through the blend.
-        let bookmarkedURLs = Set(BookmarkStore.shared.nodes.values.compactMap { node in
+        let bookmarkedURLs = Set(profileContext.bookmarks.nodes.values.compactMap { node in
             node.kind == .link ? node.url.map(BookmarkURL.normalized) : nil
         })
         let history = Self.markingBookmarked(entries, bookmarkedURLs: bookmarkedURLs)
@@ -319,7 +335,7 @@ final class SpotlightController {
     private func bookmarkEntries(for live: String) -> [HistoryFuzzyEntry] {
         let trimmed = live.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= Self.minimumQueryLength else { return [] }
-        return BookmarkMatcher.hits(query: trimmed, nodes: Array(BookmarkStore.shared.nodes.values)).map {
+        return BookmarkMatcher.hits(query: trimmed, nodes: Array(profileContext.bookmarks.nodes.values)).map {
             HistoryFuzzyEntry(
                 bookmark: $0.node,
                 score: $0.score,
@@ -705,7 +721,7 @@ final class SpotlightController {
             onNavigate?(url)
             return
         }
-        let engine = SettingsStore.shared.settings.search.engine()
+        let engine = profileContext.settings.settings.search.engine()
         guard let url = AddressParser.url(from: text, searchEngine: engine) else { return }
         close()
         onNavigate?(url)

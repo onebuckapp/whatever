@@ -33,6 +33,8 @@ import WebKit
 final class ContentBlockerStore: ObservableObject {
     static let shared = ContentBlockerStore()
 
+    private let settings: SettingsStore
+
     /// Rules per compiled list. WebKit's hard limit is 50k; the margin
     /// keeps a chunk safely below it.
     private static let rulesPerList = 40_000
@@ -56,7 +58,20 @@ final class ContentBlockerStore: ObservableObject {
     /// would throw away form state across the whole window.
     private var appliedSignatures: [UUID: String] = [:]
 
-    private init() {}
+    /// `settings` defaults to the shared document; the window passes its
+    /// profile's, so rules, exceptions, and compile bookkeeping resolve per
+    /// profile. Compiled identifiers include the profile id, so two
+    /// profiles never share or evict each other's lists.
+    init(settings: SettingsStore = .shared) {
+        self.settings = settings
+    }
+
+    /// WebKit identifier for one of this profile's lists. Profile ids are
+    /// restricted to filename-safe characters by the core, so they are
+    /// safe to embed; two profiles never share or evict each other's lists.
+    private func listIdentifier(_ index: Int) -> String {
+        "\(Self.identifierPrefix).\(settings.profileID).\(index)"
+    }
 
     /// Compiles the bundled snapshot plus user rules unless the fingerprint
     /// matches the last compile, in which case the persisted lists are
@@ -67,7 +82,7 @@ final class ContentBlockerStore: ObservableObject {
     /// fingerprint through `SettingsStore`, whose `onChange` fan-out pushes
     /// the lists onto open pages exactly once.
     func refreshIfNeeded() async {
-        let adblock = SettingsStore.shared.settings.adblock
+        let adblock = settings.settings.adblock
         guard adblock.enabled else {
             lists = []
             lastError = nil
@@ -98,7 +113,7 @@ final class ContentBlockerStore: ObservableObject {
             await removeStaleIdentifiers(keeping: compiled.count, previous: adblock.compiledChunks)
             lists = compiled
             lastError = nil
-            SettingsStore.shared.update {
+            settings.update {
                 $0.adblock.lastCompiledHash = meta.inputHashHex
                 $0.adblock.compiledChunks = compiled.count
                 $0.adblock.snapshotVersion = version
@@ -124,7 +139,7 @@ final class ContentBlockerStore: ObservableObject {
         var compiled: [WKContentRuleList] = []
         for (index, json) in chunks.enumerated() {
             compiled.append(
-                try await compile(json: json, identifier: "\(Self.identifierPrefix).\(index)")
+                try await compile(json: json, identifier: listIdentifier(index))
             )
         }
         return compiled
@@ -160,7 +175,7 @@ final class ContentBlockerStore: ObservableObject {
         for index in 0 ..< count {
             let list: WKContentRuleList? = await withCheckedContinuation { continuation in
                 store.lookUpContentRuleList(
-                    forIdentifier: "\(Self.identifierPrefix).\(index)"
+                    forIdentifier: listIdentifier(index)
                 ) { list, _ in
                     continuation.resume(returning: list)
                 }
@@ -182,7 +197,7 @@ final class ContentBlockerStore: ObservableObject {
         for index in count ..< previous {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 store.removeContentRuleList(
-                    forIdentifier: "\(Self.identifierPrefix).\(index)"
+                    forIdentifier: listIdentifier(index)
                 ) { _ in
                     continuation.resume()
                 }
@@ -201,7 +216,7 @@ final class ContentBlockerStore: ObservableObject {
     /// attached afterwards.
     @discardableResult
     func applyException(for url: URL?, to controller: WKUserContentController) -> Bool {
-        let adblock = SettingsStore.shared.settings.adblock
+        let adblock = settings.settings.adblock
         controller.removeAllContentRuleLists()
         guard adblock.enabled else { return false }
         guard let host = url?.host, !Self.isExcepted(host: host, in: adblock.exceptions) else {
@@ -229,7 +244,7 @@ final class ContentBlockerStore: ObservableObject {
     /// coordinator reloads only moved tabs; the controller sync above runs
     /// unconditionally because it is cheap and idempotent.
     func noteApplied(tab id: UUID, attached: Bool) -> Bool {
-        let signature = "\(attached)-\(lists.count)-\(SettingsStore.shared.settings.adblock.lastCompiledHash ?? "")"
+        let signature = "\(attached)-\(lists.count)-\(settings.settings.adblock.lastCompiledHash ?? "")"
         guard appliedSignatures[id] != signature else { return false }
         appliedSignatures[id] = signature
         return true

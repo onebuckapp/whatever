@@ -33,6 +33,9 @@ import SwiftUI
 struct SettingsModalPopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
+    /// The window's profile. A plain string so the struct stays `Sendable`;
+    /// the card resolves the profile's store from it.
+    var profileID = BrowserProfile.defaultID
     let section: SettingsSection
 
     /// The popup configuration shared by the stack registration and the
@@ -75,7 +78,7 @@ struct SettingsModalPopup: CenterPopup {
     /// to stay `Sendable`, so its `section` is fixed for the popup's whole life.
     /// `SettingsModalCard` is an ordinary view and can own the selection.
     var body: some View {
-        SettingsModalCard(stackID: stackID, popupID: popupID, section: section)
+        SettingsModalCard(stackID: stackID, popupID: popupID, section: section, profileID: profileID)
     }
 }
 
@@ -111,6 +114,8 @@ private struct SettingsModalCard: View {
 
     let stackID: PopupStackID
     let popupID: String
+    /// The window's profile, for the store every pane edits.
+    let profileID: String
 
     /// Observed for `revision`: the sidebar and every mounted pane re-render
     /// in the new language without reopening Settings. Lives on the card
@@ -147,9 +152,10 @@ private struct SettingsModalCard: View {
     /// until the modal is closed.
     @State private var mounted: [SettingsSection]
 
-    init(stackID: PopupStackID, popupID: String, section: SettingsSection) {
+    init(stackID: PopupStackID, popupID: String, section: SettingsSection, profileID: String = BrowserProfile.defaultID) {
         self.stackID = stackID
         self.popupID = popupID
+        self.profileID = profileID
         _selected = State(initialValue: section)
         _mounted = State(initialValue: [section])
     }
@@ -172,7 +178,10 @@ private struct SettingsModalCard: View {
             // scroll offset across re-evaluations.
             ZStack {
                 ForEach(mounted, id: \.self) { entry in
-                    SettingsDetailView.view(for: entry)
+                    SettingsDetailView.view(
+                        for: entry,
+                        store: ProfileManager.shared.context(forID: profileID).settings
+                    )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .opacity(entry == selected ? 1 : 0)
                         // `hidden()` takes no argument, so visibility is
@@ -331,6 +340,7 @@ struct SettingsModalRootView: View {
     let stackID: PopupStackID
     let popupID: String
     let section: SettingsSection
+    var profileID = BrowserProfile.defaultID
 
     var body: some View {
         Color.clear
@@ -343,6 +353,7 @@ struct SettingsModalRootView: View {
                 await SettingsModalPopup(
                     stackID: stackID,
                     popupID: popupID,
+                    profileID: profileID,
                     section: section
                 )
                 .present(popupStackID: stackID)
@@ -468,13 +479,13 @@ final class SettingsModalPresenter {
     ///
     /// Re-opening while it is up would stack a second card on the same window,
     /// and Mijick does not collapse two popups of the same id.
-    func present(section: SettingsSection = .general) {
+    func present(section: SettingsSection = .general, profileID: String = BrowserProfile.defaultID) {
         guard let container, container.window != nil, !isPresented else { return }
         resetForReuse()
 
         let stackID = PopupStackID(rawValue: "settings-\(UUID().uuidString)")
         let popupID = "settings"
-        let root = SettingsModalRootView(stackID: stackID, popupID: popupID, section: section)
+        let root = SettingsModalRootView(stackID: stackID, popupID: popupID, section: section, profileID: profileID)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)

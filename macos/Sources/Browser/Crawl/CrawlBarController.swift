@@ -31,7 +31,14 @@ import Combine
 /// but a timeline animation is never cheap when idle.
 @MainActor
 final class CrawlBarController {
-    let store = CrawlStore()
+    let store: CrawlStore
+    /// The window's profile, for feeds settings and the crawl library.
+    private let profileID: String
+
+    /// The window's feeds settings.
+    private var feedsSettings: AppSettings.FeedSettings {
+        ProfileManager.shared.context(forID: profileID).settings.settings.feeds
+    }
 
     /// Fires when the bar enters or leaves the window. The owner re-pins the
     /// page area and fixes sibling order in response.
@@ -117,14 +124,19 @@ final class CrawlBarController {
 
     /// The position in force: the test override when set, Settings otherwise.
     private var effectivePosition: AppSettings.CrawlPosition {
-        crawlPositionForTesting ?? SettingsStore.shared.settings.feeds.crawlPosition
+        crawlPositionForTesting ?? feedsSettings.crawlPosition
     }
 
-    init(container: NSView, onOpenArticle: ((URL) -> Void)? = nil) {
+    init(container: NSView, profileID: String = BrowserProfile.defaultID, onOpenArticle: ((URL) -> Void)? = nil) {
         self.container = container
+        self.profileID = profileID
+        self.store = CrawlStore(
+            client: ProfileManager.shared.client(for: profileID),
+            profileID: profileID
+        )
         self.onOpenArticle = onOpenArticle
         store.startObserving()
-        SettingsStore.shared.$settings
+        ProfileManager.shared.context(forID: profileID).settings.$settings
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
@@ -138,7 +150,7 @@ final class CrawlBarController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
-        ThemeEngine.shared.$fullCSS
+        ProfileManager.shared.context(forID: profileID).theme.$fullCSS
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refreshCrawlThemeStyles() }
@@ -175,7 +187,7 @@ final class CrawlBarController {
     }
 
     private func refresh() {
-        let feeds = SettingsStore.shared.settings.feeds
+        let feeds = feedsSettings
         barHeight = min(max(feeds.crawlBarHeight, 18), 64)
         let enabled = forceEnabledForTesting ?? feeds.crawlEnabled
         let shouldShow = enabled && !store.headlines.isEmpty
@@ -245,7 +257,7 @@ final class CrawlBarController {
         lastPush = nil
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            let feeds = SettingsStore.shared.settings.feeds
+            let feeds = feedsSettings
             let enabled = self.forceEnabledForTesting ?? feeds.crawlEnabled
             guard !enabled || self.store.headlines.isEmpty else { return }
             self.tickerView?.removeFromSuperview()
@@ -306,7 +318,7 @@ final class CrawlBarController {
             children: [ThemeNode(
                 key: "crawlbar", element: "crawlbar", id: "crawlbar")])]
         Task { [weak self] in
-            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            let styles = await ProfileManager.shared.context(forID: profileID).theme.resolve(nodes: tree)
             guard let self, current == self.themeGeneration else { return }
             self.tickerView?.applyThemeCSS(styles["crawlbar"] ?? [:])
         }
@@ -324,6 +336,7 @@ final class CrawlBarController {
 
     private func install(feeds: AppSettings.FeedSettings) {
         let ticker = CrawlTickerNSView()
+        ticker.profileID = profileID
         // Layer-managed and drew-nothing-of-its-own, like its predecessor:
         // the pill comes from its own background layer, so the corners stay
         // transparent onto the page beneath.

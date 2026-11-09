@@ -53,7 +53,11 @@ final class QuitConfirmation {
     /// Reads the settings toggle. A seam so tests need not touch the shared
     /// store.
     var confirmationEnabled: () -> Bool = {
-        SettingsStore.shared.settings.general.warnBeforeQuitting
+        // The front window's profile: quitting quits everything, but the
+        // user answers from the window they are looking at.
+        let manager = ProfileManager.shared
+        let id = BrowserCoordinator.shared.keyController?.profileID ?? manager.defaultProfile.id
+        return manager.context(forID: id).settings.settings.general.warnBeforeQuitting
     }
 
     /// Whether a first press is outstanding. Tests pin the transitions

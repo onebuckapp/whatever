@@ -36,6 +36,8 @@ final class CrawlStore: ObservableObject {
     @Published private(set) var faviconImages: [String: NSImage] = [:]
 
     private let client: StoreClient
+    /// The window's profile, for the reader library favicons come from.
+    private let profileID: String
     private var refreshCancellables = Set<AnyCancellable>()
     private var refreshTimer: AnyCancellable?
     private var isLoading = false
@@ -43,15 +45,20 @@ final class CrawlStore: ObservableObject {
     /// `client` defaults to the shared client when nil: spelled this way
     /// rather than `= .shared` so the main-actor-isolated singleton is only
     /// touched from inside the isolated init body.
-    init(client: StoreClient? = nil) {
+    init(client: StoreClient? = nil, profileID: String = BrowserProfile.defaultID) {
         self.client = client ?? .shared
+        self.profileID = profileID
+    }
+
+    /// The profile's reader library: favicons and subscriptions.
+    private var readerStore: FeedReaderStore {
+        ProfileManager.shared.context(forID: profileID).feeds
     }
 
     /// Starts observing feed refreshes and the periodic fallback. The owning
     /// `CrawlBarController` calls this once; the crawl itself loads on demand
     /// in `reloadIfNeeded`.
     func startObserving() {
-        let readerStore = FeedReaderCoordinator.shared.store
         // Favicon arrivals re-render the ticker with icons. The assignment
         // copies the reference; emissions only happen on real changes.
         readerStore.$faviconImages
@@ -154,7 +161,6 @@ final class CrawlStore: ObservableObject {
     /// carry favicons. Headlines publish before warming: icons pop in as
     /// they arrive instead of delaying the strip.
     private func warmFavicons() async {
-        let readerStore = FeedReaderCoordinator.shared.store
         var subscriptions = readerStore.subscriptions
         if subscriptions.isEmpty {
             guard let data = try? await client.feedSubscriptions() else { return }

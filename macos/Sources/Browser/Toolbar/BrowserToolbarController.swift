@@ -78,6 +78,14 @@ final class BrowserToolbarController: NSObject {
     }
 
     private weak var controller: BrowserWindowController?
+    /// The window's profile objects. Everything window-scoped below —
+    /// settings reads, bookmark nodes, the spotlight's searches — resolves
+    /// through this, so two windows on different profiles show different
+    /// chrome state.
+    private var profileContext: ProfileContext {
+        ProfileManager.shared.context(
+            forID: controller?.profileID ?? BrowserProfile.defaultID)
+    }
     private var cancellables = Set<AnyCancellable>()
     /// Chrome-level subscriptions that must survive tab switches. `cancellables`
     /// resets on every `setTab`, so anything not about the tab lives here.
@@ -126,6 +134,10 @@ final class BrowserToolbarController: NSObject {
 
     init(controller: BrowserWindowController) {
         self.controller = controller
+        // Window chrome searches the window's profile: the spotlight and
+        // the history menu resolve their stores through these ids.
+        spotlightController.profileID = controller.profileID
+        historyMenu.profileID = controller.profileID
         // Built before `super.init()` because the strip is a `let`. The buttons and
         // the field are already initialized by their own declarations, so the strip
         // can be handed them here; their targets, images and delegate need `self`
@@ -147,7 +159,7 @@ final class BrowserToolbarController: NSObject {
         // Address chrome follows settings for the life of the window, not the
         // tab: subscribing here rather than in `setTab` keeps it alive across
         // tab switches.
-        SettingsStore.shared.$settings
+        profileContext.settings.$settings
             .map(\.addressBar)
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -156,7 +168,7 @@ final class BrowserToolbarController: NSObject {
         applyAddressBarStyle()
         // The star follows the bookmarks themselves, not the tab: a save
         // from any window (or the bar's own menus) flips it everywhere.
-        BookmarkStore.shared.$nodes
+        profileContext.bookmarks.$nodes
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncBookmarkButton() }
             .store(in: &chromeCancellables)
@@ -171,7 +183,7 @@ final class BrowserToolbarController: NSObject {
             self?.isEditingAddress = isEditing
             self?.refreshAddressThemeStyles()
         }
-        ThemeEngine.shared.$fullCSS
+        profileContext.theme.$fullCSS
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refreshAddressThemeStyles() }
@@ -242,8 +254,8 @@ final class BrowserToolbarController: NSObject {
             return
         }
 
-        tab.tabController.setFeedsEnabled(SettingsStore.shared.settings.feeds.isEnabled)
-        SettingsStore.shared.$settings
+        tab.tabController.setFeedsEnabled(profileContext.settings.settings.feeds.isEnabled)
+        profileContext.settings.$settings
             .map(\.feeds.isEnabled)
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -308,7 +320,7 @@ final class BrowserToolbarController: NSObject {
             .store(in: &cancellables)
         // Exception edits land here too (the card writes settings), so the
         // shield tracks the toggle without waiting for a navigation.
-        SettingsStore.shared.$settings
+        profileContext.settings.$settings
             .map(\.adblock.exceptions)
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -402,7 +414,7 @@ final class BrowserToolbarController: NSObject {
     /// The candidates are keyed to the page that produced them and cleared on
     /// navigation, so the button follows the page rather than lingering from
     /// the previous one.
-    private func syncFeedButton() {        let isEnabled = SettingsStore.shared.settings.feeds.isEnabled
+    private func syncFeedButton() {        let isEnabled = profileContext.settings.settings.feeds.isEnabled
         let candidates = isEnabled ? tab?.tabController.feedCandidates ?? [] : []
         feedButton.isHidden = candidates.isEmpty
         if candidates.count == 1 {
@@ -441,7 +453,7 @@ final class BrowserToolbarController: NSObject {
         let isBlocking = host.map {
             !ContentBlockerStore.isExcepted(
                 host: $0,
-                in: SettingsStore.shared.settings.adblock.exceptions
+                in: profileContext.settings.settings.adblock.exceptions
             )
         } ?? false
         // One ratio for both states so toggling blocker state never moves
@@ -466,7 +478,7 @@ final class BrowserToolbarController: NSObject {
     /// states share one ratio so toggling saved state never moves the glyph.
     private func syncBookmarkButton() {
         let url = tab?.displayURL
-        let saved = url.map { !$0.isAddresslessPage && BookmarkStore.shared.isBookmarked($0) } ?? false
+        let saved = url.map { !$0.isAddresslessPage && profileContext.bookmarks.isBookmarked($0) } ?? false
         let help = saved ? tr("Edit Bookmark", ctx: "Toolbar") : tr("Add Bookmark", ctx: "Toolbar")
         bookmarkButton.isEnabled = url.map { !$0.isAddresslessPage } ?? false
         let image = BrowserToolbarButton.bundledGlyphImage(
@@ -576,7 +588,7 @@ final class BrowserToolbarController: NSObject {
     }
 
     @objc private func openFeed() {
-        guard SettingsStore.shared.settings.feeds.isEnabled else { return }
+        guard profileContext.settings.settings.feeds.isEnabled else { return }
         let candidates = tab?.tabController.feedCandidates ?? []
         guard !candidates.isEmpty else { return }
         onFeed?(candidates)
@@ -638,7 +650,7 @@ final class BrowserToolbarController: NSObject {
             BookmarkEditor.starMode(
                 for: url,
                 title: tab?.tabController.title ?? "",
-                in: BookmarkStore.shared
+                in: profileContext.bookmarks
             )
         )
     }
@@ -927,7 +939,7 @@ final class BrowserToolbarController: NSObject {
     /// and field height. Height lands on both the container and the field so
     /// the drawn chrome keeps its size.
     private func applyAddressBarStyle() {
-        let style = SettingsStore.shared.settings.addressBar
+        let style = profileContext.settings.settings.addressBar
         toolbarView.setFullWidth(style.fillsWidth)
         addressContainerMaxWidth?.isActive = !style.fillsWidth
         addressContainerPreferredWidth?.isActive = !style.fillsWidth
@@ -959,7 +971,7 @@ final class BrowserToolbarController: NSObject {
             key: "toolbar", element: "toolbar", id: "toolbar", children: [address])
         let tree = [ThemeNode(key: "window", element: "window", children: [toolbar])]
         Task { [weak self] in
-            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            let styles = await profileContext.theme.resolve(nodes: tree)
             guard let self, current == self.themeGeneration else { return }
             let field = styles["addressbar"] ?? [:]
             SpotlightField.cssBackgroundColor = ThemeStyleValue.color(field, "background-color")

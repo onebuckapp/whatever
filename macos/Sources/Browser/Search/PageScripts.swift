@@ -30,6 +30,12 @@ import WebKit
 @MainActor
 enum PageScripts {
     static func rebuild(on webView: WKWebView) {
+        // The profile comes from the window the page lives in: windows are
+        // profile-pure, so the page's toggles always read its own profile's
+        // settings. A windowless view falls back to the default profile.
+        let profileID = BrowserCoordinator.shared.controller(for: webView.window)?.profileID
+            ?? BrowserProfile.defaultID
+        let settings = ProfileManager.shared.context(forID: profileID).settings.settings
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()
         controller.addUserScript(FindBridge.script)
@@ -54,7 +60,6 @@ enum PageScripts {
             browserView.passwordRelay = passwordRelay
             controller.add(passwordRelay, name: PasswordFormBridge.handlerName)
         }
-        let settings = SettingsStore.shared.settings
         let background = settings.appearance.background
         if background.isActive && background.showThroughPages {
             controller.addUserScript(PageTransparency.script)

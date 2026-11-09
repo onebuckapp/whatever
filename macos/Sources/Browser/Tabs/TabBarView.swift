@@ -58,6 +58,9 @@ final class TabInsertionMarkerView: NSView {
 /// dragging source.
 final class TabBarView: NSView {
     weak var delegate: TabBarViewDelegate?
+    /// The window's profile, for tab shape and position. Set by the
+    /// container, which gets it from the content view.
+    var profileID: String = BrowserProfile.defaultID
 
     /// Given a pointer x in the strip, scrolls the strip when the
     /// pointer is near a visible edge. Returns the applied scroll offset.
@@ -331,8 +334,8 @@ final class TabBarView: NSView {
 
     override func layout() {
         super.layout()
-        let shape = SettingsStore.shared.settings.appearance.tabShape
-        let tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
+        let shape = ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabShape
+        let tabsAtBottom = ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabPosition == .bottom
         if shape != lastLaidOutShape || tabsAtBottom != lastLaidOutTabsAtBottom {
             // The cell band moved (attached flush <-> pills floating, or top
             // edge <-> bottom edge), and the container centers the new-tab
@@ -402,14 +405,14 @@ final class TabBarView: NSView {
     func refreshTabThemeStyles() {
         if !themeSubscribed {
             themeSubscribed = true
-            ThemeEngine.shared.$fullCSS
+            ProfileManager.shared.context(forID: profileID).theme.$fullCSS
                 .removeDuplicates()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.refreshTabThemeStyles() }
                 .store(in: &themeCancellables)
             // The shape is not in the stylesheet: a shape flip must still
             // re-resolve so `.tab.pill` / `.tab.attached` follow the flip.
-            SettingsStore.shared.$settings
+            ProfileManager.shared.context(forID: profileID).settings.$settings
                 .map(\.appearance.tabShape)
                 .removeDuplicates()
                 .receive(on: DispatchQueue.main)
@@ -418,7 +421,7 @@ final class TabBarView: NSView {
         }
         themeGeneration += 1
         let current = themeGeneration
-        let shapeClass = SettingsStore.shared.settings.appearance.tabShape == .pills
+        let shapeClass = ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabShape == .pills
             ? "pill" : "attached"
         var tabNodes: [ThemeNode] = []
         for (id, item) in itemViews where item.superview != nil {
@@ -434,7 +437,7 @@ final class TabBarView: NSView {
         let tabs = ThemeNode(key: "tabs", element: "tabs", id: "tabs", children: tabNodes)
         let tree = [ThemeNode(key: "window", element: "window", children: [tabs])]
         Task { [weak self] in
-            let styles = await ThemeEngine.shared.resolve(nodes: tree)
+            let styles = await ProfileManager.shared.context(forID: profileID).theme.resolve(nodes: tree)
             guard let self, current == self.themeGeneration else { return }
             for (_, item) in self.itemViews {
                 item.applyThemeCSS(styles[item.themeKey] ?? [:])
@@ -549,11 +552,11 @@ final class TabBarView: NSView {
 
     private func layoutInsertionMarker() {
         guard let index = insertionIndex else { return }
-        let shape = SettingsStore.shared.settings.appearance.tabShape
+        let shape = ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabShape
         let metrics = Self.cellVerticalMetrics(
             barHeight: bounds.height,
             shape: shape,
-            tabsAtBottom: SettingsStore.shared.settings.appearance.tabPosition == .bottom
+            tabsAtBottom: ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabPosition == .bottom
         )
         let x: CGFloat
         if index >= tabs.count {
@@ -751,6 +754,10 @@ extension TabBarView {
 /// trailing edge once tabs overflow and scroll.
 final class TabBarContainerView: NSView {
     let strip = TabBarView()
+    /// The window's profile, for the strip's shape and position.
+    var profileID: String = BrowserProfile.defaultID {
+        didSet { strip.profileID = profileID }
+    }
     private let scrollView = NSScrollView()
     /// Pinned at the trailing edge, outside the scroll view: the strip
     /// scrolls underneath nothing, and the right fade ends at its gutter.
@@ -1089,8 +1096,8 @@ final class TabBarContainerView: NSView {
             // coordinates; see `newTabButtonY` for the flip from the strip's.
             y: Self.newTabButtonY(
                 barHeight: bounds.height,
-                shape: SettingsStore.shared.settings.appearance.tabShape,
-                tabsAtBottom: SettingsStore.shared.settings.appearance.tabPosition == .bottom
+                shape: ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabShape,
+                tabsAtBottom: ProfileManager.shared.context(forID: profileID).settings.settings.appearance.tabPosition == .bottom
             ),
             width: BrowserToolbarButton.outerWidth,
             height: BrowserToolbarButton.outerHeight

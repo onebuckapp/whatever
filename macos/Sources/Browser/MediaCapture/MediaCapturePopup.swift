@@ -61,6 +61,8 @@ struct MediaCaptureSnapshot: Equatable, Sendable {
 struct MediaCapturePopup: CenterPopup {
     let stackID: PopupStackID
     let popupID: String
+    /// The tab's profile. A plain string so the struct stays `Sendable`.
+    var profileID = BrowserProfile.defaultID
     let snapshot: MediaCaptureSnapshot
 
     func configurePopup(config: CenterPopupConfig) -> CenterPopupConfig {
@@ -80,6 +82,7 @@ struct MediaCapturePopup: CenterPopup {
     var body: some View {
         MediaCaptureCard(
             snapshot: snapshot,
+            profileID: profileID,
             onDecide: { kind, decision in
                 MediaCapturePopupCoordinator.shared.decide(id: popupID, kind: kind, decision: decision)
             },
@@ -117,6 +120,8 @@ struct MediaCapturePopup: CenterPopup {
 /// previews and tests included).
 struct MediaCaptureCard: View {
     let snapshot: MediaCaptureSnapshot
+    /// The tab's profile, for remembered verdicts.
+    let profileID: String
     var onDecide: ((AppSettings.MediaCaptureKind, AppSettings.MediaCaptureDecision) -> Void)?
     var onReload: (() -> Void)?
     var onCancel: (() -> Void)?
@@ -128,11 +133,13 @@ struct MediaCaptureCard: View {
 
     init(
         snapshot: MediaCaptureSnapshot,
+        profileID: String = BrowserProfile.defaultID,
         onDecide: ((AppSettings.MediaCaptureKind, AppSettings.MediaCaptureDecision) -> Void)? = nil,
         onReload: (() -> Void)? = nil,
         onCancel: (() -> Void)? = nil
     ) {
         self.snapshot = snapshot
+        self.profileID = profileID
         _pending = State(initialValue: snapshot.pending)
         _granted = State(initialValue: snapshot.granted)
         self.onDecide = onDecide
@@ -220,7 +227,7 @@ struct MediaCaptureCard: View {
         let host = snapshot.requestHosts[kind] ?? snapshot.host
         return Binding(
             get: {
-                SettingsStore.shared.settings.mediaCapture.decision(for: host, kind: kind)
+                ProfileManager.shared.context(forID: profileID).settings.settings.mediaCapture.decision(for: host, kind: kind)
             },
             set: { decision in
                 // Optimistic mirror: the verdict answers a held request now,
@@ -270,6 +277,7 @@ struct MediaCaptureCard: View {
 struct MediaCaptureRootView: View {
     let stackID: PopupStackID
     let popupID: String
+    var profileID = BrowserProfile.defaultID
     let snapshot: MediaCaptureSnapshot
 
     var body: some View {
@@ -284,7 +292,7 @@ struct MediaCaptureRootView: View {
                 }
             }
             .task {
-                await MediaCapturePopup(stackID: stackID, popupID: popupID, snapshot: snapshot)
+                await MediaCapturePopup(stackID: stackID, popupID: popupID, profileID: profileID, snapshot: snapshot)
                     .present(popupStackID: stackID)
             }
     }
@@ -339,7 +347,7 @@ final class MediaCapturePresenter {
         )
         let stackID = PopupStackID(rawValue: "media-capture-\(UUID().uuidString)")
         let popupID = "media-capture"
-        let root = MediaCaptureRootView(stackID: stackID, popupID: popupID, snapshot: snapshot)
+        let root = MediaCaptureRootView(stackID: stackID, popupID: popupID, profileID: tab.profileID, snapshot: snapshot)
         let hostingView = NSHostingView(rootView: root)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingView)
@@ -400,7 +408,7 @@ final class MediaCapturePresenter {
                let host = tab.displayURL.host?.lowercased(),
                !host.isEmpty
             {
-                SettingsStore.shared.update {
+                ProfileManager.shared.context(forID: tab.profileID).settings.update {
                     $0.mediaCapture.setDecision(.ask, for: host, kind: kind)
                 }
             }

@@ -29,7 +29,7 @@ import SwiftUI
 /// layer, which is the point of the background being a sibling view rather than
 /// anything owned by a tab.
 struct BackgroundSettingsGroups: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
     /// Reported by the layer rather than guessed at here, so the pane only says a
     /// file is unusable when something actually tried to read it.
     @ObservedObject private var diagnostics = BackgroundDiagnostics.shared

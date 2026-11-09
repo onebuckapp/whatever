@@ -40,8 +40,10 @@ enum WebViewFactory {
     @MainActor
     static func makeWebView(
         mode: BrowserPrivacyMode,
-        dataStore: WKWebsiteDataStore
+        dataStore: WKWebsiteDataStore,
+        profileID: String = BrowserProfile.defaultID
     ) -> BrowserWebView {
+        let settings = ProfileManager.shared.context(forID: profileID).settings.settings
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
         // Fresh pool per page: nothing outlives the view.
@@ -58,11 +60,11 @@ enum WebViewFactory {
         configuration.setURLSchemeHandler(homepageHandler, forURLScheme: "whtvr")
         // The half of the user's web settings WebKit only reads here. The other
         // half is applied by `applyLiveWebSettings` once the view exists.
-        SettingsStore.shared.settings.web.apply(to: configuration)
-        // Compiled content-blocker lists. The QR popup builds its own
+        settings.web.apply(to: configuration)
+        // Compiled content-blocker lists for the tab's profile. The QR popup builds its own
         // configuration for a non-interactive SVG view and never sees these.
-        if SettingsStore.shared.settings.adblock.enabled {
-            for list in ContentBlockerStore.shared.lists {
+        if settings.adblock.enabled {
+            for list in ProfileManager.shared.context(forID: profileID).blocker.lists {
                 configuration.userContentController.add(list)
             }
         }
@@ -76,11 +78,11 @@ enum WebViewFactory {
         // opened after the user changed their zoom or user agent came up ignoring
         // both until some unrelated change fanned `web` out and pushed them onto
         // every open view.
-        SettingsStore.shared.settings.web.apply(toWebView: webView)
+        settings.web.apply(toWebView: webView)
         // Read here rather than pushed later, so a page built after the setting
         // changed is already see-through instead of opaque until something else
         // happens to it.
-        let background = SettingsStore.shared.settings.appearance.background
+        let background = settings.appearance.background
         PageTransparency.apply(
             enabled: background.isActive && background.showThroughPages,
             to: webView

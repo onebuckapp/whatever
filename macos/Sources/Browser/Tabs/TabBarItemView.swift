@@ -132,9 +132,9 @@ final class TabBarItemView: NSView {
     /// which also runs before the first paint; the outline reads it in `draw`.
     private func applyCornerRadius() {
         cornerRadius = CGFloat(
-            SettingsStore.shared.settings.appearance.tabCornerRadius)
-        tabShape = SettingsStore.shared.settings.appearance.tabShape
-        tabsAtBottom = SettingsStore.shared.settings.appearance.tabPosition == .bottom
+            ProfileManager.shared.context(forID: tab.profileID).settings.settings.appearance.tabCornerRadius)
+        tabShape = ProfileManager.shared.context(forID: tab.profileID).settings.settings.appearance.tabShape
+        tabsAtBottom = ProfileManager.shared.context(forID: tab.profileID).settings.settings.appearance.tabPosition == .bottom
         // Layout, not just display: the fill layers take their corners there,
         // so display alone would redraw the outline while the fill kept the
         // old curve — which is why existing tabs ignored the slider until
@@ -465,7 +465,7 @@ final class TabBarItemView: NSView {
         // Tab chrome theming: the active cell reads its own configuration,
         // every other cell the shared one. `removeDuplicates` keeps slider
         // drags in Settings from rebuilding media layers per tick.
-        SettingsStore.shared.$settings
+        ProfileManager.shared.context(forID: tab.profileID).settings.$settings
             .map { ($0.appearance.tabTheme, $0.appearance.activeTabTheme, $0.appearance.tabCornerRadius, $0.appearance.tabShape, $0.appearance.tabPosition) }
             .removeDuplicates { $0 == $1 }
             .receive(on: DispatchQueue.main)
@@ -607,7 +607,7 @@ final class TabBarItemView: NSView {
     /// rebuilds only on configuration change; the CSS overlay below runs on
     /// every pass so pushed styles never wait for one.
     private func applyTheme() {
-        let settings = SettingsStore.shared.settings.appearance
+        let settings = ProfileManager.shared.context(forID: tab.profileID).settings.settings.appearance
         let config = selected ? settings.activeTabTheme : settings.tabTheme
         if let applied = appliedThemeKey, applied == (config, selected) {
             // Structured stack is current; the CSS overlay below still runs.

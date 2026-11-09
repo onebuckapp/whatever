@@ -24,18 +24,25 @@ import SwiftUI
 /// stay about layout and this file stays about the settings themselves.
 enum SettingsDetailView {
     /// `AnyView` rather than `some View`: a switch over eight cases has eight
-    /// unrelated concrete types, which `some View` cannot unify.
-    static func view(for section: SettingsSection) -> AnyView {
+    /// unrelated concrete types, which `some View` cannot unify. Every pane
+    /// takes the window's store, so a settings window edits the profile it
+    /// opened over; the bookmark and blocker panes take their profile's
+    /// objects too, resolved here so no pane reaches across profiles.
+    @MainActor
+    static func view(for section: SettingsSection, store: SettingsStore) -> AnyView {
+        // Resolved once per opening: the context caches per profile, so
+        // every pane below shares one instance of each object.
+        let context = ProfileManager.shared.context(forID: store.profileID)
         switch section {
-        case .general: AnyView(GeneralSettingsView())
-        case .appearance: AnyView(AppearanceSettingsView())
-        case .web: AnyView(WebSettingsView())
-        case .contentBlocker: AnyView(ContentBlockerSettingsView())
-        case .bookmarks: AnyView(BookmarksSettingsView())
-        case .rssFeeds: AnyView(RSSFeedsSettingsView())
-        case .history: AnyView(HistorySettingsView())
-        case .search: AnyView(SearchSettingsView())
-        case .downloads: AnyView(DownloadsSettingsView())
+        case .general: return AnyView(GeneralSettingsView(store: store))
+        case .appearance: return AnyView(AppearanceSettingsView(store: store))
+        case .web: return AnyView(WebSettingsView(store: store))
+        case .contentBlocker: return AnyView(ContentBlockerSettingsView(store: store, blocker: context.blocker))
+        case .bookmarks: return AnyView(BookmarksSettingsView(bookmarks: context.bookmarks, store: store))
+        case .rssFeeds: return AnyView(RSSFeedsSettingsView(settings: store, reader: context.feeds))
+        case .history: return AnyView(HistorySettingsView(store: store))
+        case .search: return AnyView(SearchSettingsView(store: store))
+        case .downloads: return AnyView(DownloadsSettingsView(store: context.downloads))
         }
     }
 }
@@ -50,7 +57,7 @@ struct LanguageOption: Hashable, Identifiable {
 }
 
 struct GeneralSettingsView: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
     // Observed for `revision`: a language switch re-renders every migrated
     // literal below without a relaunch.
     @ObservedObject private var localization = Localization.shared
@@ -279,6 +286,7 @@ struct AppIconView: View {
 // MARK: - Appearance
 
 struct AppearanceSettingsView: View {
+    @ObservedObject var store: SettingsStore
     @ObservedObject private var grain = NoiseOverlaySettings.shared
     @State private var filter = ""
     @State private var confirmingReset = false
@@ -297,25 +305,25 @@ struct AppearanceSettingsView: View {
                     "Window Background",
                     "background wallpaper backdrop image video fill page corners rounded"
                 ) {
-                    BackgroundSettingsGroups()
+                    BackgroundSettingsGroups(store: store)
                 }
                 if matches(
                     "Inactive Tabs Current Tab",
                     "tab tabs theme inactive current foreground text color colour corner corners rounded position top bottom strip"
                 ) {
-                    TabThemeSettingsGroups()
+                    TabThemeSettingsGroups(store: store)
                 }
                 if matches(
                     "Address Bar",
                     "address bar field width pill corner corners height rounded"
                 ) {
-                    AddressBarSettingsGroups()
+                    AddressBarSettingsGroups(store: store)
                 }
                 if matches(
                     "Custom CSS",
                     "css theme stylesheet style customize custom advanced code editor highlight"
                 ) {
-                    ThemeCSSSettingsGroups()
+                    ThemeCSSSettingsGroups(store: store)
                 }
                 if matches("Reset Appearance", "reset restore defaults factory built-in appearance") {
                     resetGroup
@@ -485,7 +493,7 @@ struct AppearanceSettingsView: View {
     /// The grain persist lands on already-default noise, so the store's
     /// change detection swallows it and nothing saves twice.
     private func resetAppearance() {
-        SettingsStore.shared.resetAppearance()
+        store.resetAppearance()
         grain.reset()
     }
 }
@@ -493,7 +501,7 @@ struct AppearanceSettingsView: View {
     // MARK: - Web
 
 struct WebSettingsView: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
 
     var body: some View {
         SettingsDetailStack {
@@ -648,7 +656,8 @@ struct WebSettingsView: View {
 /// from any surface appears here without a reload, and folders nest the way
 /// they do on the bar.
 struct BookmarksSettingsView: View {
-    @ObservedObject private var store = BookmarkStore.shared
+    @ObservedObject var bookmarks: BookmarkStore
+    @ObservedObject var store: SettingsStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -658,8 +667,8 @@ struct BookmarksSettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
-            if !store.isLoaded {
-                await store.load()
+            if !bookmarks.isLoaded {
+                await bookmarks.load()
             }
         }
     }
@@ -671,7 +680,7 @@ struct BookmarksSettingsView: View {
         HStack {
             Toggle(
                 tr("Show bookmarks bar", ctx: "Settings.Bookmarks"),
-                isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
+                isOn: store.binding(\.bookmarks.showBar)
             )
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -688,10 +697,10 @@ struct BookmarksSettingsView: View {
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
             Button(tr("Remove All", ctx: "Settings.Bookmarks")) {
-                store.removeAll()
+                bookmarks.removeAll()
             }
             .controlSize(.small)
-            .disabled(store.nodes.isEmpty || !store.isLoaded)
+            .disabled(bookmarks.nodes.isEmpty || !bookmarks.isLoaded)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -706,17 +715,17 @@ struct BookmarksSettingsView: View {
     /// version, same as the other panes.
     @ViewBuilder
     private var content: some View {
-        if !store.isLoaded {
+        if !bookmarks.isLoaded {
             listed {
                 ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        } else if let failure = store.lastError, store.nodes.isEmpty {
+        } else if let failure = bookmarks.lastError, bookmarks.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "exclamationmark.triangle",
                 title: tr("Bookmarks unavailable", ctx: "Settings.Bookmarks"),
                 message: failure
             )
-        } else if store.nodes.isEmpty {
+        } else if bookmarks.nodes.isEmpty {
             SettingsPlaceholder(
                 symbol: "bookmark",
                 title: tr("No bookmarks yet", ctx: "Settings.Bookmarks"),
@@ -726,8 +735,8 @@ struct BookmarksSettingsView: View {
             listed {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(store.roots) { node in
-                            BookmarkSettingsRow(node: node, store: store)
+                        ForEach(bookmarks.roots) { node in
+                            BookmarkSettingsRow(node: node, store: bookmarks)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -807,7 +816,7 @@ private struct BookmarkSettingsRow: View {
 // MARK: - History
 
 struct HistorySettingsView: View {
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
     // Observed for `revision`: visit-count labels re-resolve below without
     // reopening Settings.
     @ObservedObject private var localization = Localization.shared
@@ -938,7 +947,7 @@ struct HistorySettingsView: View {
 
     private func load() async {
         do {
-            entries = HistoryEntry.decodeList(try await StoreClient.shared.recentHistory(limit: 200))
+            entries = HistoryEntry.decodeList(try await store.client.recentHistory(limit: 200))
         } catch {
             entries = []
         }
@@ -967,7 +976,7 @@ struct HistorySettingsView: View {
 
     private func remove(_ entry: HistoryEntry) async {
         do {
-            try await StoreClient.shared.deleteHistoryEntry(id: entry.id)
+            try await store.client.deleteHistoryEntry(id: entry.id)
             entries.removeAll { $0.id == entry.id }
         } catch {
             // Leave the row in place: a failed delete that looks like a
@@ -977,12 +986,12 @@ struct HistorySettingsView: View {
 
     private func deleteOlderThan() async {
         let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        guard (try? await StoreClient.shared.deleteHistory(olderThan: cutoff)) != nil else { return }
+        guard (try? await store.client.deleteHistory(olderThan: cutoff)) != nil else { return }
         await load()
     }
 
     private func clearAll() async {
-        guard (try? await StoreClient.shared.clearHistory()) != nil else { return }
+        guard (try? await store.client.clearHistory()) != nil else { return }
         entries = []
     }
 }
@@ -998,7 +1007,7 @@ struct SearchSettingsView: View {
         case name, address, queryItem
     }
 
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var store: SettingsStore
     @State private var isAdding = false
     @State private var draft = CustomSearchEngine()
     @FocusState private var focusedField: EngineField?
@@ -1257,7 +1266,11 @@ struct SearchSettingsView: View {
 // MARK: - Downloads
 
 struct DownloadsSettingsView: View {
-    @StateObject private var store = DownloadsStore()
+    @StateObject private var store: DownloadsStore
+
+    init(store: DownloadsStore) {
+        _store = StateObject(wrappedValue: store)
+    }
     // Observed for `revision`: the count summary re-resolves below without
     // reopening Settings.
     @ObservedObject private var localization = Localization.shared
@@ -1351,8 +1364,8 @@ struct DownloadsSettingsView: View {
 // MARK: - Content Blocker
 
 struct ContentBlockerSettingsView: View {
-    @ObservedObject private var store = SettingsStore.shared
-    @ObservedObject private var blocker = ContentBlockerStore.shared
+    @ObservedObject var store: SettingsStore
+    @ObservedObject var blocker: ContentBlockerStore
     // Observed for `revision`: the stat summaries re-resolve below without
     // reopening Settings.
     @ObservedObject private var localization = Localization.shared
