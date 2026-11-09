@@ -167,10 +167,19 @@ struct WhateverApp: App {
                 }
                 .keyboardShortcut("0", modifiers: .command)
                 Divider()
-                Toggle(
-                    tr("Show Bookmarks Bar", ctx: "Menu.View"),
-                    isOn: SettingsStore.shared.binding(\.bookmarks.showBar)
-                )
+                Button(tr("Show Bookmarks Bar", ctx: "Menu.View")) {
+                    // Flips the key window's flag rather than binding the
+                    // shared document: the bar observes the window's profile
+                    // store, a different instance (and possibly profile) than
+                    // the shared one, so a binding here would write where the
+                    // bar never looks. A Button also keeps key-window lookup
+                    // at action time, which is what keeps this safe under
+                    // XCTest, where it is fatal at menu-build time.
+                    guard let id = BrowserCoordinator.shared.keyController?.profileID else { return }
+                    ProfileManager.shared.context(forID: id).settings.update {
+                        $0.bookmarks.showBar.toggle()
+                    }
+                }
                 .keyboardShortcut("b", modifiers: [.command, .shift])
             }
             // After, not replacing: the stock Help menu is just its search

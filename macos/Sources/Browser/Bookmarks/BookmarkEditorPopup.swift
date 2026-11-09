@@ -341,9 +341,12 @@ final class BookmarkEditorPresenter {
     private var backdropDragMonitor: Any?
     private var backdropPressPoint: NSPoint?
     private var onDidDismiss: (() -> Void)?
+    /// The window's profile, for the bookmarks the editor reads and writes.
+    private let profileID: String
 
-    init(container: NSView, onDidDismiss: (() -> Void)? = nil) {
+    init(container: NSView, profileID: String = BrowserProfile.defaultID, onDidDismiss: (() -> Void)? = nil) {
         self.container = container
+        self.profileID = profileID
         self.onDidDismiss = onDidDismiss
     }
 
@@ -356,7 +359,7 @@ final class BookmarkEditorPresenter {
         guard let container, container.window != nil, !isPresented else { return }
         resetForReuse()
 
-        let store = BookmarkStore.shared
+        let store = ProfileManager.shared.context(forID: profileID).bookmarks
         let kind = BookmarkEditor.kind(for: mode, in: store)
         let initial: (title: String, url: String, parent: String?)
         switch mode {

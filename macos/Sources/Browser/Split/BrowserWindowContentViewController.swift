@@ -565,7 +565,7 @@ final class BrowserWindowContentViewController: NSViewController {
             // Fall through and reopen: the mode belongs to this press, not
             // to whatever the previous card was showing.
         }
-        let presenter = BookmarkEditorPresenter(container: view) { [weak self] in
+        let presenter = BookmarkEditorPresenter(container: view, profileID: profileID) { [weak self] in
             self?.bookmarkEditorPresenter = nil
             self?.releaseShield(id: "bookmark-editor")
         }
